@@ -329,7 +329,7 @@ export default function MixBooksPage() {
                       />
                       <div
                         className={cn(
-                          "ps-3 pe-1.5 py-2.5 flex flex-col items-center justify-center min-h-[3.5rem] transition-colors duration-150",
+                          "ps-3 pe-1.5 py-2.5 flex flex-col items-center justify-center min-h-[3.5rem] gap-0.5 transition-colors duration-150",
                           book.selected
                             ? "bg-primary/10"
                             : "bg-card group-hover:bg-primary/5",
@@ -344,6 +344,16 @@ export default function MixBooksPage() {
                           )}
                         >
                           {displayNum(book.id)}
+                        </span>
+                        <span
+                          className={cn(
+                            "text-[9px] font-medium leading-none transition-colors duration-150",
+                            book.selected
+                              ? "text-primary/60"
+                              : "text-muted-foreground/50 group-hover:text-primary/50",
+                          )}
+                        >
+                          {isRTL ? "دفتر" : "Book"}
                         </span>
                       </div>
                     </div>
