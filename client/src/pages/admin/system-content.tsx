@@ -401,7 +401,7 @@ export default function SystemContentPage() {
     queryKey: ["/api/system-content"],
   });
 
-  const items = data?.data || [{}];
+  const items = data?.data || [];
 
   const selectedItem = items.find((item) => item.id === selectedId);
 
