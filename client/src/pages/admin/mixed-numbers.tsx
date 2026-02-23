@@ -34,6 +34,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Check,
   RotateCcw,
   Shuffle,
@@ -43,7 +48,6 @@ import {
   X,
   Printer,
   FileDown,
-  Clock,
   Hash,
   Eye,
   EyeOff,
@@ -52,8 +56,10 @@ import {
   XCircle,
   Lock,
   Unlock,
-  Layers,
   Calendar,
+  Layers,
+  TrendingUp,
+  PlusCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -66,9 +72,15 @@ const toArabicNumeral = (num: number): string => {
 };
 
 export default function MixedNumbersPage() {
-  const { t, language } = useLanguage();
+  const { language } = useLanguage();
   const { toast } = useToast();
-  const { savedSets, addSet, deleteSet: storeDeleteSet, toggleAvailability, setCounter, incrementCounter } = useMixStore();
+  const {
+    savedSets,
+    addSet,
+    deleteSet: storeDeleteSet,
+    toggleAvailability,
+    incrementCounter,
+  } = useMixStore();
   const isRTL = language === "ar";
   const dir = isRTL ? "rtl" : "ltr";
 
@@ -84,9 +96,8 @@ export default function MixedNumbersPage() {
 
   const isPreviewMode = previewSetId !== null;
 
-  const togglePreview = (id: number) => {
+  const togglePreview = (id: number) =>
     setPreviewSetId(previewSetId === id ? null : id);
-  };
 
   const toggleNumber = (num: number) => {
     if (selectedNumbers.includes(num)) {
@@ -97,10 +108,8 @@ export default function MixedNumbersPage() {
   };
 
   const clearSelection = () => setSelectedNumbers([]);
-
-  const selectAll = () => {
+  const selectAll = () =>
     setSelectedNumbers(Array.from({ length: 100 }, (_, i) => i + 1));
-  };
 
   const randomSelection = (count: number = 6) => {
     const nums: number[] = [];
@@ -170,6 +179,7 @@ export default function MixedNumbersPage() {
 
   const availableCount = savedSets.filter((b) => b.status === "available").length;
   const unavailableCount = savedSets.filter((b) => b.status === "unavailable").length;
+  const totalNumbers = savedSets.reduce((acc, s) => acc + s.numbers.length, 0);
 
   return (
     <AdminLayout>
@@ -196,53 +206,112 @@ export default function MixedNumbersPage() {
           }
         />
 
+        {savedSets.length > 0 && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              {
+                label: isRTL ? "إجمالي الدفاتر" : "Total Books",
+                value: displayNum(savedSets.length),
+                icon: <BookCopy className="h-4 w-4" />,
+                color: "text-primary",
+                bg: "bg-primary/10",
+              },
+              {
+                label: isRTL ? "متاح" : "Available",
+                value: displayNum(availableCount),
+                icon: <CheckCircle2 className="h-4 w-4" />,
+                color: "text-emerald-600 dark:text-emerald-400",
+                bg: "bg-emerald-500/10",
+              },
+              {
+                label: isRTL ? "غير متاح" : "Unavailable",
+                value: displayNum(unavailableCount),
+                icon: <XCircle className="h-4 w-4" />,
+                color: "text-muted-foreground",
+                bg: "bg-muted",
+              },
+              {
+                label: isRTL ? "إجمالي الأرقام" : "Total Numbers",
+                value: displayNum(totalNumbers),
+                icon: <TrendingUp className="h-4 w-4" />,
+                color: "text-violet-600 dark:text-violet-400",
+                bg: "bg-violet-500/10",
+              },
+            ].map((stat) => (
+              <Card
+                key={stat.label}
+                className="border shadow-sm hover:shadow-md transition-shadow"
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-medium text-muted-foreground">
+                      {stat.label}
+                    </span>
+                    <div className={cn("p-1.5 rounded-lg", stat.bg)}>
+                      <span className={stat.color}>{stat.icon}</span>
+                    </div>
+                  </div>
+                  <p className={cn("text-2xl font-bold tabular-nums", stat.color)}>
+                    {stat.value}
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           <div className="xl:col-span-2 space-y-6">
-            <Card>
-              <CardHeader className="pb-4">
+            <Card className="border shadow-sm">
+              <CardHeader className="pb-4 border-b">
                 <div className="flex items-center justify-between flex-wrap gap-3">
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Hash className="h-5 w-5 text-primary" />
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <div className="p-1.5 rounded-lg bg-primary/10">
+                      <Hash className="h-4 w-4 text-primary" />
+                    </div>
                     {isRTL ? "جدول الأرقام" : "Number Grid"}
                   </CardTitle>
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-xs px-3 py-1">
-                      {isRTL ? "١ - ١٠٠" : "1 - 100"}
-                    </Badge>
                     <Badge
-                      variant={
-                        selectedNumbers.length > 0 ? "default" : "secondary"
-                      }
-                      className="text-xs px-3 py-1"
+                      variant="outline"
+                      className="text-xs px-3 py-1 font-mono"
                     >
-                      {isRTL ? "المختارة" : "Selected"}:{" "}
-                      {displayNum(selectedNumbers.length)}
+                      {isRTL ? "١ – ١٠٠" : "1 – 100"}
                     </Badge>
+                    {selectedNumbers.length > 0 && (
+                      <Badge className="text-xs px-3 py-1">
+                        {isRTL ? "المختارة" : "Selected"}:{" "}
+                        {displayNum(selectedNumbers.length)}
+                      </Badge>
+                    )}
                   </div>
                 </div>
               </CardHeader>
 
-              <CardContent className="space-y-4">
+              <CardContent className="pt-4 space-y-4">
                 {isPreviewMode && (
-                  <div className="flex items-center justify-between bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg px-4 py-2">
+                  <div className="flex items-center justify-between rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30 px-4 py-2.5">
                     <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 text-sm font-medium">
-                      <Eye className="h-4 w-4" />
+                      <Eye className="h-4 w-4 shrink-0" />
                       {isRTL ? "معاينة:" : "Previewing:"}{" "}
-                      {savedSets.find((s) => s.id === previewSetId)?.drawName}
+                      <span className="font-semibold">
+                        {savedSets.find((s) => s.id === previewSetId)?.drawName}
+                      </span>
                     </div>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => setPreviewSetId(null)}
-                      className="h-7 text-amber-700 dark:text-amber-400"
+                      className="h-7 gap-1 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/50"
                       data-testid="button-close-preview"
                     >
-                      <X className="h-4 w-4 mr-1" />
+                      <X className="h-3.5 w-3.5" />
                       {isRTL ? "إغلاق" : "Close"}
                     </Button>
                   </div>
                 )}
-                <div className="grid grid-cols-10 gap-1.5 md:gap-2">
+
+                <div className="grid grid-cols-10 gap-1.5">
                   {Array.from({ length: 100 }, (_, i) => i + 1).map((num) => {
                     const isSelected = selectedNumbers.includes(num);
                     const isPreviewed =
@@ -255,26 +324,29 @@ export default function MixedNumbersPage() {
                         disabled={isPreviewMode}
                         data-testid={`button-grid-number-${num}`}
                         className={cn(
-                          "w-full h-10 md:h-12 rounded-lg text-sm md:text-base font-bold transition-all duration-200 border-2 relative",
-                          !isPreviewMode && "hover:scale-105 active:scale-95",
+                          "relative w-full h-9 md:h-10 rounded-lg text-xs md:text-sm font-bold transition-all duration-150 border select-none",
+                          !isPreviewMode &&
+                            "hover:scale-105 active:scale-95 cursor-pointer",
                           isPreviewed
-                            ? "bg-amber-500 text-white border-amber-500 shadow-lg shadow-amber-500/30 ring-2 ring-amber-400/20"
+                            ? "bg-amber-500 text-white border-amber-500 shadow-md shadow-amber-500/30"
                             : isSelected
-                              ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/30 ring-2 ring-primary/20"
+                              ? "bg-primary text-primary-foreground border-primary shadow-md shadow-primary/30"
                               : isPreviewMode
-                                ? "bg-card text-card-foreground/30 border-border/20"
-                                : "bg-card text-card-foreground border-border/50 hover:border-primary/40 hover:bg-primary/5",
+                                ? "bg-muted/40 text-muted-foreground/30 border-transparent"
+                                : "bg-card text-card-foreground border-border hover:border-primary/50 hover:bg-primary/5",
                         )}
                       >
-                        {isPreviewed && (
-                          <div className="absolute -top-1 -right-1 bg-white rounded-full shadow-sm">
-                            <Check className="h-3 w-3 text-amber-500" />
-                          </div>
-                        )}
-                        {!isPreviewed && isSelected && !isPreviewMode && (
-                          <div className="absolute -top-1 -right-1 bg-white rounded-full shadow-sm">
-                            <Check className="h-3 w-3 text-primary" />
-                          </div>
+                        {(isPreviewed || (isSelected && !isPreviewMode)) && (
+                          <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-white shadow-sm">
+                            <Check
+                              className={cn(
+                                "h-2.5 w-2.5",
+                                isPreviewed
+                                  ? "text-amber-500"
+                                  : "text-primary",
+                              )}
+                            />
+                          </span>
                         )}
                         {displayNum(num)}
                       </button>
@@ -282,51 +354,46 @@ export default function MixedNumbersPage() {
                   })}
                 </div>
 
-                <div className="flex items-center gap-2 flex-wrap pt-2">
+                <div className="flex items-center gap-2 flex-wrap pt-1 border-t">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={clearSelection}
                     disabled={selectedNumbers.length === 0}
-                    className="gap-2"
+                    className="gap-2 h-8 text-xs"
                     data-testid="button-clear-all"
                   >
-                    <RotateCcw className="h-4 w-4" />
+                    <RotateCcw className="h-3.5 w-3.5" />
                     {isRTL ? "مسح الكل" : "Clear All"}
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={selectAll}
-                    className="gap-2"
+                    className="gap-2 h-8 text-xs"
                     data-testid="button-select-all"
                   >
-                    <Check className="h-4 w-4" />
+                    <Check className="h-3.5 w-3.5" />
                     {isRTL ? "تحديد الكل" : "Select All"}
                   </Button>
                   <Select onValueChange={(v) => randomSelection(parseInt(v))}>
-                    <SelectTrigger className="w-auto h-9 gap-2" data-testid="select-random-mix">
-                      <Shuffle className="h-4 w-4" />
+                    <SelectTrigger
+                      className="w-auto h-8 gap-2 text-xs"
+                      data-testid="select-random-mix"
+                    >
+                      <Shuffle className="h-3.5 w-3.5" />
                       <SelectValue
                         placeholder={isRTL ? "خلط عشوائي" : "Random Mix"}
                       />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="6">
-                        {isRTL ? "٦ أرقام" : "6 numbers"}
-                      </SelectItem>
-                      <SelectItem value="10">
-                        {isRTL ? "١٠ أرقام" : "10 numbers"}
-                      </SelectItem>
-                      <SelectItem value="20">
-                        {isRTL ? "٢٠ رقم" : "20 numbers"}
-                      </SelectItem>
-                      <SelectItem value="30">
-                        {isRTL ? "٣٠ رقم" : "30 numbers"}
-                      </SelectItem>
-                      <SelectItem value="50">
-                        {isRTL ? "٥٠ رقم" : "50 numbers"}
-                      </SelectItem>
+                      {[6, 10, 20, 30, 50].map((n) => (
+                        <SelectItem key={n} value={String(n)}>
+                          {isRTL
+                            ? `${toArabicNumeral(n)} أرقام`
+                            : `${n} numbers`}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -334,162 +401,223 @@ export default function MixedNumbersPage() {
             </Card>
 
             {savedSets.length > 0 && (
-              <Card>
-                <CardHeader className="pb-3">
+              <Card className="border shadow-sm">
+                <CardHeader className="pb-3 border-b">
                   <div className="flex items-center justify-between flex-wrap gap-3">
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                      <BookCopy className="h-5 w-5 text-primary" />
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <div className="p-1.5 rounded-lg bg-primary/10">
+                        <BookCopy className="h-4 w-4 text-primary" />
+                      </div>
                       {isRTL ? "دفاتر الخلطة" : "Mix Books"}
-                      <Badge variant="secondary" className="text-xs">
+                      <Badge variant="secondary" className="text-xs tabular-nums">
                         {displayNum(savedSets.length)}
                       </Badge>
                     </CardTitle>
                     <div className="flex items-center gap-2">
-                      <Badge className="bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20 text-xs">
-                        <CheckCircle2 className="h-3 w-3 mr-1" />
-                        {isRTL ? "متاح" : "Available"}: {displayNum(availableCount)}
+                      <Badge className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 text-xs gap-1">
+                        <CheckCircle2 className="h-3 w-3" />
+                        {displayNum(availableCount)}
                       </Badge>
-                      <Badge variant="secondary" className="text-xs">
-                        <XCircle className="h-3 w-3 mr-1" />
-                        {isRTL ? "غير متاح" : "Unavailable"}: {displayNum(unavailableCount)}
+                      <Badge
+                        variant="secondary"
+                        className="text-xs gap-1 text-muted-foreground"
+                      >
+                        <XCircle className="h-3 w-3" />
+                        {displayNum(unavailableCount)}
                       </Badge>
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="rounded-lg border overflow-hidden">
+                <CardContent className="p-0">
+                  <div className="overflow-hidden">
                     <Table>
                       <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-12">#</TableHead>
-                          <TableHead>
+                        <TableRow className="bg-muted/30 hover:bg-muted/30">
+                          <TableHead className="w-12 font-semibold text-xs">
+                            #
+                          </TableHead>
+                          <TableHead className="font-semibold text-xs">
                             {isRTL ? "اسم الدفتر" : "Book Name"}
                           </TableHead>
-                          <TableHead>{isRTL ? "الأرقام" : "Numbers"}</TableHead>
-                          <TableHead className="w-20 text-center">
+                          <TableHead className="font-semibold text-xs">
+                            {isRTL ? "الأرقام" : "Numbers"}
+                          </TableHead>
+                          <TableHead className="w-20 text-center font-semibold text-xs">
                             {isRTL ? "العدد" : "Count"}
                           </TableHead>
-                          <TableHead className="w-28 text-center">
+                          <TableHead className="w-32 text-center font-semibold text-xs">
                             {isRTL ? "الحالة" : "Status"}
                           </TableHead>
-                          <TableHead className="w-28 text-center">
+                          <TableHead className="w-32 text-center font-semibold text-xs">
                             {isRTL ? "الإجراءات" : "Actions"}
                           </TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {savedSets.map((set) => (
+                        {savedSets.map((set, idx) => (
                           <TableRow
                             key={set.id}
                             className={cn(
                               "transition-colors",
                               set.status === "available" &&
-                                "bg-green-50/50 dark:bg-green-950/10",
+                                "bg-emerald-50/60 dark:bg-emerald-950/10",
                               previewSetId === set.id &&
-                                "bg-amber-50 dark:bg-amber-950/20",
+                                "bg-amber-50/60 dark:bg-amber-950/20",
+                              idx % 2 !== 0 &&
+                                set.status !== "available" &&
+                                previewSetId !== set.id &&
+                                "bg-muted/20",
                             )}
                             data-testid={`row-mix-book-${set.id}`}
                           >
-                            <TableCell className="font-mono font-bold">
+                            <TableCell className="font-mono font-bold text-muted-foreground text-sm">
                               {displayNum(set.id)}
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">
                                 {set.status === "available" ? (
-                                  <Unlock className="h-4 w-4 text-green-500 shrink-0" />
+                                  <div className="shrink-0 p-1 rounded-md bg-emerald-100 dark:bg-emerald-900/40">
+                                    <Unlock className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                                  </div>
                                 ) : (
-                                  <Lock className="h-4 w-4 text-muted-foreground shrink-0" />
+                                  <div className="shrink-0 p-1 rounded-md bg-muted">
+                                    <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+                                  </div>
                                 )}
-                                <span className="font-medium">
+                                <span className="font-medium text-sm">
                                   {set.drawName}
                                 </span>
                               </div>
                             </TableCell>
                             <TableCell>
-                              <div className="flex flex-wrap gap-1 max-w-md">
-                                {set.numbers.slice(0, 10).map((n) => (
+                              <div className="flex flex-wrap gap-1 max-w-xs">
+                                {set.numbers.slice(0, 8).map((n) => (
                                   <Badge
                                     key={n}
-                                    variant="secondary"
-                                    className="text-xs px-1.5 py-0"
+                                    variant="outline"
+                                    className="text-xs px-1.5 py-0 font-mono tabular-nums"
                                   >
                                     {displayNum(n)}
                                   </Badge>
                                 ))}
-                                {set.numbers.length > 10 && (
+                                {set.numbers.length > 8 && (
                                   <Badge
-                                    variant="outline"
+                                    variant="secondary"
                                     className="text-xs px-1.5 py-0"
                                   >
-                                    +{displayNum(set.numbers.length - 10)}
+                                    +{displayNum(set.numbers.length - 8)}
                                   </Badge>
                                 )}
                               </div>
                             </TableCell>
                             <TableCell className="text-center">
-                              <Badge variant="default" className="text-xs">
+                              <Badge
+                                variant="outline"
+                                className="text-xs font-mono tabular-nums"
+                              >
                                 {displayNum(set.numbers.length)}
                               </Badge>
                             </TableCell>
                             <TableCell className="text-center">
                               {set.status === "available" ? (
-                                <Badge className="bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20">
-                                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                                <Badge className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 text-xs gap-1">
+                                  <CheckCircle2 className="h-3 w-3" />
                                   {isRTL ? "متاح" : "Available"}
                                 </Badge>
                               ) : (
-                                <Badge variant="secondary" className="text-muted-foreground">
-                                  <XCircle className="h-3 w-3 mr-1" />
+                                <Badge
+                                  variant="secondary"
+                                  className="text-muted-foreground text-xs gap-1"
+                                >
+                                  <XCircle className="h-3 w-3" />
                                   {isRTL ? "غير متاح" : "Unavailable"}
                                 </Badge>
                               )}
                             </TableCell>
-                            <TableCell className="text-center">
-                              <div className="flex items-center justify-center gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className={cn(
-                                    previewSetId === set.id
-                                      ? "text-amber-500"
-                                      : "text-muted-foreground",
-                                  )}
-                                  onClick={() => togglePreview(set.id)}
-                                  data-testid={`button-preview-mix-${set.id}`}
-                                >
-                                  {previewSetId === set.id ? (
-                                    <EyeOff className="h-4 w-4" />
-                                  ) : (
-                                    <Eye className="h-4 w-4" />
-                                  )}
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => setViewBookDialog(set)}
-                                  data-testid={`button-view-book-${set.id}`}
-                                >
-                                  <Grid3X3 className="h-4 w-4" />
-                                </Button>
+                            <TableCell>
+                              <div className="flex items-center justify-center gap-0.5">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className={cn(
+                                        "h-8 w-8",
+                                        previewSetId === set.id
+                                          ? "text-amber-500 bg-amber-50 dark:bg-amber-950/30"
+                                          : "text-muted-foreground hover:text-foreground",
+                                      )}
+                                      onClick={() => togglePreview(set.id)}
+                                      data-testid={`button-preview-mix-${set.id}`}
+                                    >
+                                      {previewSetId === set.id ? (
+                                        <EyeOff className="h-3.5 w-3.5" />
+                                      ) : (
+                                        <Eye className="h-3.5 w-3.5" />
+                                      )}
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    {isRTL ? "معاينة على الشبكة" : "Preview on grid"}
+                                  </TooltipContent>
+                                </Tooltip>
+
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                      onClick={() => setViewBookDialog(set)}
+                                      data-testid={`button-view-book-${set.id}`}
+                                    >
+                                      <Grid3X3 className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    {isRTL ? "عرض التفاصيل" : "View details"}
+                                  </TooltipContent>
+                                </Tooltip>
+
                                 {set.status !== "available" && (
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => handleToggleAvailability(set.id)}
-                                    data-testid={`button-activate-book-${set.id}`}
-                                  >
-                                    <Unlock className="h-4 w-4" />
-                                  </Button>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+                                        onClick={() =>
+                                          handleToggleAvailability(set.id)
+                                        }
+                                        data-testid={`button-activate-book-${set.id}`}
+                                      >
+                                        <Unlock className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      {isRTL
+                                        ? "تفعيل الدفتر"
+                                        : "Activate book"}
+                                    </TooltipContent>
+                                  </Tooltip>
                                 )}
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="text-destructive"
-                                  onClick={() => deleteSet(set.id)}
-                                  data-testid={`button-delete-mix-${set.id}`}
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
+
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/5"
+                                      onClick={() => deleteSet(set.id)}
+                                      data-testid={`button-delete-mix-${set.id}`}
+                                    >
+                                      <X className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    {isRTL ? "حذف الدفتر" : "Delete book"}
+                                  </TooltipContent>
+                                </Tooltip>
                               </div>
                             </TableCell>
                           </TableRow>
@@ -503,187 +631,196 @@ export default function MixedNumbersPage() {
           </div>
 
           <div className="space-y-4">
-            <Card className="sticky top-4">
-              <CardHeader className="pb-3">
+            <Card className="sticky top-4 border shadow-sm">
+              <CardHeader className="pb-3 border-b">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-primary" />
+                  <div className="p-1.5 rounded-lg bg-primary/10">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                  </div>
                   {isRTL ? "الأرقام المختارة" : "Selected Numbers"}
+                  {selectedNumbers.length > 0 && (
+                    <Badge className="ms-auto text-xs">
+                      {displayNum(selectedNumbers.length)}
+                    </Badge>
+                  )}
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-5 pt-4">
                 {selectedNumbers.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    <Grid3X3 className="h-10 w-10 mx-auto mb-3 opacity-30" />
-                    <p className="text-sm">
+                    <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-muted">
+                      <Grid3X3 className="h-6 w-6 opacity-40" />
+                    </div>
+                    <p className="text-sm font-medium">
                       {isRTL
                         ? "لم يتم اختيار أي رقم بعد"
                         : "No numbers selected yet"}
                     </p>
-                    <p className="text-xs mt-1 opacity-70">
+                    <p className="text-xs mt-1 opacity-60">
                       {isRTL
-                        ? "انقر على الأرقام في الجدول لاختيارها"
-                        : "Click numbers in the grid to select"}
+                        ? "انقر على الأرقام في الجدول"
+                        : "Click numbers in the grid"}
                     </p>
                   </div>
                 ) : (
-                  <>
-                    <div className="flex flex-wrap gap-1.5 justify-center">
-                      {selectedNumbers.map((num) => (
-                        <button
-                          key={num}
-                          onClick={() => toggleNumber(num)}
-                          className="group relative"
-                          data-testid={`button-selected-number-${num}`}
-                        >
-                          <div className="w-10 h-10 rounded-lg bg-primary text-primary-foreground font-bold text-sm flex items-center justify-center shadow-md shadow-primary/20 transition-all">
-                            {displayNum(num)}
-                          </div>
-                          <div className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
-                            <X className="h-2.5 w-2.5" />
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-
-                    <Separator />
-
-                    <div className="text-sm flex justify-between">
-                      <span className="text-muted-foreground">
-                        {isRTL ? "المجموع" : "Total"}
-                      </span>
-                      <span className="font-bold text-primary">
-                        {displayNum(selectedNumbers.length)}{" "}
-                        {isRTL ? "رقم" : "numbers"}
-                      </span>
-                    </div>
-                  </>
+                  <div className="flex flex-wrap gap-1.5 justify-center max-h-52 overflow-y-auto">
+                    {selectedNumbers.map((num) => (
+                      <button
+                        key={num}
+                        onClick={() => toggleNumber(num)}
+                        className="group relative"
+                        data-testid={`button-selected-number-${num}`}
+                      >
+                        <div className="w-9 h-9 rounded-lg bg-primary text-primary-foreground font-bold text-sm flex items-center justify-center shadow-md shadow-primary/20 transition-all group-hover:bg-destructive group-hover:shadow-destructive/20">
+                          {displayNum(num)}
+                        </div>
+                        <div className="absolute -top-1 -right-1 hidden group-hover:flex h-3.5 w-3.5 items-center justify-center rounded-full bg-destructive shadow-sm">
+                          <X className="h-2 w-2 text-white" />
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                 )}
 
                 <Separator />
 
                 <div className="space-y-3">
-                  <div className="space-y-2">
-                    <Label className="text-xs">
-                      {isRTL ? "اسم السحب (اختياري)" : "Draw Name (optional)"}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-muted-foreground">
+                      {isRTL ? "اسم الدفتر (اختياري)" : "Book Name (optional)"}
                     </Label>
                     <Input
                       value={drawName}
                       onChange={(e) => setDrawName(e.target.value)}
                       placeholder={
-                        isRTL ? "مثال: السحب الأسبوعي" : "e.g. Weekly Draw"
+                        isRTL ? "أدخل اسم الدفتر..." : "Enter book name..."
                       }
-                      className="h-10"
+                      className="h-9 text-sm"
                       data-testid="input-draw-name"
                     />
                   </div>
-                </div>
 
-                <Button
-                  onClick={handleSaveSet}
-                  disabled={selectedNumbers.length === 0}
-                  className="w-full h-11 text-base font-semibold rounded-xl shadow-lg shadow-primary/25 gap-2"
-                  data-testid="button-save-set"
-                >
-                  <Save className="h-5 w-5" />
-                  {isRTL ? "حفظ الدفتر" : "Save Book"}
-                </Button>
+                  <Button
+                    className="w-full gap-2"
+                    onClick={handleSaveSet}
+                    disabled={selectedNumbers.length === 0}
+                    data-testid="button-save-set"
+                  >
+                    <PlusCircle className="h-4 w-4" />
+                    {selectedNumbers.length > 0
+                      ? isRTL
+                        ? `حفظ ${toArabicNumeral(selectedNumbers.length)} رقم`
+                        : `Save ${selectedNumbers.length} Numbers`
+                      : isRTL
+                        ? "حفظ الدفتر"
+                        : "Save Book"}
+                  </Button>
+
+                  {selectedNumbers.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full gap-2 text-muted-foreground"
+                      onClick={clearSelection}
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                      {isRTL ? "مسح الاختيار" : "Clear selection"}
+                    </Button>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </div>
         </div>
+      </div>
 
-        <Dialog open={viewBookDialog !== null} onOpenChange={() => setViewBookDialog(null)}>
-          <DialogContent className="max-w-2xl" dir={dir}>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Grid3X3 className="h-5 w-5 text-primary" />
-                {viewBookDialog?.drawName}
-              </DialogTitle>
-              <DialogDescription>
-                {viewBookDialog && (
-                  <span className="flex items-center gap-2">
-                    <Hash className="h-3 w-3" />
-                    {displayNum(viewBookDialog.numbers.length)}{" "}
-                    {isRTL ? "رقم مخلوط" : "mixed numbers"}
-                  </span>
+      <Dialog
+        open={viewBookDialog !== null}
+        onOpenChange={() => setViewBookDialog(null)}
+      >
+        <DialogContent className="max-w-2xl" dir={dir}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <div className="p-1.5 rounded-lg bg-primary/10">
+                <Grid3X3 className="h-4 w-4 text-primary" />
+              </div>
+              {viewBookDialog?.drawName}
+            </DialogTitle>
+            <DialogDescription asChild>
+              <div className="flex items-center gap-3">
+                <Badge variant="outline" className="text-xs gap-1 font-mono">
+                  <Hash className="h-3 w-3" />
+                  {viewBookDialog && displayNum(viewBookDialog.numbers.length)}{" "}
+                  {isRTL ? "رقم" : "numbers"}
+                </Badge>
+                {viewBookDialog?.status === "available" ? (
+                  <Badge className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 text-xs gap-1">
+                    <CheckCircle2 className="h-3 w-3" />
+                    {isRTL ? "متاح" : "Available"}
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary" className="text-xs gap-1">
+                    <XCircle className="h-3 w-3" />
+                    {isRTL ? "غير متاح" : "Unavailable"}
+                  </Badge>
                 )}
-              </DialogDescription>
-            </DialogHeader>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
 
-            {viewBookDialog && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-4 flex-wrap">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">
-                      {viewBookDialog.createdAt.toLocaleDateString(isRTL ? "ar" : "en")}
-                    </span>
-                  </div>
-                  <div>
-                    {viewBookDialog.status === "available" ? (
-                      <Badge className="bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20">
-                        <CheckCircle2 className="h-3 w-3 mr-1" />
-                        {isRTL ? "متاح" : "Available"}
-                      </Badge>
-                    ) : (
-                      <Badge variant="secondary" className="text-muted-foreground">
-                        <XCircle className="h-3 w-3 mr-1" />
-                        {isRTL ? "غير متاح" : "Unavailable"}
-                      </Badge>
-                    )}
-                  </div>
-                </div>
+          {viewBookDialog && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-10 gap-1.5">
+                {Array.from({ length: 100 }, (_, i) => i + 1).map((num) => {
+                  const isInBook = viewBookDialog.numbers.includes(num);
+                  return (
+                    <div
+                      key={num}
+                      className={cn(
+                        "w-full aspect-square rounded-lg text-xs font-bold flex items-center justify-center border transition-all",
+                        isInBook
+                          ? "bg-primary text-primary-foreground border-primary shadow-md shadow-primary/20"
+                          : "bg-muted/30 text-muted-foreground/30 border-transparent",
+                      )}
+                    >
+                      {displayNum(num)}
+                    </div>
+                  );
+                })}
+              </div>
 
-                <Separator />
+              <Separator />
 
-                <div>
-                  <p className="text-sm font-medium mb-3">
-                    {isRTL ? "الأرقام المخلوطة" : "Mixed Numbers"}
-                  </p>
-                  <div className="grid grid-cols-10 gap-1.5">
-                    {Array.from({ length: 100 }, (_, i) => i + 1).map((num) => {
-                      const isInMix = viewBookDialog.numbers.includes(num);
-                      return (
-                        <div
-                          key={num}
-                          className={cn(
-                            "w-full aspect-square rounded-lg text-xs font-bold flex items-center justify-center border-2 transition-all",
-                            isInMix
-                              ? "bg-primary text-primary-foreground border-primary shadow-md shadow-primary/20"
-                              : "bg-muted/30 text-muted-foreground/40 border-transparent"
-                          )}
-                          data-testid={`dialog-grid-number-${num}`}
-                        >
-                          {displayNum(num)}
-                        </div>
-                      );
-                    })}
-                  </div>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-2">
+                  {isRTL ? "الأرقام المختارة:" : "Selected Numbers:"}
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {viewBookDialog.numbers.map((n) => (
+                    <Badge
+                      key={n}
+                      variant="default"
+                      className="text-xs px-2.5 py-0.5 font-mono tabular-nums"
+                    >
+                      {displayNum(n)}
+                    </Badge>
+                  ))}
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setViewBookDialog(null)} data-testid="button-close-dialog">
-                {isRTL ? "إغلاق" : "Close"}
-              </Button>
-              {viewBookDialog && viewBookDialog.status !== "available" && (
-                <Button
-                  onClick={() => {
-                    handleToggleAvailability(viewBookDialog.id);
-                    setViewBookDialog(null);
-                  }}
-                  className="gap-2"
-                  data-testid="button-activate-from-dialog"
-                >
-                  <Unlock className="h-4 w-4" />
-                  {isRTL ? "تفعيل الدفتر" : "Activate Book"}
-                </Button>
-              )}
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setViewBookDialog(null)}
+              data-testid="button-close-view-dialog"
+            >
+              {isRTL ? "إغلاق" : "Close"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }
