@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import plugin from "tailwindcss/plugin";
 
 export default {
   darkMode: ["class"],
@@ -103,5 +104,13 @@ export default {
       },
     },
   },
-  plugins: [require("tailwindcss-animate"), require("@tailwindcss/typography")],
+  plugins: [
+    require("tailwindcss-animate"),
+    require("@tailwindcss/typography"),
+    plugin(({ addVariant }) => {
+      // Enables `rtl:` / `ltr:` utilities based on the closest `[dir]` ancestor.
+      addVariant("rtl", '[dir="rtl"] &');
+      addVariant("ltr", '[dir="ltr"] &');
+    }),
+  ],
 } satisfies Config;

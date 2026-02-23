@@ -1,0 +1,483 @@
+export const settingsTranslations: { [key: string]: { ar: string; en: string } } = {
+  "cardSettings.title": { ar: "إعدادات البطاقة", en: "Card Settings" },
+  "cardSettings.subtitle": { ar: "تخصيص تصميم بطاقة اليانصيب ومعلوماتها", en: "Customize lottery card design and information" },
+  "cardSettings.topbarImage": { ar: "صورة الشريط العلوي", en: "Topbar Image" },
+  "cardSettings.topbarImageDesc": { ar: "صورة تظهر في أعلى البطاقة (الشريط العلوي)", en: "Image displayed at the top of the card (topbar)" },
+  "cardSettings.backgroundImage": { ar: "صورة الخلفية", en: "Background Image" },
+  "cardSettings.backgroundImageDesc": { ar: "صورة خلفية البطاقة", en: "Card background image" },
+  "cardSettings.imageDescription": { ar: "وصف الصورة (عربي)", en: "Image Description " },
+  "cardSettings.imageDescriptionEn": { ar: "وصف الصورة (إنجليزي)", en: "Image Description (English)" },
+  "cardSettings.imageDescPlaceholder": { ar: "أدخل وصف الصورة...", en: "Enter image description..." },
+  "cardSettings.cardPrice": { ar: "سعر البطاقة", en: "Card Price" },
+  "cardSettings.cardPriceDesc": { ar: "سعر بطاقة اليانصيب بالدينار الأردني", en: "Lottery card price in JOD" },
+  "cardSettings.managerSignature": { ar: "توقيع المدير", en: "Manager Signature" },
+  "cardSettings.managerSignatureDesc": { ar: "صورة توقيع المدير المعتمد", en: "Authorized manager signature image" },
+  "cardSettings.managerName": { ar: "اسم المدير (عربي)", en: "Manager Name " },
+  "cardSettings.managerNameEn": { ar: "اسم المدير (إنجليزي)", en: "Manager Name (English)" },
+  "cardSettings.managerTitle": { ar: "المسمى الوظيفي (عربي)", en: "Manager Title " },
+  "cardSettings.managerTitleEn": { ar: "المسمى الوظيفي (إنجليزي)", en: "Manager Title (English)" },
+  "cardSettings.managerNamePlaceholder": { ar: "أدخل اسم المدير...", en: "Enter manager name..." },
+  "cardSettings.managerTitlePlaceholder": { ar: "أدخل المسمى الوظيفي...", en: "Enter manager title..." },
+  "cardSettings.saveChanges": { ar: "حفظ التغييرات", en: "Save Changes" },
+  "cardSettings.saving": { ar: "جاري الحفظ...", en: "Saving..." },
+  "cardSettings.saved": { ar: "تم الحفظ", en: "Saved" },
+  "cardSettings.savedDesc": { ar: "تم حفظ إعدادات البطاقة بنجاح", en: "Card settings saved successfully" },
+  "cardSettings.saveFailed": { ar: "فشل الحفظ", en: "Save Failed" },
+  "cardSettings.saveFailedDesc": { ar: "حدث خطأ أثناء حفظ إعدادات البطاقة", en: "An error occurred while saving card settings" },
+  "cardSettings.uploadImage": { ar: "رفع صورة", en: "Upload Image" },
+  "cardSettings.removeImage": { ar: "إزالة الصورة", en: "Remove Image" },
+  "cardSettings.changeImage": { ar: "تغيير الصورة", en: "Change Image" },
+  "cardSettings.noImage": { ar: "لم يتم رفع صورة بعد", en: "No image uploaded yet" },
+  "cardSettings.dragOrClick": { ar: "اسحب وأفلت أو انقر للرفع", en: "Drag & drop or click to upload" },
+  "cardSettings.imageFormats": { ar: "PNG, JPG, JPEG (حد أقصى 5MB)", en: "PNG, JPG, JPEG (max 5MB)" },
+  "cardSettings.preview": { ar: "معاينة البطاقة", en: "Card Preview" },
+  "cardSettings.previewDesc": { ar: "معاينة تصميم البطاقة بالإعدادات الحالية", en: "Preview card design with current settings" },
+  "cardSettings.currency": { ar: "د.أ", en: "JOD" },
+  "cardSettings.imagesSection": { ar: "الصور والمرئيات", en: "Images & Visuals" },
+  "cardSettings.imagesSectionDesc": { ar: "إدارة صور البطاقة والعناصر المرئية", en: "Manage card images and visual elements" },
+  "cardSettings.pricingSection": { ar: "التسعير", en: "Pricing" },
+  "cardSettings.pricingSectionDesc": { ar: "إعداد سعر البطاقة", en: "Configure card pricing" },
+  "cardSettings.managerSection": { ar: "توقيع مدير اليانصيب الخيري", en: "Charitable Lottery Manager Signature" },
+  "cardSettings.managerSectionDesc": { ar: "معلومات وتوقيع مدير اليانصيب الخيري المعتمد", en: "Authorized charitable lottery manager information and signature" },
+  "cardSettings.chairmanSection": { ar: "توقيع رئيس اللجنة الوطنية", en: "National Committee Chairman Signature" },
+  "cardSettings.chairmanSectionDesc": { ar: "معلومات وتوقيع رئيس اللجنة الوطنية المعتمد", en: "Authorized national committee chairman information and signature" },
+  "cardSettings.chairmanSignature": { ar: "توقيع رئيس اللجنة", en: "Chairman Signature" },
+  "cardSettings.chairmanSignatureDesc": { ar: "صورة توقيع رئيس اللجنة الوطنية", en: "National committee chairman signature image" },
+  "cardSettings.chairmanName": { ar: "اسم رئيس اللجنة (عربي)", en: "Chairman Name " },
+  "cardSettings.chairmanNameEn": { ar: "اسم رئيس اللجنة (إنجليزي)", en: "Chairman Name (English)" },
+  "cardSettings.chairmanTitle": { ar: "المسمى الوظيفي (عربي)", en: "Chairman Title " },
+  "cardSettings.chairmanTitleEn": { ar: "المسمى الوظيفي (إنجليزي)", en: "Chairman Title (English)" },
+  "cardSettings.chairmanNamePlaceholder": { ar: "أدخل اسم رئيس اللجنة...", en: "Enter chairman name..." },
+  "cardSettings.chairmanTitlePlaceholder": { ar: "أدخل المسمى الوظيفي...", en: "Enter chairman title..." },
+  "systemCategories.title": {
+    ar: "تصنيف تعريفات النظام",
+    en: "System Definition Categories",
+  },
+  "systemCategories.description": {
+    ar: "إدارة تصنيفات تعريفات النظام",
+    en: "Manage system definition categories",
+  },
+  "systemCategories.categoriesList": {
+    ar: "قائمة التصنيفات",
+    en: "Categories List",
+  },
+  "systemCategories.addCategory": { ar: "إضافة تصنيف", en: "Add Category" },
+  "systemCategories.editCategory": { ar: "تعديل التصنيف", en: "Edit Category" },
+  "systemCategories.deleteCategory": {
+    ar: "حذف التصنيف",
+    en: "Delete Category",
+  },
+  "systemCategories.addCategoryDesc": {
+    ar: "إضافة تصنيف جديد لتعريفات النظام",
+    en: "Add a new system definition category",
+  },
+  "systemCategories.editCategoryDesc": {
+    ar: "تعديل بيانات التصنيف",
+    en: "Edit category details",
+  },
+  "systemCategories.deleteCategoryDesc": {
+    ar: "هل أنت متأكد من حذف هذا التصنيف؟",
+    en: "Are you sure you want to delete this category?",
+  },
+  "systemCategories.nameAr": { ar: "الاسم بالعربية", en: "Arabic Name" },
+  "systemCategories.nameEn": { ar: "الاسم بالإنجليزية", en: "English Name" },
+  "systemCategories.sortOrder": { ar: "ترتيب العرض", en: "Sort Order" },
+  "systemCategories.categoryCreated": {
+    ar: "تم إنشاء التصنيف",
+    en: "Category Created",
+  },
+  "systemCategories.categoryCreatedDesc": {
+    ar: "تم إنشاء التصنيف بنجاح",
+    en: "Category was created successfully",
+  },
+  "systemCategories.categoryUpdated": {
+    ar: "تم تحديث التصنيف",
+    en: "Category Updated",
+  },
+  "systemCategories.categoryUpdatedDesc": {
+    ar: "تم تحديث التصنيف بنجاح",
+    en: "Category was updated successfully",
+  },
+  "systemCategories.categoryDeleted": {
+    ar: "تم حذف التصنيف",
+    en: "Category Deleted",
+  },
+  "systemCategories.categoryDeletedDesc": {
+    ar: "تم حذف التصنيف بنجاح",
+    en: "Category was deleted successfully",
+  },
+  "systemCategories.createError": {
+    ar: "فشل في إنشاء التصنيف",
+    en: "Failed to create category",
+  },
+  "systemCategories.updateError": {
+    ar: "فشل في تحديث التصنيف",
+    en: "Failed to update category",
+  },
+  "systemCategories.deleteError": {
+    ar: "فشل في حذف التصنيف",
+    en: "Failed to delete category",
+  },
+  "systemCategories.categoryEnabled": {
+    ar: "تم تفعيل التصنيف",
+    en: "Category Enabled",
+  },
+  "systemCategories.categoryEnabledDesc": {
+    ar: "تم تفعيل التصنيف بنجاح",
+    en: "Category was enabled successfully",
+  },
+  "systemCategories.categoryDisabled": {
+    ar: "تم تعطيل التصنيف",
+    en: "Category Disabled",
+  },
+  "systemCategories.categoryDisabledDesc": {
+    ar: "تم تعطيل التصنيف بنجاح",
+    en: "Category was disabled successfully",
+  },
+  "systemCategories.toggleError": {
+    ar: "فشل في تغيير حالة التصنيف",
+    en: "Failed to toggle category status",
+  },
+  "definitions.title": { ar: "التعريفات", en: "Definitions" },
+  "definitions.addDefinition": { ar: "إضافة تعريف", en: "Add Definition" },
+  "definitions.editDefinition": { ar: "تعديل التعريف", en: "Edit Definition" },
+  "definitions.deleteDefinition": {
+    ar: "حذف التعريف",
+    en: "Delete Definition",
+  },
+  "definitions.addDefinitionDesc": {
+    ar: "إضافة تعريف جديد للنظام",
+    en: "Add a new system definition",
+  },
+  "definitions.editDefinitionDesc": {
+    ar: "تعديل بيانات التعريف",
+    en: "Edit definition details",
+  },
+  "definitions.deleteDefinitionDesc": {
+    ar: "هل أنت متأكد من حذف هذا التعريف؟",
+    en: "Are you sure you want to delete this definition?",
+  },
+  "definitions.nameAr": { ar: "الاسم بالعربية", en: "Arabic Name" },
+  "definitions.nameEn": { ar: "الاسم بالإنجليزية", en: "English Name" },
+  "definitions.category": { ar: "التصنيف", en: "Category" },
+  "definitions.code": { ar: "الرمز", en: "Code" },
+  "definitions.selectCategory": { ar: "اختر التصنيف", en: "Select Category" },
+  "definitions.definitionCreated": {
+    ar: "تم إنشاء التعريف",
+    en: "Definition Created",
+  },
+  "definitions.definitionCreatedDesc": {
+    ar: "تم إنشاء التعريف بنجاح",
+    en: "Definition was created successfully",
+  },
+  "definitions.definitionUpdated": {
+    ar: "تم تحديث التعريف",
+    en: "Definition Updated",
+  },
+  "definitions.definitionUpdatedDesc": {
+    ar: "تم تحديث التعريف بنجاح",
+    en: "Definition was updated successfully",
+  },
+  "definitions.definitionDeleted": {
+    ar: "تم حذف التعريف",
+    en: "Definition Deleted",
+  },
+  "definitions.definitionDeletedDesc": {
+    ar: "تم حذف التعريف بنجاح",
+    en: "Definition was deleted successfully",
+  },
+  "definitions.definitionEnabled": {
+    ar: "تم تفعيل التعريف",
+    en: "Definition Enabled",
+  },
+  "definitions.definitionEnabledDesc": {
+    ar: "تم تفعيل التعريف بنجاح",
+    en: "Definition was enabled successfully",
+  },
+  "definitions.definitionDisabled": {
+    ar: "تم تعطيل التعريف",
+    en: "Definition Disabled",
+  },
+  "definitions.definitionDisabledDesc": {
+    ar: "تم تعطيل التعريف بنجاح",
+    en: "Definition was disabled successfully",
+  },
+  "definitions.createError": {
+    ar: "فشل في إنشاء التعريف",
+    en: "Failed to create definition",
+  },
+  "definitions.updateError": {
+    ar: "فشل في تحديث التعريف",
+    en: "Failed to update definition",
+  },
+  "definitions.deleteError": {
+    ar: "فشل في حذف التعريف",
+    en: "Failed to delete definition",
+  },
+  "definitions.toggleError": {
+    ar: "فشل في تغيير حالة التعريف",
+    en: "Failed to toggle definition status",
+  },
+  "definitions.filterByCategory": {
+    ar: "تصفية حسب التصنيف",
+    en: "Filter by Category",
+  },
+  "definitions.categoryDisabled": {
+    ar: "التصنيف معطل",
+    en: "Category is disabled",
+  },
+  "prizes.title": { ar: "الجوائز", en: "Prizes" },
+  "prizes.description": { ar: "إدارة الجوائز", en: "Manage prizes" },
+  "prizes.prizesList": { ar: "قائمة الجوائز", en: "Prizes List" },
+  "prizes.addPrize": { ar: "إضافة جائزة", en: "Add Prize" },
+  "prizes.editPrize": { ar: "تعديل الجائزة", en: "Edit Prize" },
+  "prizes.addPrizeDesc": { ar: "إضافة جائزة جديدة", en: "Add a new prize" },
+  "prizes.editPrizeDesc": {
+    ar: "تعديل بيانات الجائزة",
+    en: "Edit prize details",
+  },
+  "prizes.nameAr": { ar: "الاسم بالعربية", en: "Arabic Name" },
+  "prizes.nameEn": { ar: "الاسم بالإنجليزية", en: "English Name" },
+  "prizes.descriptionAr": { ar: "الوصف بالعربية", en: "Arabic Description" },
+  "prizes.descriptionEn": {
+    ar: "الوصف بالإنجليزية",
+    en: "English Description",
+  },
+  "prizes.prizeCreated": { ar: "تم إنشاء الجائزة", en: "Prize Created" },
+  "prizes.prizeCreatedDesc": {
+    ar: "تم إنشاء الجائزة بنجاح",
+    en: "Prize was created successfully",
+  },
+  "prizes.prizeUpdated": { ar: "تم تحديث الجائزة", en: "Prize Updated" },
+  "prizes.prizeUpdatedDesc": {
+    ar: "تم تحديث الجائزة بنجاح",
+    en: "Prize was updated successfully",
+  },
+  "prizes.prizeEnabled": { ar: "تم تفعيل الجائزة", en: "Prize Enabled" },
+  "prizes.prizeEnabledDesc": {
+    ar: "تم تفعيل الجائزة بنجاح",
+    en: "Prize was enabled successfully",
+  },
+  "prizes.prizeDisabled": { ar: "تم تعطيل الجائزة", en: "Prize Disabled" },
+  "prizes.prizeDisabledDesc": {
+    ar: "تم تعطيل الجائزة بنجاح",
+    en: "Prize was disabled successfully",
+  },
+  "prizes.createError": {
+    ar: "فشل في إنشاء الجائزة",
+    en: "Failed to create prize",
+  },
+  "prizes.updateError": {
+    ar: "فشل في تحديث الجائزة",
+    en: "Failed to update prize",
+  },
+  "prizes.toggleError": {
+    ar: "فشل في تغيير حالة الجائزة",
+    en: "Failed to toggle prize status",
+  },
+  "prizes.fillRequiredFields": {
+    ar: "يرجى ملء جميع الحقول المطلوبة",
+    en: "Please fill all required fields",
+  },
+  "prizes.selectFromDefinitions": {
+    ar: "اختر من التعريفات",
+    en: "Select from Definitions",
+  },
+  "prizes.selectDefinition": { ar: "اختر الجائزة", en: "Select Definition" },
+  "prizes.prizeName": { ar: "اسم الجائزة", en: "Prize Name" },
+  "prizes.prizeDescription": { ar: "وصف الجائزة", en: "Prize Description" },
+  "prizes.level": { ar: "مستوى الجائزة", en: "Prize Level" },
+  "prizes.selectLevel": { ar: "اختر المستوى", en: "Select Level" },
+  "prizes.filterByLevel": { ar: "فرز حسب المستوى", en: "Filter by Level" },
+  "prizes.allLevels": { ar: "جميع المستويات", en: "All Levels" },
+  "prizes.level1": { ar: "المستوى الأول", en: "Level 1" },
+  "prizes.level2": { ar: "المستوى الثاني", en: "Level 2" },
+  "prizes.level3": { ar: "المستوى الثالث", en: "Level 3" },
+  "prizes.level4": { ar: "المستوى الرابع", en: "Level 4" },
+  "prizes.level5": { ar: "المستوى الخامس", en: "Level 5" },
+  "settings.management": { ar: "الإعدادات", en: "Settings" },
+  "settings.manageSettings": {
+    ar: "إدارة إعدادات النظام والتفضيلات",
+    en: "Manage system settings and preferences",
+  },
+  "settings.generalSettings": {
+    ar: "الإعدادات العامة",
+    en: "General Settings",
+  },
+  "settings.basicSettings": {
+    ar: "إعدادات النظام الأساسية",
+    en: "Basic system settings",
+  },
+  "settings.siteName": { ar: "اسم الموقع", en: "Site Name" },
+  "settings.supportEmail": {
+    ar: "البريد الإلكتروني للدعم",
+    en: "Support Email",
+  },
+  "settings.timezone": { ar: "المنطقة الزمنية", en: "Timezone" },
+  "settings.saveChanges": { ar: "حفظ التغييرات", en: "Save Changes" },
+  "settings.securitySettings": {
+    ar: "إعدادات الأمان",
+    en: "Security Settings",
+  },
+  "settings.authOptions": {
+    ar: "خيارات المصادقة والأمان",
+    en: "Authentication and security options",
+  },
+  "settings.require2FA": {
+    ar: "طلب المصادقة الثنائية للمديرين",
+    en: "Require 2FA for Admins",
+  },
+  "settings.enforce2FA": {
+    ar: "فرض المصادقة الثنائية لجميع حسابات المديرين",
+    en: "Enforce two-factor authentication for all admin accounts",
+  },
+  "settings.sessionTimeout": {
+    ar: "مهلة الجلسة (بالدقائق)",
+    en: "Session Timeout (minutes)",
+  },
+  "settings.autoLogout": {
+    ar: "تسجيل الخروج التلقائي بعد عدم النشاط",
+    en: "Auto logout after inactivity",
+  },
+  "settings.maxLoginAttempts": {
+    ar: "الحد الأقصى لمحاولات تسجيل الدخول",
+    en: "Max Login Attempts",
+  },
+  "settings.lockAccount": {
+    ar: "قفل الحساب بعد المحاولات الفاشلة",
+    en: "Lock account after failed attempts",
+  },
+  "settings.notificationSettings": {
+    ar: "إعدادات الإشعارات",
+    en: "Notification Settings",
+  },
+  "settings.configureNotifications": {
+    ar: "تكوين إشعارات البريد الإلكتروني والنظام",
+    en: "Configure email and system notifications",
+  },
+  "settings.emailNotifications": {
+    ar: "إشعارات البريد الإلكتروني",
+    en: "Email Notifications",
+  },
+  "settings.sendEmail": {
+    ar: "إرسال بريد إلكتروني للأحداث المهمة",
+    en: "Send emails for important events",
+  },
+  "settings.drawResultNotifications": {
+    ar: "إشعارات نتائج السحب",
+    en: "Draw Result Notifications",
+  },
+  "settings.notifyDrawResults": {
+    ar: "إعلام المستخدمين بنتائج السحب",
+    en: "Notify users of draw results",
+  },
+  "settings.winnerAnnouncements": {
+    ar: "إعلانات الفائزين",
+    en: "Winner Announcements",
+  },
+  "settings.autoNotifyWinners": {
+    ar: "إعلام الفائزين تلقائياً",
+    en: "Automatically notify winners",
+  },
+  "settings.lotterySettings": {
+    ar: "إعدادات اليانصيب",
+    en: "Lottery Settings",
+  },
+  "settings.configureLottery": {
+    ar: "تكوين إعدادات لعبة اليانصيب",
+    en: "Configure lottery game settings",
+  },
+  "settings.numberRange": { ar: "نطاق الأرقام", en: "Number Range" },
+  "settings.numbersToPick": {
+    ar: "الأرقام المطلوب اختيارها",
+    en: "Numbers to Pick",
+  },
+  "settings.defaultTicketPrice": {
+    ar: "سعر التذكرة الافتراضي",
+    en: "Default Ticket Price (JOD)",
+  },
+  "settings.dashboardSettings": {
+    ar: "إعدادات لوحة التحكم",
+    en: "Dashboard Settings",
+  },
+  "settings.customizeDashboard": {
+    ar: "تخصيص البيانات المعروضة في لوحة التحكم",
+    en: "Customize the data displayed on the dashboard",
+  },
+  "settings.resetToDefault": { ar: "إعادة الافتراضي", en: "Reset to Default" },
+  "settings.settingsReset": { ar: "تم إعادة الإعدادات", en: "Settings Reset" },
+  "settings.dashboardResetDesc": {
+    ar: "تم إعادة إعدادات لوحة التحكم إلى الوضع الافتراضي",
+    en: "Dashboard settings have been reset to default",
+  },
+  "settings.totalUsers": { ar: "إجمالي المستخدمين", en: "Total Users" },
+  "settings.showUsers": {
+    ar: "عرض عدد المستخدمين المسجلين",
+    en: "Show number of registered users",
+  },
+  "settings.activeDraws": { ar: "السحوبات النشطة", en: "Active Draws" },
+  "settings.showActiveDraws": {
+    ar: "عرض عدد السحوبات الجارية",
+    en: "Show number of ongoing draws",
+  },
+  "settings.ticketsSold": { ar: "الدفاتر المباعة", en: "Tickets Sold" },
+  "settings.showTicketsSold": {
+    ar: "عرض إجمالي الدفاتر المباعة",
+    en: "Show total tickets sold",
+  },
+  "settings.totalRevenue": { ar: "إجمالي الإيرادات", en: "Total Revenue" },
+  "settings.showRevenue": {
+    ar: "عرض مجموع الإيرادات",
+    en: "Show total revenue",
+  },
+  "settings.ticketsRemaining": {
+    ar: "الدفاتر المتبقية",
+    en: "Tickets Remaining",
+  },
+  "settings.showTicketsRemaining": {
+    ar: "عرض عدد الدفاتر المتبقية",
+    en: "Show remaining tickets count",
+  },
+  "settings.ticketsAvailable": {
+    ar: "الدفاتر المطروحة",
+    en: "Tickets Available",
+  },
+  "settings.showTicketsAvailable": {
+    ar: "عرض عدد الدفاتر المطروحة للبيع",
+    en: "Show available tickets for sale",
+  },
+  "settings.cancelledTickets": {
+    ar: "الدفاتر الملغاة",
+    en: "Cancelled Tickets",
+  },
+  "settings.showCancelledTickets": {
+    ar: "عرض عدد الدفاتر الملغاة",
+    en: "Show cancelled tickets count",
+  },
+  "settings.charts": { ar: "الرسوم البيانية", en: "Charts" },
+  "settings.showCharts": {
+    ar: "عرض الرسوم البيانية والمخططات",
+    en: "Show charts and graphs",
+  },
+  "settings.recentActivity": { ar: "النشاط الأخير", en: "Recent Activity" },
+  "settings.showRecentActivity": {
+    ar: "عرض المستخدمين والدفاتر الأخيرة",
+    en: "Show recent users and tickets",
+  },
+  "settings.ticketsSoldStat": {
+    ar: "الدفاتر المباعة (إحصاء)",
+    en: "Tickets Sold (Stat)",
+  },
+  "settings.showTicketsSoldStat": {
+    ar: "عرض عدد الدفاتر المباعة",
+    en: "Show tickets sold count",
+  },
+  "settings.title": { ar: "الإعدادات", en: "Settings" },
+  "settings.general": { ar: "عام", en: "General" },
+  "settings.security": { ar: "الأمان", en: "Security" },
+  "settings.notifications": { ar: "الإشعارات", en: "Notifications" },
+  "settings.language": { ar: "اللغة", en: "Language" },
+  "settings.theme": { ar: "المظهر", en: "Theme" },
+  "settings.theme.light": { ar: "فاتح", en: "Light" },
+  "settings.theme.dark": { ar: "داكن", en: "Dark" },
+};
