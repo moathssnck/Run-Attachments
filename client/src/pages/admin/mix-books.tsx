@@ -292,8 +292,8 @@ export default function MixBooksPage() {
               </p>
             </CardHeader>
 
-            <CardContent className="pt-4">
-              <div className="grid grid-cols-10 gap-2">
+            <CardContent className="pt-5">
+              <div className="grid grid-cols-10 gap-2.5">
                 {booksForNumber.map((book) => (
                   <button
                     key={book.id}
@@ -302,39 +302,51 @@ export default function MixBooksPage() {
                     onDoubleClick={() => setSelectedBook(book)}
                     data-testid={`button-book-${book.id}`}
                     className={cn(
-                      "relative flex flex-col items-center justify-center rounded-xl border-2 p-1.5 md:p-2 transition-all duration-150 hover:scale-105 active:scale-95 cursor-pointer group",
-                      book.selected
-                        ? "bg-primary/10 border-primary shadow-md shadow-primary/20"
-                        : "bg-card border-border/60 hover:border-primary/50 hover:bg-primary/5",
+                      "relative group cursor-pointer transition-all duration-150 hover:-translate-y-1 hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
                     )}
                   >
                     {book.selected && (
-                      <div className="absolute -top-1.5 -right-1.5 h-5 w-5 flex items-center justify-center rounded-full bg-primary shadow-md shadow-primary/30">
+                      <div className="absolute -top-1.5 -right-1.5 z-10 h-5 w-5 flex items-center justify-center rounded-full bg-primary shadow-lg shadow-primary/40">
                         <Check className="h-3 w-3 text-primary-foreground" />
                       </div>
                     )}
-                    <BookOpen
+                    <div
                       className={cn(
-                        "h-5 w-5 mb-0.5 transition-colors",
+                        "relative overflow-hidden rounded-lg border transition-all duration-150",
+                        "shadow-sm group-hover:shadow-md",
                         book.selected
-                          ? "text-primary"
-                          : "text-muted-foreground/50 group-hover:text-primary",
-                      )}
-                    />
-                    <span
-                      className={cn(
-                        "text-xs font-bold tabular-nums",
-                        book.selected
-                          ? "text-primary"
-                          : "text-card-foreground",
+                          ? "border-primary shadow-primary/20 group-hover:shadow-primary/30"
+                          : "border-border/70 group-hover:border-primary/40 group-hover:shadow-primary/10",
                       )}
                     >
-                      {displayNum(book.id)}
-                    </span>
-                    <span className="text-[9px] text-muted-foreground/50 mt-0.5 tabular-nums">
-                      {displayNum(book.numbers.length)}{" "}
-                      {isRTL ? "رقم" : "nos"}
-                    </span>
+                      <div
+                        className={cn(
+                          "absolute inset-y-0 start-0 w-1.5 transition-colors duration-150",
+                          book.selected
+                            ? "bg-primary"
+                            : "bg-border/60 group-hover:bg-primary/40",
+                        )}
+                      />
+                      <div
+                        className={cn(
+                          "ps-3 pe-1.5 py-2.5 flex flex-col items-center justify-center min-h-[3.5rem] transition-colors duration-150",
+                          book.selected
+                            ? "bg-primary/10"
+                            : "bg-card group-hover:bg-primary/5",
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "text-sm font-extrabold tabular-nums leading-none transition-colors duration-150",
+                            book.selected
+                              ? "text-primary"
+                              : "text-foreground/80 group-hover:text-primary",
+                          )}
+                        >
+                          {displayNum(book.id)}
+                        </span>
+                      </div>
+                    </div>
                   </button>
                 ))}
               </div>
