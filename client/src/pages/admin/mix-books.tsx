@@ -287,8 +287,8 @@ export default function MixBooksPage() {
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
                 {isRTL
-                  ? "اضغط لتحديد • نقر مزدوج لعرض المحتوى"
-                  : "Click to select • Double-click to view contents"}
+                  ? "اضغط على الدفتر لتحديده"
+                  : "Click a book to select it"}
               </p>
             </CardHeader>
 
@@ -299,7 +299,6 @@ export default function MixBooksPage() {
                     key={book.id}
                     type="button"
                     onClick={() => toggleBookSelection(book.id)}
-                    onDoubleClick={() => setSelectedBook(book)}
                     data-testid={`button-book-${book.id}`}
                     className={cn(
                       "relative group cursor-pointer transition-all duration-150 hover:-translate-y-1 hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
