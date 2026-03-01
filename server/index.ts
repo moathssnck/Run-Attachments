@@ -13,7 +13,7 @@ declare module "http" {
   }
 }
 
-const externalApiUrl = undefined; // Force local backend
+const externalApiUrl = "https://ithink-71db.onrender.com/";
 
 if (externalApiUrl) {
   app.use(
