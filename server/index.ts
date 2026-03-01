@@ -1,5 +1,5 @@
+
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import { createProxyMiddleware } from "http-proxy-middleware";
@@ -13,34 +13,45 @@ declare module "http" {
   }
 }
 
-const externalApiUrl = "https://ithink-71db.onrender.com/";
+const externalApiUrl =
+  process.env.EXTERNAL_API_URL?.trim() ||
+  "https://ithink-71db.onrender.com/";
 
-if (externalApiUrl) {
-  app.use(
-    "/api",
-    createProxyMiddleware({
-      target: externalApiUrl,
-      changeOrigin: true,
-      secure: true,
-      pathRewrite: (path) => `/api${path}`,
-      on: {
-        error: (err, _req, res) => {
-          const formattedTime = new Date().toLocaleTimeString("en-US", {
-            hour: "numeric",
-            minute: "2-digit",
-            second: "2-digit",
-            hour12: true,
+app.use(
+  "/api",
+  createProxyMiddleware({
+    target: externalApiUrl,
+    changeOrigin: true,
+    secure: true,
+    pathRewrite: (path) => `/api${path}`,
+    on: {
+      error: (err, _req, res) => {
+        const formattedTime = new Date().toLocaleTimeString("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: true,
+        });
+
+        console.log(
+          `${formattedTime} [express] Proxy error: ${err.message}`
+        );
+
+        if (res && "writeHead" in res) {
+          (res as any).writeHead(502, {
+            "Content-Type": "application/json",
           });
-          console.log(`${formattedTime} [express] Proxy error: ${err.message}`);
-          if (res && "writeHead" in res) {
-            (res as any).writeHead(502, { "Content-Type": "application/json" });
-            (res as any).end(JSON.stringify({ success: false, error: "External API unavailable" }));
-          }
-        },
+          (res as any).end(
+            JSON.stringify({
+              success: false,
+              error: "External API unavailable",
+            })
+          );
+        }
       },
-    })
-  );
-}
+    },
+  })
+);
 
 app.use(
   express.json({
@@ -66,7 +77,7 @@ export function log(message: string, source = "express") {
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
+  let capturedJsonResponse: Record<string, any> | undefined;
 
   const originalResJson = res.json;
   res.json = function (bodyJson, ...args) {
@@ -76,8 +87,10 @@ app.use((req, res, next) => {
 
   res.on("finish", () => {
     const duration = Date.now() - start;
+
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
+
       if (capturedJsonResponse) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
@@ -90,11 +103,7 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  if (externalApiUrl) {
-    log(`Proxying /api/* requests to ${externalApiUrl}`);
-  } else {
-    await registerRoutes(httpServer, app);
-  }
+  log(`Proxying /api/* requests to ${externalApiUrl}`);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
@@ -112,6 +121,7 @@ app.use((req, res, next) => {
   }
 
   const port = parseInt(process.env.PORT || "5000", 10);
+
   httpServer.listen(
     {
       port,
