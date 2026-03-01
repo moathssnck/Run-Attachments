@@ -37,7 +37,7 @@ externalPort = 80
 [userenv]
 
 [userenv.shared]
-EXTERNAL_API_URL = "https://ithink-71db.onrender.com"
+EXTERNAL_API_URL = "https://ithink-71db.onrender.com/"
 
 [deployment]
 deploymentTarget = "autoscale"
