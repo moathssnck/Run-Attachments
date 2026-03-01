@@ -1,3 +1,4 @@
+
 import express, { type Request, Response, NextFunction } from "express";
 import { serveStatic } from "./static";
 import { createServer } from "http";
@@ -13,7 +14,8 @@ declare module "http" {
 }
 
 const externalApiUrl =
-  process.env.EXTERNAL_API_URL?.trim() || "https://ithink-71db.onrender.com/";
+  process.env.EXTERNAL_API_URL?.trim() ||
+  "https://ithink-71db.onrender.com/";
 
 app.use(
   "/api",
@@ -30,10 +32,21 @@ app.use(
           second: "2-digit",
           hour12: true,
         });
-        console.log(`${formattedTime} [express] Proxy error: ${err.message}`);
+
+        console.log(
+          `${formattedTime} [express] Proxy error: ${err.message}`
+        );
+
         if (res && "writeHead" in res) {
-          (res as any).writeHead(502, { "Content-Type": "application/json" });
-          (res as any).end(JSON.stringify({ success: false, error: "External API unavailable" }));
+          (res as any).writeHead(502, {
+            "Content-Type": "application/json",
+          });
+          (res as any).end(
+            JSON.stringify({
+              success: false,
+              error: "External API unavailable",
+            })
+          );
         }
       },
     },
@@ -64,7 +77,7 @@ export function log(message: string, source = "express") {
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
+  let capturedJsonResponse: Record<string, any> | undefined;
 
   const originalResJson = res.json;
   res.json = function (bodyJson, ...args) {
@@ -74,8 +87,10 @@ app.use((req, res, next) => {
 
   res.on("finish", () => {
     const duration = Date.now() - start;
+
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
+
       if (capturedJsonResponse) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
@@ -106,6 +121,7 @@ app.use((req, res, next) => {
   }
 
   const port = parseInt(process.env.PORT || "5000", 10);
+
   httpServer.listen(
     {
       port,
