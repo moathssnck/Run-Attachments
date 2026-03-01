@@ -23,7 +23,7 @@ app.use(
     target: externalApiUrl,
     changeOrigin: true,
     secure: true,
-    pathRewrite: (path) => `/api${path}`,
+    pathRewrite: (path) => (path.startsWith("/api") ? path : `/api${path}`),
     on: {
       error: (err, _req, res) => {
         const formattedTime = new Date().toLocaleTimeString("en-US", {

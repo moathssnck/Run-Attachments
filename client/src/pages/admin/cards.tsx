@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useLanguage } from "@/lib/language-context";
+import { apiRequest } from "@/lib/queryClient";
 import {
   CreditCard,
   Plus,
@@ -90,7 +91,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AdminLayout } from "@/components/admin-layout";
-import { Switch } from "@/components/ui/switch";
 import { PageHeader } from "@/components/page-header";
 
 // Types
@@ -107,6 +107,65 @@ interface LotteryCard {
   isActive: boolean;
   barcode?: string;
   createdAt: string;
+}
+
+interface ExternalCard {
+  cardId: number;
+  cardNo: number | string;
+  cardStatusId?: number;
+  cardStatusName?: string;
+  cardDirectionName?: string;
+  cardNoteBookId?: number;
+  noteBookName?: string;
+  cardQR?: string;
+  creationDate?: string;
+  issueDate?: string | null;
+  issueDrawingDate?: string | null;
+  issueTypeId?: number;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function extractCardsFromResponse(payload: unknown): ExternalCard[] {
+  if (!isRecord(payload)) return [];
+
+  if (Array.isArray(payload.cards)) {
+    return payload.cards as ExternalCard[];
+  }
+
+  if (isRecord(payload.data) && Array.isArray(payload.data.cards)) {
+    return payload.data.cards as ExternalCard[];
+  }
+
+  return [];
+}
+
+function mapExternalCardToLotteryCard(card: ExternalCard): LotteryCard {
+  const issueDate = card.issueDate ?? card.creationDate ?? new Date().toISOString();
+  const drawDate = card.issueDrawingDate ?? issueDate;
+  const direction = (card.cardDirectionName ?? "").toUpperCase();
+  const isActive =
+    (card.cardStatusName ?? "").toLowerCase() === "available" ||
+    card.cardStatusId === 7;
+
+  return {
+    id: Number(card.cardId),
+    cardNumber: String(card.cardNo ?? card.cardId),
+    fromDate: issueDate,
+    toDate: drawDate,
+    bookNumber: card.noteBookName
+      ? String(card.noteBookName)
+      : String(card.cardNoteBookId ?? "-"),
+    issueNumber: String(card.issueTypeId ?? "-"),
+    issueDate,
+    drawDate,
+    cardSide: direction === "A" ? "left" : "right",
+    isActive,
+    barcode: card.cardQR || undefined,
+    createdAt: card.creationDate ?? issueDate,
+  };
 }
 
 const createCardFormSchema = (t: (key: string) => string) => z.object({
@@ -154,6 +213,11 @@ export default function CardsPage() {
   const [searchFromDate, setSearchFromDate] = useState("");
   const [searchToDate, setSearchToDate] = useState("");
   const [hasSearched, setHasSearched] = useState(false);
+  const [appliedFilters, setAppliedFilters] = useState({
+    cardNumber: "",
+    fromDate: "",
+    toDate: "",
+  });
 
   // Forms
   const createForm = useForm<CardFormValues>({
@@ -175,55 +239,41 @@ export default function CardsPage() {
     resolver: zodResolver(cardFormSchema),
   });
 
-  // Mock data - replace with actual API calls
+  // External API data (proxied through /api)
   const { data: cards = [], isLoading } = useQuery({
-    queryKey: ["lotteryCards"],
+    queryKey: [
+      "lotteryCards",
+      hasSearched,
+      appliedFilters.cardNumber,
+      appliedFilters.fromDate,
+      appliedFilters.toDate,
+    ],
     queryFn: async () => {
-      // Simulate API call
-      return [
-        {
-          id: 1,
-          cardNumber: "LC-2024-001",
-          fromDate: "2024-01-01",
-          toDate: "2024-01-31",
-          bookNumber: "BK-001",
-          issueNumber: "ISS-001",
-          issueDate: "2024-01-10",
-          drawDate: "2024-02-15",
-          cardSide: "left" as const,
-          isActive: true,
-          barcode: "123456789012",
-          createdAt: "2024-01-15T10:00:00Z",
-        },
-        {
-          id: 2,
-          cardNumber: "LC-2024-002",
-          fromDate: "2024-02-01",
-          toDate: "2024-02-28",
-          bookNumber: "BK-002",
-          issueNumber: "ISS-002",
-          issueDate: "2024-01-12",
-          drawDate: "2024-02-16",
-          cardSide: "right" as const,
-          isActive: true,
-          barcode: "123456789013",
-          createdAt: "2024-01-16T10:00:00Z",
-        },
-        {
-          id: 3,
-          cardNumber: "LC-2024-003",
-          fromDate: "2024-03-01",
-          toDate: "2024-03-31",
-          bookNumber: "BK-003",
-          issueNumber: "ISS-003",
-          issueDate: "2024-01-18",
-          drawDate: "2024-02-20",
-          cardSide: "left" as const,
-          isActive: false,
-          barcode: "123456789014",
-          createdAt: "2024-01-20T10:00:00Z",
-        },
-      ] as LotteryCard[];
+      if (hasSearched) {
+        const params = new URLSearchParams({
+          pageNumber: "1",
+          pageSize: "1000",
+        });
+
+        if (appliedFilters.cardNumber) {
+          params.set("searchTerm", appliedFilters.cardNumber);
+          params.set("cardNumber", appliedFilters.cardNumber);
+        }
+        if (appliedFilters.fromDate) {
+          params.set("fromIssueDate", appliedFilters.fromDate);
+        }
+        if (appliedFilters.toDate) {
+          params.set("toIssueDrawingDate", appliedFilters.toDate);
+        }
+
+        const response = await apiRequest("GET", `/api/Card/search?${params.toString()}`);
+        const payload = (await response.json()) as unknown;
+        return extractCardsFromResponse(payload).map(mapExternalCardToLotteryCard);
+      }
+
+      const response = await apiRequest("GET", "/api/Card/all");
+      const payload = (await response.json()) as unknown;
+      return extractCardsFromResponse(payload).map(mapExternalCardToLotteryCard);
     },
   });
 
@@ -251,17 +301,6 @@ export default function CardsPage() {
     },
   });
 
-  const toggleActiveStatusMutation = useMutation({
-    mutationFn: async ({ id, isActive }: { id: number; isActive: boolean }) => {
-      // Simulate API call
-      console.log("Toggling active status for card:", id, "to:", isActive);
-      return { id, isActive };
-    },
-    onSuccess: () => {
-      // Refresh the cards list
-    },
-  });
-
   const deleteCardMutation = useMutation({
     mutationFn: async (id: number) => {
       // Simulate API call
@@ -276,13 +315,20 @@ export default function CardsPage() {
 
   // Handlers
   const handleSearch = () => {
-    setHasSearched(true);
+    const nextFilters = {
+      cardNumber: searchCardNumber.trim(),
+      fromDate: searchFromDate,
+      toDate: searchToDate,
+    };
+    setAppliedFilters(nextFilters);
+    setHasSearched(Boolean(nextFilters.cardNumber || nextFilters.fromDate || nextFilters.toDate));
   };
 
   const handleClearSearch = () => {
     setSearchCardNumber("");
     setSearchFromDate("");
     setSearchToDate("");
+    setAppliedFilters({ cardNumber: "", fromDate: "", toDate: "" });
     setHasSearched(false);
   };
 
@@ -302,13 +348,6 @@ export default function CardsPage() {
     setIsEditDialogOpen(true);
   };
 
-  const handleToggleActiveStatus = (card: LotteryCard) => {
-    toggleActiveStatusMutation.mutate({
-      id: card.id,
-      isActive: !card.isActive,
-    });
-  };
-
   const onCreateSubmit = (data: CardFormValues) => {
     createCardMutation.mutate(data);
   };
@@ -317,24 +356,7 @@ export default function CardsPage() {
     updateCardMutation.mutate(data);
   };
 
-  // Filtered cards
-  const filteredCards = useMemo(() => {
-    if (!hasSearched) return cards;
-
-    return cards.filter((card) => {
-      const matchesCardNumber = searchCardNumber
-        ? card.cardNumber.toLowerCase().includes(searchCardNumber.toLowerCase())
-        : true;
-      const matchesFromDate = searchFromDate
-        ? new Date(card.fromDate) >= new Date(searchFromDate)
-        : true;
-      const matchesToDate = searchToDate
-        ? new Date(card.toDate) <= new Date(searchToDate)
-        : true;
-
-      return matchesCardNumber && matchesFromDate && matchesToDate;
-    });
-  }, [cards, hasSearched, searchCardNumber, searchFromDate, searchToDate]);
+  const filteredCards = cards;
 
   // Helpers
   const formatDate = (dateString: string) => {
@@ -768,28 +790,13 @@ export default function CardsPage() {
                                 </Tooltip>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    <div className="flex items-center gap-2">
-                                      <Switch
-                                        checked={card.isActive}
-                                        onCheckedChange={() =>
-                                          handleToggleActiveStatus(card)
-                                        }
-                                        className={`
-          data-[state=checked]:bg-emerald-600
-          data-[state=unchecked]:bg-red-600
-        `}
-                                      />
-
-                                      <span className="sr-only">
-                                        {card.isActive
-                                          ? t("lotteryCards.deactivate")
-                                          : t("lotteryCards.activate")}
-                                      </span>
-                                    </div>
+                                    <span className="text-xs text-muted-foreground px-2 py-1 rounded bg-muted/60">
+                                      External API
+                                    </span>
                                   </TooltipTrigger>
 
                                   <TooltipContent>
-                                    {card.isActive ? t("lotteryCards.deactivateCard") : t("lotteryCards.activateCard")}
+                                    Card status updates are managed in the external system.
                                   </TooltipContent>
                                 </Tooltip>
                               </div>
