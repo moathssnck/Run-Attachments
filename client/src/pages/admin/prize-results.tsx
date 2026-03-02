@@ -388,44 +388,72 @@ export default function PrizeResultsPage() {
     });
   };
 
-  const exportToPDF = async () => {
-    if (!sheetRef.current) return;
-    setIsExporting(true);
-    try {
-      if ("fonts" in document) {
-        await document.fonts.ready;
-      }
+const exportToPDF = async () => {
+  if (!sheetRef.current) return;
 
-      const html2canvas = (await import("html2canvas")).default;
-      const { jsPDF } = await import("jspdf");
+  setIsExporting(true);
+  try {
+    if ("fonts" in document) {
+      await document.fonts.ready;
+    }
 
-      const canvas = await html2canvas(sheetRef.current, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: "#111111",
-        logging: false,
-        foreignObjectRendering: true,
-        width: sheetRef.current.scrollWidth,
-        height: sheetRef.current.scrollHeight,
-        windowWidth: sheetRef.current.scrollWidth,
-        windowHeight: sheetRef.current.scrollHeight,
-        onclone: (clonedDocument) => {
-          const style = clonedDocument.createElement("style");
-          style.textContent = `
-            [data-pdf-sheet="true"], [data-pdf-sheet="true"] * {
-              font-family: "Noto Naskh Arabic", "Noto Sans Arabic", "Tahoma", "Arial", sans-serif !important;
-              -webkit-font-smoothing: antialiased;
-              text-rendering: geometricPrecision;
-            }
-          `;
-          clonedDocument.head.appendChild(style);
+    const html2canvas = (await import("html2canvas")).default;
+    const { jsPDF } = await import("jspdf");
 
-          const clonedSheet = clonedDocument.querySelector<HTMLElement>('[data-pdf-sheet="true"]');
-          if (clonedSheet) {
-            clonedSheet.setAttribute("dir", "rtl");
+    const canvas = await html2canvas(sheetRef.current, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: "#111111",
+      logging: false,
+      foreignObjectRendering: true,
+      width: sheetRef.current.scrollWidth,
+      height: sheetRef.current.scrollHeight,
+      windowWidth: sheetRef.current.scrollWidth,
+      windowHeight: sheetRef.current.scrollHeight,
+      onclone: (clonedDocument) => {
+        const style = clonedDocument.createElement("style");
+        style.textContent = `
+          [data-pdf-sheet="true"], [data-pdf-sheet="true"] * {
+            font-family: "Noto Naskh Arabic", "Noto Sans Arabic", "Tahoma", "Arial", sans-serif !important;
+            -webkit-font-smoothing: antialiased;
+            text-rendering: geometricPrecision;
           }
-        },
-      });
+        `;
+        clonedDocument.head.appendChild(style);
+
+        const clonedSheet =
+          clonedDocument.querySelector<HTMLElement>('[data-pdf-sheet="true"]');
+        if (clonedSheet) {
+          clonedSheet.setAttribute("dir", "rtl");
+        }
+      },
+    });
+
+    const imageData = canvas.toDataURL("image/png");
+
+    const pdf = new jsPDF({
+      orientation: canvas.width > canvas.height ? "landscape" : "portrait",
+      unit: "px",
+      format: [canvas.width, canvas.height],
+    });
+
+    pdf.addImage(imageData, "PNG", 0, 0, canvas.width, canvas.height);
+    pdf.save(`prize-results-${drawDate.replace(/\s+/g, "-")}.pdf`);
+
+    toast({
+      title: t("prizeResults.exportSuccess"),
+      description: t("prizeResults.exportSuccessDesc"),
+    });
+  } catch {
+    toast({
+      title: t("common.error"),
+      description: t("prizeResults.exportError"),
+      variant: "destructive",
+    });
+  } finally {
+    setIsExporting(false);
+  }
+};
 
       const imageData = canvas.toDataURL("image/png");
       const pdf = new jsPDF({
@@ -491,7 +519,7 @@ export default function PrizeResultsPage() {
         <div className="rounded-2xl border border-zinc-800 bg-[#0a0a0a] p-4 md:p-6">
           <div
             ref={sheetRef}
-            data-pdf-sheet="true"
+
             className="mx-auto max-w-6xl overflow-hidden rounded-xl border border-zinc-800 bg-[#111111] text-zinc-100 shadow-2xl"
           >
             <header className="flex flex-col items-center justify-between gap-6 border-b border-zinc-800 p-6 md:flex-row">
