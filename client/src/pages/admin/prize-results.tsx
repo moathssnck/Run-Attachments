@@ -262,12 +262,18 @@ export default function PrizeResultsPage() {
             ref={sheetRef}
             className="mx-auto max-w-6xl overflow-hidden rounded-xl border border-zinc-200 bg-white text-zinc-900 shadow-2xl dark:border-zinc-800 dark:bg-[#111111] dark:text-zinc-100"
           >
-            <header className="flex flex-col items-center justify-between gap-6 border-b border-zinc-200 p-6 dark:border-zinc-800 md:flex-row">
-              <div className="text-right">
+            <header
+              dir="ltr"
+              className="flex flex-col items-center justify-between gap-6 border-b border-zinc-200 p-6 dark:border-zinc-800 md:flex-row"
+            >
+              <div className="text-left" dir="ltr">
                 <h1 className="mb-1 text-2xl font-bold text-emerald-600 dark:text-emerald-500">
                   Jordanian Charity Lottery
                 </h1>
-                <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
+                <div
+                  dir={isRTL ? "rtl" : "ltr"}
+                  className="flex items-center gap-2 text-zinc-700 dark:text-zinc-400"
+                >
                   <span>{t("prizeResults.drawDate")}:</span>
                   <Input
                     value={drawDate}
@@ -281,12 +287,15 @@ export default function PrizeResultsPage() {
                 <div className="mb-2 flex h-16 w-16 items-center justify-center rounded-full border border-emerald-500/20 bg-emerald-500/10">
                   <img src={logoImage} alt="Lottery Logo" className="h-10 w-10 object-contain opacity-90" />
                 </div>
-                <span className="text-center text-xs tracking-wide text-zinc-600 dark:text-zinc-500">
+                <span className="text-center text-xs tracking-normal text-zinc-700 dark:text-zinc-500">
                   {t("prizeResults.orgName")}
                 </span>
               </div>
 
-              <div className={isRTL ? "text-right" : "text-left"}>
+              <div
+                dir={isRTL ? "rtl" : "ltr"}
+                className={isRTL ? "text-right" : "text-left"}
+              >
                 <h2 className="mb-1 text-2xl font-bold text-emerald-600 dark:text-emerald-500">
                   {t("prizeResults.sheetHeading")}
                 </h2>
@@ -341,7 +350,11 @@ export default function PrizeResultsPage() {
             <main className="overflow-x-auto">
               <table className="w-full border-collapse">
                 <thead>
-                  <tr className="border-b border-zinc-200 bg-zinc-100/90 text-[10px] uppercase tracking-wider text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900/80 dark:text-zinc-500">
+                  <tr
+                    className={`border-b border-zinc-200 bg-zinc-100/90 text-[10px] text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900/80 dark:text-zinc-400 ${
+                      isRTL ? "tracking-normal" : "uppercase tracking-wider"
+                    }`}
+                  >
                     <th className="w-1/3 border-r border-zinc-200 p-3 dark:border-zinc-800">
                       {t("prizeResults.consolationColumn")}
                     </th>
