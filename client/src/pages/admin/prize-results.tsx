@@ -39,263 +39,51 @@ interface PrizeResultRow {
   type: "standard" | "ending";
 }
 
-const initialPrizeRows: PrizeResultRow[] = [
-  {
-    id: "1",
-    nameAr: "الجائزة الأولى",
-    nameEn: "First Prize",
-    valueAr: "100000 دينار",
-    valueEn: "100000 JOD",
-    winningNumbers: ["60638"],
-    consolationPrizes: [
-      "70638",
-      "61638",
-      "60738",
-      "60648",
-      "60639",
-      "50638",
-      "59638",
-      "60538",
-      "60628",
-      "60637",
-    ],
-    type: "standard",
-  },
-  {
-    id: "2",
-    nameAr: "الجائزة الثانية",
-    nameEn: "Second Prize",
-    valueAr: "30000 دينار",
-    valueEn: "30000 JOD",
-    winningNumbers: ["86611"],
-    consolationPrizes: [
-      "96611",
-      "87611",
-      "86711",
-      "86621",
-      "86612",
-      "76611",
-      "85611",
-      "86511",
-      "86601",
-      "86610",
-    ],
-    type: "standard",
-  },
-  {
-    id: "3",
-    nameAr: "الجائزة الثالثة",
-    nameEn: "Third Prize",
-    valueAr: "15000 دينار",
-    valueEn: "15000 JOD",
-    winningNumbers: ["56806"],
-    consolationPrizes: [
-      "66806",
-      "57806",
-      "56906",
-      "56816",
-      "56807",
-      "46806",
-      "55806",
-      "56706",
-      "56796",
-      "56805",
-    ],
-    type: "standard",
-  },
-  {
-    id: "4",
-    nameAr: "الجائزة الرابعة",
-    nameEn: "Fourth Prize",
-    valueAr: "8000 دينار",
-    valueEn: "8000 JOD",
-    winningNumbers: ["79117"],
-    consolationPrizes: [
-      "89117",
-      "70117",
-      "79217",
-      "79127",
-      "79118",
-      "69117",
-      "78117",
-      "79017",
-      "79107",
-      "79116",
-    ],
-    type: "standard",
-  },
-  {
-    id: "5",
-    nameAr: "الجائزة الخامسة",
-    nameEn: "Fifth Prize",
-    valueAr: "5000 دينار",
-    valueEn: "5000 JOD",
-    winningNumbers: ["42097"],
-    consolationPrizes: [
-      "52097",
-      "43097",
-      "42197",
-      "42007",
-      "42098",
-      "32097",
-      "41097",
-      "42997",
-      "42087",
-      "42096",
-    ],
-    type: "standard",
-  },
-  {
-    id: "6",
-    nameAr: "الجائزة السادسة",
-    nameEn: "Sixth Prize",
-    valueAr: "3000 دينار",
-    valueEn: "3000 JOD",
-    winningNumbers: ["47532"],
-    consolationPrizes: [
-      "57532",
-      "48532",
-      "47632",
-      "47542",
-      "47533",
-      "37532",
-      "46532",
-      "47432",
-      "47522",
-      "47531",
-    ],
-    type: "standard",
-  },
-  {
-    id: "7",
-    nameAr: "الجائزة السابعة",
-    nameEn: "Seventh Prize",
-    valueAr: "1500 دينار",
-    valueEn: "1500 JOD",
-    winningNumbers: ["90039", "13790"],
-    type: "standard",
-  },
-  {
-    id: "8",
-    nameAr: "الجائزة الثامنة",
-    nameEn: "Eighth Prize",
-    valueAr: "1000 دينار",
-    valueEn: "1000 JOD",
-    winningNumbers: ["68405", "27064", "28733", "91491", "40261"],
-    type: "standard",
-  },
-  {
-    id: "9",
-    nameAr: "الجائزة التاسعة",
-    nameEn: "Ninth Prize",
-    valueAr: "600 دينار",
-    valueEn: "600 JOD",
-    winningNumbers: ["84026", "87867", "08626", "11276", "58756"],
-    type: "standard",
-  },
-  {
-    id: "10",
-    nameAr: "الجائزة العاشرة",
-    nameEn: "Tenth Prize",
-    valueAr: "500 دينار",
-    valueEn: "500 JOD",
-    winningNumbers: ["97543", "11976", "23647", "07197", "46668"],
-    type: "standard",
-  },
-  {
-    id: "11",
-    nameAr: "الجائزة الحادية عشر",
-    nameEn: "Eleventh Prize",
-    valueAr: "400 دينار",
-    valueEn: "400 JOD",
-    winningNumbers: ["96874", "99543", "98003", "16863"],
-    type: "standard",
-  },
-  {
-    id: "12",
-    nameAr: "الجائزة الثانية عشر",
-    nameEn: "Twelfth Prize",
-    valueAr: "300 دينار",
-    valueEn: "300 JOD",
-    winningNumbers: ["49196", "46845", "39323", "21864", "98213"],
-    type: "standard",
-  },
-  {
-    id: "13",
-    nameAr: "الجائزة الثالثة عشر",
-    nameEn: "Thirteenth Prize",
-    valueAr: "200 دينار",
-    valueEn: "200 JOD",
-    winningNumbers: ["6960", "7248", "2806", "9156", "8517"],
-    type: "standard",
-  },
-  {
-    id: "14",
-    nameAr: "الجائزة الرابعة عشر",
-    nameEn: "Fourteenth Prize",
-    valueAr: "150 دينار",
-    valueEn: "150 JOD",
-    winningNumbers: ["9942", "9200", "2679", "0031", "0381"],
-    type: "standard",
-  },
-  {
-    id: "15",
-    nameAr: "الجائزة الخامسة عشر",
-    nameEn: "Fifteenth Prize",
-    valueAr: "100 دينار",
-    valueEn: "100 JOD",
-    winningNumbers: ["762"],
-    type: "ending",
-  },
-  {
-    id: "16",
-    nameAr: "الجائزة السادسة عشر",
-    nameEn: "Sixteenth Prize",
-    valueAr: "75 دينار",
-    valueEn: "75 JOD",
-    winningNumbers: ["492"],
-    type: "ending",
-  },
-  {
-    id: "17",
-    nameAr: "الجائزة السابعة عشر",
-    nameEn: "Seventeenth Prize",
-    valueAr: "40 دينار",
-    valueEn: "40 JOD",
-    winningNumbers: ["34"],
-    type: "ending",
-  },
-  {
-    id: "18",
-    nameAr: "الجائزة الثامنة عشر",
-    nameEn: "Eighteenth Prize",
-    valueAr: "25 دينار",
-    valueEn: "25 JOD",
-    winningNumbers: ["45"],
-    type: "ending",
-  },
-  {
-    id: "19",
-    nameAr: "الجائزة التاسعة عشر",
-    nameEn: "Nineteenth Prize",
-    valueAr: "10 دنانير",
-    valueEn: "10 JOD",
-    winningNumbers: ["7"],
-    type: "ending",
-  },
+interface PrizeRowTemplate {
+  id: string;
+  type: "standard" | "ending";
+  winningNumbersCount: number;
+  consolationPrizesCount?: number;
+}
+
+const prizeRowTemplates: PrizeRowTemplate[] = [
+  { id: "1", type: "standard", winningNumbersCount: 1, consolationPrizesCount: 10 },
+  { id: "2", type: "standard", winningNumbersCount: 1, consolationPrizesCount: 10 },
+  { id: "3", type: "standard", winningNumbersCount: 1, consolationPrizesCount: 10 },
+  { id: "4", type: "standard", winningNumbersCount: 1, consolationPrizesCount: 10 },
+  { id: "5", type: "standard", winningNumbersCount: 1, consolationPrizesCount: 10 },
+  { id: "6", type: "standard", winningNumbersCount: 1, consolationPrizesCount: 10 },
+  { id: "7", type: "standard", winningNumbersCount: 2 },
+  { id: "8", type: "standard", winningNumbersCount: 5 },
+  { id: "9", type: "standard", winningNumbersCount: 5 },
+  { id: "10", type: "standard", winningNumbersCount: 5 },
+  { id: "11", type: "standard", winningNumbersCount: 4 },
+  { id: "12", type: "standard", winningNumbersCount: 5 },
+  { id: "13", type: "standard", winningNumbersCount: 5 },
+  { id: "14", type: "standard", winningNumbersCount: 5 },
+  { id: "15", type: "ending", winningNumbersCount: 1 },
+  { id: "16", type: "ending", winningNumbersCount: 1 },
+  { id: "17", type: "ending", winningNumbersCount: 1 },
+  { id: "18", type: "ending", winningNumbersCount: 1 },
+  { id: "19", type: "ending", winningNumbersCount: 1 },
 ];
 
-const initialCoverPrizes = [
-  ["278", "478", "368", "388", "377", "379", "378"],
-  ["649", "849", "739", "759", "748", "740", "749"],
-  ["918", "118", "008", "028", "017", "019", "018"],
-  ["286", "486", "376", "396", "385", "387", "386"],
-  ["644", "844", "734", "754", "743", "745", "744"],
-  ["801", "001", "991", "911", "900", "902", "901"],
-  ["019", "219", "159", "179", "168", "160", "169"],
-  ["307", "507", "497", "417", "406", "408", "407"],
-  ["667", "867", "757", "777", "766", "768", "767"],
-];
+const initialPrizeRows: PrizeResultRow[] = prizeRowTemplates.map((template) => ({
+  id: template.id,
+  nameAr: "",
+  nameEn: "",
+  valueAr: "",
+  valueEn: "",
+  winningNumbers: Array.from({ length: template.winningNumbersCount }, () => ""),
+  consolationPrizes: template.consolationPrizesCount
+    ? Array.from({ length: template.consolationPrizesCount }, () => "")
+    : undefined,
+  type: template.type,
+}));
+
+const initialCoverPrizes = Array.from({ length: 9 }, () =>
+  Array.from({ length: 7 }, () => ""),
+);
 
 export default function PrizeResultsPage() {
   const { t, dir } = useLanguage();
@@ -303,9 +91,9 @@ export default function PrizeResultsPage() {
   const sheetRef = useRef<HTMLDivElement>(null);
   const isRTL = dir === "rtl";
 
-  const [drawDate, setDrawDate] = useState("2026 / 1 / 1");
-  const [issueNumber, setIssueNumber] = useState("35 / 2025");
-  const [nextDrawDate, setNextDrawDate] = useState("2026 / 1 / 10");
+  const [drawDate, setDrawDate] = useState("");
+  const [issueNumber, setIssueNumber] = useState("");
+  const [nextDrawDate, setNextDrawDate] = useState("");
   const [isExporting, setIsExporting] = useState(false);
   const [isHeaderDialogOpen, setIsHeaderDialogOpen] = useState(false);
 
@@ -377,10 +165,10 @@ export default function PrizeResultsPage() {
         ...currentPrizes,
         {
           id: nextId,
-          nameAr: `${t("prizeResults.newPrize")} ${nextId}`,
-          nameEn: `Prize ${nextId}`,
-          valueAr: "0 دينار",
-          valueEn: "0 JOD",
+          nameAr: "",
+          nameEn: "",
+          valueAr: "",
+          valueEn: "",
           winningNumbers: [""],
           type: "standard",
         },
@@ -394,11 +182,14 @@ export default function PrizeResultsPage() {
     try {
       const html2canvas = (await import("html2canvas")).default;
       const { jsPDF } = await import("jspdf");
+      const isDarkTheme =
+        typeof document !== "undefined" &&
+        document.documentElement.classList.contains("dark");
 
       const canvas = await html2canvas(sheetRef.current, {
         scale: 2,
         useCORS: true,
-        backgroundColor: "#111111",
+        backgroundColor: isDarkTheme ? "#111111" : "#ffffff",
         logging: false,
       });
 
@@ -410,7 +201,10 @@ export default function PrizeResultsPage() {
       });
 
       pdf.addImage(imageData, "PNG", 0, 0, canvas.width, canvas.height);
-      pdf.save(`prize-results-${drawDate.replace(/\s+/g, "-")}.pdf`);
+      const safeDrawDate = drawDate.trim()
+        ? drawDate.trim().replace(/\s+/g, "-")
+        : "blank";
+      pdf.save(`prize-results-${safeDrawDate}.pdf`);
 
       toast({
         title: t("prizeResults.exportSuccess"),
@@ -463,22 +257,22 @@ export default function PrizeResultsPage() {
           }
         />
 
-        <div className="rounded-2xl border border-zinc-800 bg-[#0a0a0a] p-4 md:p-6">
+        <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-[#0a0a0a] md:p-6">
           <div
             ref={sheetRef}
-            className="mx-auto max-w-6xl overflow-hidden rounded-xl border border-zinc-800 bg-[#111111] text-zinc-100 shadow-2xl"
+            className="mx-auto max-w-6xl overflow-hidden rounded-xl border border-zinc-200 bg-white text-zinc-900 shadow-2xl dark:border-zinc-800 dark:bg-[#111111] dark:text-zinc-100"
           >
-            <header className="flex flex-col items-center justify-between gap-6 border-b border-zinc-800 p-6 md:flex-row">
+            <header className="flex flex-col items-center justify-between gap-6 border-b border-zinc-200 p-6 dark:border-zinc-800 md:flex-row">
               <div className="text-right">
-                <h1 className="mb-1 text-2xl font-bold text-emerald-500">
+                <h1 className="mb-1 text-2xl font-bold text-emerald-600 dark:text-emerald-500">
                   Jordanian Charity Lottery
                 </h1>
-                <div className="flex items-center gap-2 text-zinc-400">
+                <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
                   <span>{t("prizeResults.drawDate")}:</span>
                   <Input
                     value={drawDate}
                     onChange={(event) => setDrawDate(event.target.value)}
-                    className="h-8 w-36 border-zinc-700 bg-transparent text-center text-zinc-100 focus-visible:ring-emerald-500"
+                    className="h-8 w-36 border-zinc-300 bg-white/80 text-center text-zinc-900 focus-visible:ring-emerald-500 dark:border-zinc-700 dark:bg-transparent dark:text-zinc-100"
                   />
                 </div>
               </div>
@@ -487,25 +281,26 @@ export default function PrizeResultsPage() {
                 <div className="mb-2 flex h-16 w-16 items-center justify-center rounded-full border border-emerald-500/20 bg-emerald-500/10">
                   <img src={logoImage} alt="Lottery Logo" className="h-10 w-10 object-contain opacity-90" />
                 </div>
-                <span className="text-center text-xs tracking-wide text-zinc-500">
+                <span className="text-center text-xs tracking-wide text-zinc-600 dark:text-zinc-500">
                   {t("prizeResults.orgName")}
                 </span>
               </div>
 
               <div className={isRTL ? "text-right" : "text-left"}>
-                <h2 className="mb-1 text-2xl font-bold text-emerald-500">
+                <h2 className="mb-1 text-2xl font-bold text-emerald-600 dark:text-emerald-500">
                   {t("prizeResults.sheetHeading")}
                 </h2>
-                <p className="text-sm text-zinc-400">
-                  {t("prizeResults.issueLabel")} ({issueNumber})
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                  {t("prizeResults.issueLabel")}
+                  {issueNumber ? ` (${issueNumber})` : ""}
                 </p>
-                <p className="text-xs text-zinc-500">{t("prizeResults.specialEdition")}</p>
+                <p className="text-xs text-zinc-600 dark:text-zinc-500">{t("prizeResults.specialEdition")}</p>
               </div>
             </header>
 
             <div
               data-html2canvas-ignore
-              className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800 bg-zinc-900/50 px-6 py-3"
+              className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 bg-zinc-100/80 px-6 py-3 dark:border-zinc-800 dark:bg-zinc-900/50"
             >
               <div className="flex items-center gap-2">
                 <Button
@@ -513,7 +308,7 @@ export default function PrizeResultsPage() {
                   size="sm"
                   onClick={exportToPDF}
                   disabled={isExporting}
-                  className="text-zinc-300 hover:text-emerald-400"
+                  className="text-zinc-700 hover:text-emerald-600 dark:text-zinc-300 dark:hover:text-emerald-400"
                 >
                   {isExporting ? (
                     <Loader2 className="me-2 h-4 w-4 animate-spin" />
@@ -526,7 +321,7 @@ export default function PrizeResultsPage() {
                   variant="ghost"
                   size="sm"
                   onClick={() => window.print()}
-                  className="text-zinc-300 hover:text-emerald-400"
+                  className="text-zinc-700 hover:text-emerald-600 dark:text-zinc-300 dark:hover:text-emerald-400"
                 >
                   <Printer className="me-2 h-4 w-4" />
                   {t("prizeResults.print")}
@@ -536,7 +331,7 @@ export default function PrizeResultsPage() {
                 variant="ghost"
                 size="sm"
                 onClick={handleShare}
-                className="text-zinc-300 hover:text-emerald-400"
+                className="text-zinc-700 hover:text-emerald-600 dark:text-zinc-300 dark:hover:text-emerald-400"
               >
                 <Share2 className="me-2 h-4 w-4" />
                 {t("prizeResults.share")}
@@ -546,11 +341,11 @@ export default function PrizeResultsPage() {
             <main className="overflow-x-auto">
               <table className="w-full border-collapse">
                 <thead>
-                  <tr className="border-b border-zinc-800 bg-zinc-900/80 text-[10px] uppercase tracking-wider text-zinc-500">
-                    <th className="w-1/3 border-r border-zinc-800 p-3">
+                  <tr className="border-b border-zinc-200 bg-zinc-100/90 text-[10px] uppercase tracking-wider text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900/80 dark:text-zinc-500">
+                    <th className="w-1/3 border-r border-zinc-200 p-3 dark:border-zinc-800">
                       {t("prizeResults.consolationColumn")}
                     </th>
-                    <th className="w-1/4 border-r border-zinc-800 p-3">
+                    <th className="w-1/4 border-r border-zinc-200 p-3 dark:border-zinc-800">
                       {t("prizeResults.winningColumn")}
                     </th>
                     <th className="p-3">{t("prizeResults.prizeColumn")}</th>
@@ -560,9 +355,9 @@ export default function PrizeResultsPage() {
                   {prizes.map((prize) => (
                     <tr
                       key={prize.id}
-                      className="group border-b border-zinc-800 transition-colors hover:bg-zinc-900/30"
+                      className="group border-b border-zinc-200 transition-colors hover:bg-zinc-100/60 dark:border-zinc-800 dark:hover:bg-zinc-900/30"
                     >
-                      <td className="border-r border-zinc-800 p-2">
+                      <td className="border-r border-zinc-200 p-2 dark:border-zinc-800">
                         {prize.consolationPrizes ? (
                           <div className="grid grid-cols-5 gap-1">
                             {prize.consolationPrizes.map((number, index) => (
@@ -572,7 +367,7 @@ export default function PrizeResultsPage() {
                                 onChange={(event) =>
                                   updateConsolation(prize.id, index, event.target.value)
                                 }
-                                className="h-7 border-zinc-700 bg-zinc-800/50 px-1 py-0.5 text-center text-[10px] text-zinc-200 focus-visible:ring-emerald-500"
+                                className="h-7 border-zinc-300 bg-white/80 px-1 py-0.5 text-center text-[10px] text-zinc-700 focus-visible:ring-emerald-500 dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-200"
                               />
                             ))}
                           </div>
@@ -585,23 +380,23 @@ export default function PrizeResultsPage() {
                                 onChange={(event) =>
                                   updateWinningNumber(prize.id, index, event.target.value)
                                 }
-                                className="h-8 w-20 border-zinc-700 bg-zinc-800/50 text-center text-xs text-zinc-200 focus-visible:ring-emerald-500"
+                                className="h-8 w-20 border-zinc-300 bg-white/80 text-center text-xs text-zinc-700 focus-visible:ring-emerald-500 dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-200"
                               />
                             ))}
                           </div>
                         ) : (
-                          <div className="text-center text-xs text-zinc-600">—</div>
+                          <div className="text-center text-xs text-zinc-500 dark:text-zinc-600">—</div>
                         )}
                       </td>
 
-                      <td className="border-r border-zinc-800 p-2 text-center">
+                      <td className="border-r border-zinc-200 p-2 text-center dark:border-zinc-800">
                         {prize.type === "standard" && prize.winningNumbers.length === 1 ? (
                           <Input
                             value={prize.winningNumbers[0]}
                             onChange={(event) =>
                               updateWinningNumber(prize.id, 0, event.target.value)
                             }
-                            className="mx-auto h-10 w-full max-w-[132px] border-emerald-500/30 bg-emerald-500/10 text-center text-xl font-bold text-emerald-400 focus-visible:ring-emerald-500"
+                            className="mx-auto h-10 w-full max-w-[132px] border-emerald-500/30 bg-emerald-500/10 text-center text-xl font-bold text-emerald-700 focus-visible:ring-emerald-500 dark:text-emerald-400"
                           />
                         ) : prize.type === "ending" ? (
                           <div className="flex items-center justify-center gap-2">
@@ -613,7 +408,7 @@ export default function PrizeResultsPage() {
                               onChange={(event) =>
                                 updateWinningNumber(prize.id, 0, event.target.value)
                               }
-                              className="h-9 w-16 border-emerald-500/30 bg-emerald-500/10 text-center text-lg font-bold text-emerald-400 focus-visible:ring-emerald-500"
+                              className="h-9 w-16 border-emerald-500/30 bg-emerald-500/10 text-center text-lg font-bold text-emerald-700 focus-visible:ring-emerald-500 dark:text-emerald-400"
                             />
                           </div>
                         ) : (
@@ -631,7 +426,7 @@ export default function PrizeResultsPage() {
                               updatePrize(prize.id, "nameAr", event.target.value)
                             }
                             dir="rtl"
-                            className="h-8 border-zinc-700 bg-transparent text-right text-sm font-bold text-zinc-200 focus-visible:ring-emerald-500"
+                            className="h-8 border-zinc-300 bg-transparent text-right text-sm font-bold text-zinc-800 focus-visible:ring-emerald-500 dark:border-zinc-700 dark:text-zinc-200"
                           />
                           <Input
                             value={prize.nameEn}
@@ -639,7 +434,7 @@ export default function PrizeResultsPage() {
                               updatePrize(prize.id, "nameEn", event.target.value)
                             }
                             dir="ltr"
-                            className="h-8 border-zinc-700 bg-transparent text-left text-xs text-zinc-500 focus-visible:ring-emerald-500"
+                            className="h-8 border-zinc-300 bg-transparent text-left text-xs text-zinc-600 focus-visible:ring-emerald-500 dark:border-zinc-700 dark:text-zinc-500"
                           />
                           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                             <Input
@@ -648,7 +443,7 @@ export default function PrizeResultsPage() {
                                 updatePrize(prize.id, "valueAr", event.target.value)
                               }
                               dir="rtl"
-                              className="h-8 border-zinc-700 bg-transparent text-right text-xs text-zinc-400 focus-visible:ring-emerald-500"
+                              className="h-8 border-zinc-300 bg-transparent text-right text-xs text-zinc-600 focus-visible:ring-emerald-500 dark:border-zinc-700 dark:text-zinc-400"
                             />
                             <Input
                               value={prize.valueEn}
@@ -656,7 +451,7 @@ export default function PrizeResultsPage() {
                                 updatePrize(prize.id, "valueEn", event.target.value)
                               }
                               dir="ltr"
-                              className="h-8 border-zinc-700 bg-transparent text-left text-xs text-zinc-400 focus-visible:ring-emerald-500"
+                              className="h-8 border-zinc-300 bg-transparent text-left text-xs text-zinc-600 focus-visible:ring-emerald-500 dark:border-zinc-700 dark:text-zinc-400"
                             />
                           </div>
                         </div>
@@ -667,12 +462,12 @@ export default function PrizeResultsPage() {
               </table>
             </main>
 
-            <section className="border-t border-zinc-800 bg-zinc-900/20 p-6">
+            <section className="border-t border-zinc-200 bg-zinc-100/50 p-6 dark:border-zinc-800 dark:bg-zinc-900/20">
               <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-                <h3 className="text-lg font-bold text-emerald-500">
+                <h3 className="text-lg font-bold text-emerald-600 dark:text-emerald-500">
                   {t("prizeResults.coverPrizes")}
                 </h3>
-                <span className="text-xs text-zinc-500">{t("prizeResults.coverMeta")}</span>
+                <span className="text-xs text-zinc-600 dark:text-zinc-500">{t("prizeResults.coverMeta")}</span>
               </div>
               <div className="grid grid-cols-7 gap-2">
                 {coverPrizes.map((row, rowIndex) =>
@@ -683,15 +478,18 @@ export default function PrizeResultsPage() {
                       onChange={(event) =>
                         updateCoverPrize(rowIndex, columnIndex, event.target.value)
                       }
-                      className="h-8 border-zinc-700/60 bg-zinc-800/30 p-2 text-center text-xs text-zinc-300 focus-visible:ring-emerald-500"
+                      className="h-8 border-zinc-300 bg-white/70 p-2 text-center text-xs text-zinc-700 focus-visible:ring-emerald-500 dark:border-zinc-700/60 dark:bg-zinc-800/30 dark:text-zinc-300"
                     />
                   )),
                 )}
               </div>
             </section>
 
-            <footer className="border-t border-zinc-800 p-6 text-center text-[10px] text-zinc-600">
-              <p className="mb-2">{t("prizeResults.footerNote")} {nextDrawDate}</p>
+            <footer className="border-t border-zinc-200 p-6 text-center text-[10px] text-zinc-600 dark:border-zinc-800 dark:text-zinc-500">
+              <p className="mb-2">
+                {t("prizeResults.footerNote")}
+                {nextDrawDate ? ` ${nextDrawDate}` : ""}
+              </p>
               <div className="flex justify-center gap-4">
                 <span>LOTTERY.JOR</span>
                 <span>@اتحاد الجمعيات الخيرية</span>
