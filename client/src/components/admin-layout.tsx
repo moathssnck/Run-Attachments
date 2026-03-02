@@ -79,6 +79,7 @@ const mainNavItems = [
   { href: "/admin/books", labelKey: "nav.tickets", icon: ClipboardList },
   { href: "/admin/cards", labelKey: "nav.cards", icon: Ticket },
   { href: "/admin/prizes", labelKey: "nav.prizes", icon: Trophy },
+  { href: "/admin/prize-results", labelKey: "nav.prizeResults", icon: FileText },
   { href: "/admin/mixed-numbers", labelKey: "nav.mixedNumbers", icon: Grid3X3 },
   { href: "/admin/mix-books", labelKey: "nav.mixBooks", icon: BookCopy },
 ];
