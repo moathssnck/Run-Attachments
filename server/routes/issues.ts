@@ -150,6 +150,38 @@ export function registerIssueRoutes(app: Express) {
     },
   );
 
+  app.patch(
+    "/api/admin/issues/:id/reopen",
+    async (req: Request, res: Response) => {
+      try {
+        const existingIssue = await storage.getIssue(req.params.id);
+        if (!existingIssue) {
+          return res
+            .status(404)
+            .json(apiResponse(false, null, "Issue not found"));
+        }
+
+        const { adminId } = req.body;
+        const issue = await storage.updateIssue(req.params.id, {
+          isClosed: false,
+        });
+
+        await logAction(
+          adminId || "admin",
+          "Issue Reopened",
+          "issues",
+          req.params.id,
+          { isClosed: true },
+          { isClosed: false },
+        );
+
+        res.json(apiResponse(true, issue));
+      } catch (error) {
+        res.json(apiResponse(false, null, "Failed to reopen issue"));
+      }
+    },
+  );
+
   app.delete("/api/admin/issues/:id", async (req: Request, res: Response) => {
     try {
       const existingIssue = await storage.getIssue(req.params.id);

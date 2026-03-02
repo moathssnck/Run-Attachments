@@ -80,7 +80,7 @@ export default function CustomSettingsPage() {
 
   const updateMutation = useMutation({
     mutationFn: (data: { id: string; updates: Partial<typeof formData> }) =>
-      apiRequest(`/api/admin/custom-settings/${data.id}`, "PATCH", data.updates),
+      apiRequest("PATCH", `/api/admin/custom-settings/${data.id}`, data.updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/custom-settings"] });
       setIsEditDialogOpen(false);
@@ -101,7 +101,8 @@ export default function CustomSettingsPage() {
   });
 
   const toggleMutation = useMutation({
-    mutationFn: (id: string) => apiRequest(`/api/admin/custom-settings/${id}/toggle`, "PATCH", {}),
+    mutationFn: (id: string) =>
+      apiRequest("PATCH", `/api/admin/custom-settings/${id}/toggle`, {}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/custom-settings"] });
       toast({

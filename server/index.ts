@@ -1,5 +1,6 @@
 
 import express, { type Request, Response, NextFunction } from "express";
+import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import { createProxyMiddleware } from "http-proxy-middleware";
@@ -13,45 +14,55 @@ declare module "http" {
   }
 }
 
-const externalApiUrl =
-  process.env.EXTERNAL_API_URL?.trim() ||
-  "https://ithink-71db.onrender.com/";
+const externalApiUrl = process.env.EXTERNAL_API_URL?.trim() || undefined;
+const externalProxyPrefixes = [
+  "/api/Auth",
+  "/api/UserManagement",
+  "/api/UserRoles",
+  "/api/Card",
+  "/api/CardSetting",
+];
 
-app.use(
-  "/api",
-  createProxyMiddleware({
-    target: externalApiUrl,
-    changeOrigin: true,
-    secure: true,
-    pathRewrite: (path) => `/api${path}`,
-    on: {
-      error: (err, _req, res) => {
-        const formattedTime = new Date().toLocaleTimeString("en-US", {
-          hour: "numeric",
-          minute: "2-digit",
-          second: "2-digit",
-          hour12: true,
-        });
+function shouldProxyToExternal(pathname: string): boolean {
+  return externalProxyPrefixes.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  );
+}
 
-        console.log(
-          `${formattedTime} [express] Proxy error: ${err.message}`
-        );
-
-        if (res && "writeHead" in res) {
-          (res as any).writeHead(502, {
-            "Content-Type": "application/json",
+if (externalApiUrl) {
+  app.use(
+    createProxyMiddleware({
+      target: externalApiUrl,
+      changeOrigin: true,
+      secure: true,
+      pathFilter: (pathname) => shouldProxyToExternal(pathname),
+      on: {
+        error: (err, _req, res) => {
+          const formattedTime = new Date().toLocaleTimeString("en-US", {
+            hour: "numeric",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: true,
           });
-          (res as any).end(
-            JSON.stringify({
-              success: false,
-              error: "External API unavailable",
-            })
-          );
-        }
+
+          console.log(`${formattedTime} [express] Proxy error: ${err.message}`);
+
+          if (res && "writeHead" in res) {
+            (res as any).writeHead(502, {
+              "Content-Type": "application/json",
+            });
+            (res as any).end(
+              JSON.stringify({
+                success: false,
+                error: "External API unavailable",
+              }),
+            );
+          }
+        },
       },
-    },
-  })
-);
+    }),
+  );
+}
 
 app.use(
   express.json({
@@ -103,7 +114,15 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  log(`Proxying /api/* requests to ${externalApiUrl}`);
+  await registerRoutes(httpServer, app);
+
+  if (externalApiUrl) {
+    log(
+      `Proxying external API prefixes (${externalProxyPrefixes.join(", ")}) to ${externalApiUrl}`,
+    );
+  } else {
+    log("External API proxy disabled; using local API routes");
+  }
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
