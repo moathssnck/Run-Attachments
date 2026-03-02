@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { Link } from "wouter";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   Trophy,
   Plus,
@@ -9,19 +10,23 @@ import {
   ToggleLeft,
   ToggleRight,
   Search,
+  BookCopy,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Textarea } from "@/components/ui/textarea";
+import type { Prize, SystemDefinition } from "@shared/schema";
 import { AdminLayout } from "@/components/admin-layout";
+import { PageHeader } from "@/components/page-header";
 import { useLanguage } from "@/lib/language-context";
 import { useToast } from "@/hooks/use-toast";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -30,6 +35,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -37,6 +44,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import {
   Table,
   TableBody,
@@ -45,38 +54,54 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Tooltip,
   TooltipContent,
-  TooltipTrigger,
   TooltipProvider,
+  TooltipTrigger,
 } from "@/components/ui/tooltip";
-import type { Prize, SystemDefinition } from "@shared/schema";
-import { PageHeader } from "@/components/page-header";
+
+interface PrizeFormData {
+  definitionId: string;
+  nameAr: string;
+  nameEn: string;
+  descriptionAr: string;
+  descriptionEn: string;
+  level: number;
+  value: string;
+  category: string;
+  sortOrder: number;
+  isActive: boolean;
+}
+
+const DEFAULT_FORM_DATA: PrizeFormData = {
+  definitionId: "",
+  nameAr: "",
+  nameEn: "",
+  descriptionAr: "",
+  descriptionEn: "",
+  level: 1,
+  value: "0",
+  category: "default",
+  sortOrder: 0,
+  isActive: true,
+};
+
+const PRESET_LEVELS = [1, 2, 3, 4, 5];
 
 export default function PrizesPage() {
-  const { t, language, dir } = useLanguage();
+  const { t, dir, language } = useLanguage();
   const isRTL = dir === "rtl";
   const { toast } = useToast();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [levelFilter, setLevelFilter] = useState<string>("all");
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [dialogMode, setDialogMode] = useState<"create" | "edit">("create");
   const [selectedPrize, setSelectedPrize] = useState<Prize | null>(null);
-  const [formData, setFormData] = useState({
-    definitionId: "",
-    nameAr: "",
-    nameEn: "",
-    descriptionAr: "",
-    descriptionEn: "",
-    level: 1,
-    isActive: true,
-    count: 1,
-    order: 1,
-    firstLookupId: "",
-    secondLookupId: "",
-  });
+  const [formData, setFormData] = useState<PrizeFormData>(DEFAULT_FORM_DATA);
 
   const { data: prizesResponse, isLoading } = useQuery<{
     success: boolean;
@@ -94,52 +119,61 @@ export default function PrizesPage() {
 
   const prizes = prizesResponse?.data || [];
   const definitions = definitionsResponse?.data || [];
-  const activeDefinitions = definitions.filter((d) => d.isActive);
-  const [firstLookupData, setFirstLookupData] = useState([
-    { id: " 1", nameAr: "", nameEn: "" },
-  ]);
+  const activeDefinitions = definitions.filter((definition) => definition.isActive);
 
-  const [secondLookupData, setSecondLookupData] = useState([
-    { id: " 1", nameAr: "", nameEn: "" },
-  ]);
+  const levelOptions = useMemo(() => {
+    const dynamicLevels = prizes
+      .map((prize) => prize.level)
+      .filter((level): level is number => typeof level === "number")
+      .filter((level, index, values) => values.indexOf(level) === index);
+    return Array.from(new Set([...PRESET_LEVELS, ...dynamicLevels])).sort(
+      (a, b) => a - b,
+    );
+  }, [prizes]);
 
   const filteredPrizes = useMemo(() => {
     let result = prizes;
 
     if (levelFilter !== "all") {
-      result = result.filter((prize) => prize.level === parseInt(levelFilter));
+      result = result.filter((prize) => prize.level === Number(levelFilter));
     }
 
-    if (searchQuery.trim()) {
-      const search = searchQuery.toLowerCase();
-      result = result.filter(
-        (prize) =>
-          prize.nameAr.toLowerCase().includes(search) ||
-          prize.nameEn.toLowerCase().includes(search)
-      );
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+    if (normalizedQuery) {
+      result = result.filter((prize) => {
+        return [
+          prize.nameAr,
+          prize.nameEn,
+          prize.descriptionAr || "",
+          prize.descriptionEn || "",
+          prize.category || "",
+          prize.value,
+        ]
+          .join(" ")
+          .toLowerCase()
+          .includes(normalizedQuery);
+      });
     }
 
     return result;
-  }, [prizes, searchQuery, levelFilter]);
+  }, [prizes, levelFilter, searchQuery]);
 
   const createMutation = useMutation({
-    mutationFn: (data: typeof formData) =>
+    mutationFn: (data: PrizeFormData) =>
       apiRequest("POST", "/api/admin/prizes", {
-        nameAr: data.nameAr,
-        nameEn: data.nameEn,
-        descriptionAr: data.descriptionAr,
-        descriptionEn: data.descriptionEn,
-        count: data.count,
+        nameAr: data.nameAr.trim(),
+        nameEn: data.nameEn.trim(),
+        descriptionAr: data.descriptionAr.trim() || null,
+        descriptionEn: data.descriptionEn.trim() || null,
         level: data.level,
         isActive: data.isActive,
-        value: "0",
-        category: "default",
-        sortOrder: 0,
+        value: data.value.trim() || "0",
+        category: data.category.trim() || "default",
+        sortOrder: data.sortOrder,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/prizes"] });
-      setIsAddDialogOpen(false);
-      resetForm();
+      closeDialog();
       toast({
         title: t("prizes.prizeCreated"),
         description: t("prizes.prizeCreatedDesc"),
@@ -155,20 +189,21 @@ export default function PrizesPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: typeof formData }) =>
+    mutationFn: ({ id, data }: { id: string; data: PrizeFormData }) =>
       apiRequest("PATCH", `/api/admin/prizes/${id}`, {
-        nameAr: data.nameAr,
-        nameEn: data.nameEn,
-        descriptionAr: data.descriptionAr,
-        descriptionEn: data.descriptionEn,
+        nameAr: data.nameAr.trim(),
+        nameEn: data.nameEn.trim(),
+        descriptionAr: data.descriptionAr.trim() || null,
+        descriptionEn: data.descriptionEn.trim() || null,
         level: data.level,
         isActive: data.isActive,
+        value: data.value.trim() || "0",
+        category: data.category.trim() || "default",
+        sortOrder: data.sortOrder,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/prizes"] });
-      setIsEditDialogOpen(false);
-      setSelectedPrize(null);
-      resetForm();
+      closeDialog();
       toast({
         title: t("prizes.prizeUpdated"),
         description: t("prizes.prizeUpdatedDesc"),
@@ -186,7 +221,7 @@ export default function PrizesPage() {
   const toggleMutation = useMutation({
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
       apiRequest("PATCH", `/api/admin/prizes/${id}`, { isActive: !isActive }),
-    onSuccess: (_, variables) => {
+    onSuccess: (_response, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/prizes"] });
       toast({
         title: variables.isActive
@@ -206,63 +241,64 @@ export default function PrizesPage() {
     },
   });
 
-  const resetForm = () => {
-    setFormData({
-      definitionId: "",
-      nameAr: "",
-      nameEn: "",
-      descriptionAr: "",
-      descriptionEn: "",
-      level: 1,
-      isActive: true,
-      count: 1,
-      order: 1,
-      firstLookupId: "",
-      secondLookupId: "",
-    });
-  };
-  const handleAdd = () => {
-    resetForm();
-    setIsAddDialogOpen(true);
+  const closeDialog = () => {
+    setIsDialogOpen(false);
+    setSelectedPrize(null);
+    setFormData(DEFAULT_FORM_DATA);
   };
 
-  const handleEdit = (prize: Prize) => {
-    setSelectedPrize(prize);
-    const matchingDef = definitions.find(
-      (d) => d.nameAr === prize.nameAr && d.nameEn === prize.nameEn
+  const openCreateDialog = () => {
+    setDialogMode("create");
+    setSelectedPrize(null);
+    setFormData(DEFAULT_FORM_DATA);
+    setIsDialogOpen(true);
+  };
+
+  const openEditDialog = (prize: Prize) => {
+    const matchingDefinition = definitions.find(
+      (definition) =>
+        definition.nameAr === prize.nameAr && definition.nameEn === prize.nameEn,
     );
+    setDialogMode("edit");
+    setSelectedPrize(prize);
     setFormData({
-      definitionId: matchingDef?.id || "",
+      definitionId: matchingDefinition?.id || "",
       nameAr: prize.nameAr,
       nameEn: prize.nameEn,
       descriptionAr: prize.descriptionAr || "",
       descriptionEn: prize.descriptionEn || "",
       level: prize.level || 1,
+      value: prize.value || "0",
+      category: prize.category || "default",
+      sortOrder: prize.sortOrder || 0,
       isActive: prize.isActive,
-      count: 1,
-      order: 1,
-      firstLookupId: "",
-      secondLookupId: "",
     });
-    setIsEditDialogOpen(true);
+    setIsDialogOpen(true);
   };
 
   const handleDefinitionSelect = (definitionId: string) => {
-    const definition = definitions.find((d) => d.id === definitionId);
-    if (definition) {
-      setFormData({
-        ...formData,
-        definitionId,
-        nameAr: definition.nameAr,
-        nameEn: definition.nameEn,
-        descriptionAr: definition.descriptionAr || "",
-        descriptionEn: definition.descriptionEn || "",
-      });
-    }
+    const selectedDefinition = definitions.find(
+      (definition) => definition.id === definitionId,
+    );
+    if (!selectedDefinition) return;
+
+    setFormData((current) => ({
+      ...current,
+      definitionId,
+      nameAr: selectedDefinition.nameAr,
+      nameEn: selectedDefinition.nameEn,
+      descriptionAr: selectedDefinition.descriptionAr || "",
+      descriptionEn: selectedDefinition.descriptionEn || "",
+    }));
   };
 
-  const handleSubmitAdd = () => {
-    if (!formData.nameAr || !formData.nameEn) {
+  const parseNumericInput = (value: string, fallbackValue: number) => {
+    const parsedValue = Number.parseInt(value, 10);
+    return Number.isFinite(parsedValue) ? parsedValue : fallbackValue;
+  };
+
+  const handleDialogSubmit = () => {
+    if (!formData.nameAr.trim() || !formData.nameEn.trim()) {
       toast({
         title: t("common.error"),
         description: t("prizes.fillRequiredFields"),
@@ -270,45 +306,82 @@ export default function PrizesPage() {
       });
       return;
     }
-    createMutation.mutate(formData);
+
+    if (dialogMode === "create") {
+      createMutation.mutate(formData);
+      return;
+    }
+
+    if (selectedPrize) {
+      updateMutation.mutate({ id: selectedPrize.id, data: formData });
+    }
   };
 
-  const handleSubmitEdit = () => {
-    if (!selectedPrize) return;
-    updateMutation.mutate({ id: selectedPrize.id, data: formData });
-  };
+  const isDialogSubmitting =
+    createMutation.isPending || updateMutation.isPending;
+  const hasAnyDefinitions = activeDefinitions.length > 0;
 
   return (
     <AdminLayout>
       <TooltipProvider>
-        <div className="p-6 space-y-6" dir={dir}>
+        <div className="space-y-6 p-6" dir={dir}>
           <PageHeader
             title={t("prizes.title")}
             subtitle={t("prizes.description")}
             icon={<Trophy className="h-5 w-5" />}
+            actions={
+              <Button asChild variant="outline" className="gap-2">
+                <Link href="/admin/prize-results">
+                  <BookCopy className="h-4 w-4" />
+                  {t("prizes.resultsSheet")}
+                </Link>
+              </Button>
+            }
           />
 
-          <Card className="overflow-hidden">
-            <CardHeader className="bg-gradient-to-l from-primary/5 to-transparent border-b flex flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-md">
-                  <Trophy className="h-5 w-5" />
-                </div>
-                <CardTitle className="text-lg font-bold">
-                  {t("prizes.prizesList")}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardDescription>{t("prizes.prizesList")}</CardDescription>
+                <CardTitle className="text-2xl">{prizes.length}</CardTitle>
+              </CardHeader>
+            </Card>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardDescription>{t("common.active")}</CardDescription>
+                <CardTitle className="text-2xl">
+                  {prizes.filter((prize) => prize.isActive).length}
                 </CardTitle>
+              </CardHeader>
+            </Card>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardDescription>{t("common.inactive")}</CardDescription>
+                <CardTitle className="text-2xl">
+                  {prizes.filter((prize) => !prize.isActive).length}
+                </CardTitle>
+              </CardHeader>
+            </Card>
+          </div>
+
+          <Card className="overflow-hidden">
+            <CardHeader className="flex flex-col gap-4 border-b bg-gradient-to-l from-primary/5 to-transparent md:flex-row md:items-center md:justify-between">
+              <div className="space-y-1">
+                <CardTitle>{t("prizes.prizesList")}</CardTitle>
+                <CardDescription>{t("prizes.description")}</CardDescription>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <div className="relative">
                   <Search
-                    className={`absolute top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground start-3`}
+                    className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground ${
+                      isRTL ? "right-3" : "left-3"
+                    }`}
                   />
                   <Input
-                    placeholder={t("common.search")}
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className={`w-48 ps-9`}
-                    dir={dir}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    placeholder={t("common.search")}
+                    className={`w-56 ${isRTL ? "pr-9" : "pl-9"}`}
                     data-testid="input-search-prizes"
                   />
                 </div>
@@ -317,86 +390,72 @@ export default function PrizesPage() {
                   onValueChange={setLevelFilter}
                   dir={dir}
                 >
-                  <SelectTrigger
-                    className="w-48"
-                    data-testid="select-level-filter"
-                  >
+                  <SelectTrigger className="w-40" data-testid="select-level-filter">
                     <SelectValue placeholder={t("prizes.filterByLevel")} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">{t("prizes.allLevels")}</SelectItem>
-                    <SelectItem value="1">{t("prizes.level1")}</SelectItem>
-                    <SelectItem value="2">{t("prizes.level2")}</SelectItem>
-                    <SelectItem value="3">{t("prizes.level3")}</SelectItem>
-                    <SelectItem value="4">{t("prizes.level4")}</SelectItem>
-                    <SelectItem value="5">{t("prizes.level5")}</SelectItem>
+                    {levelOptions.map((level) => (
+                      <SelectItem key={level} value={String(level)}>
+                        {`${t("prizes.level")} ${level}`}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
-                <Button onClick={handleAdd} data-testid="button-add-prize">
+                <Button onClick={openCreateDialog} data-testid="button-add-prize">
                   <Plus className="me-2 h-4 w-4" />
                   {t("prizes.addPrize")}
                 </Button>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               {isLoading ? (
-                <div className="space-y-4">
-                  {[1, 2, 3].map((i) => (
-                    <Skeleton key={i} className="h-16 w-full" />
+                <div className="space-y-3">
+                  {[1, 2, 3, 4].map((index) => (
+                    <Skeleton key={index} className="h-14 w-full" />
                   ))}
                 </div>
               ) : filteredPrizes.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
+                <div className="py-8 text-center text-muted-foreground">
                   {t("common.noData")}
                 </div>
               ) : (
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-primary/10 hover:bg-primary/10 border-b-2 border-primary/20">
-                      <TableHead className="font-bold text-sm uppercase tracking-wider text-foreground py-4">
-                        {t("prizes.prizeName")}
-                      </TableHead>
-                      <TableHead className="font-bold text-sm uppercase tracking-wider text-foreground py-4">
-                        {t("prizes.prizeDescription")}
-                      </TableHead>
-                      <TableHead className="font-bold text-sm uppercase tracking-wider text-foreground py-4">
-                        {t("prizes.level")}
-                      </TableHead>
-                      <TableHead className="font-bold text-sm uppercase tracking-wider text-foreground py-4">
-                        {t("common.status")}
-                      </TableHead>
-                      <TableHead className="font-bold text-sm uppercase tracking-wider text-foreground text-center py-4">
-                        {t("common.actions")}
-                      </TableHead>
+                    <TableRow>
+                      <TableHead>{t("prizes.prizeName")}</TableHead>
+                      <TableHead>{t("prizes.prizeDescription")}</TableHead>
+                      <TableHead>{t("prizes.level")}</TableHead>
+                      <TableHead>{t("prizes.value")}</TableHead>
+                      <TableHead>{t("common.status")}</TableHead>
+                      <TableHead className="text-center">{t("common.actions")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredPrizes.map((prize) => (
-                      <TableRow
-                        key={prize.id}
-                        data-testid={`row-prize-${prize.id}`}
-                        className="group transition-all hover:bg-primary/5 border-b border-border/50"
-                      >
-                        <TableCell className="font-medium">
-                          {language === "ar" ? prize.nameAr : prize.nameEn}
+                      <TableRow key={prize.id} data-testid={`row-prize-${prize.id}`}>
+                        <TableCell className="space-y-1">
+                          <p className="font-semibold leading-none">{prize.nameAr}</p>
+                          <p className="text-xs text-muted-foreground">{prize.nameEn}</p>
                         </TableCell>
-                        <TableCell className="max-w-[300px] truncate">
-                          {language === "ar"
-                            ? prize.descriptionAr || "-"
-                            : prize.descriptionEn || "-"}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">
-                            {t(`prizes.level${prize.level || 1}` as any)}
-                          </Badge>
+                        <TableCell className="space-y-1 align-top">
+                          <p className="text-xs text-muted-foreground">
+                            {prize.descriptionAr || t("common.dash")}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {prize.descriptionEn || t("common.dash")}
+                          </p>
                         </TableCell>
                         <TableCell>
-                          <Badge
-                            variant={prize.isActive ? "success" : "danger"}
-                          >
-                            {prize.isActive
-                              ? t("common.active")
-                              : t("common.inactive")}
+                          <Badge variant="secondary">{`${t("prizes.level")} ${prize.level}`}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <p className="font-medium">{prize.value}</p>
+                          <p className="text-xs text-muted-foreground">{prize.category}</p>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={prize.isActive ? "success" : "danger"}>
+                            {prize.isActive ? t("common.active") : t("common.inactive")}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -406,11 +465,7 @@ export default function PrizesPage() {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className={
-                                    prize.isActive
-                                      ? "h-9 w-9 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 shadow-sm hover:shadow-md rounded-lg"
-                                      : "h-9 w-9 text-gray-600 hover:bg-gray-50 hover:text-gray-700 shadow-sm hover:shadow-md rounded-lg"
-                                  }
+                                  className="h-9 w-9 rounded-lg"
                                   onClick={() =>
                                     toggleMutation.mutate({
                                       id: prize.id,
@@ -420,18 +475,14 @@ export default function PrizesPage() {
                                   data-testid={`button-toggle-prize-${prize.id}`}
                                 >
                                   {prize.isActive ? (
-                                    <ToggleRight className="h-4.5 w-4.5" />
+                                    <ToggleRight className="h-4.5 w-4.5 text-emerald-600" />
                                   ) : (
-                                    <ToggleLeft className="h-4.5 w-4.5" />
+                                    <ToggleLeft className="h-4.5 w-4.5 text-muted-foreground" />
                                   )}
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>
-                                  {prize.isActive
-                                    ? t("common.disable")
-                                    : t("common.enable")}
-                                </p>
+                                {prize.isActive ? t("common.disable") : t("common.enable")}
                               </TooltipContent>
                             </Tooltip>
                             <Tooltip>
@@ -439,16 +490,14 @@ export default function PrizesPage() {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-9 w-9 text-amber-600 hover:bg-amber-50 hover:text-amber-700 shadow-sm hover:shadow-md rounded-lg"
-                                  onClick={() => handleEdit(prize)}
+                                  className="h-9 w-9 rounded-lg"
+                                  onClick={() => openEditDialog(prize)}
                                   data-testid={`button-edit-prize-${prize.id}`}
                                 >
-                                  <Pencil className="h-4.5 w-4.5" />
+                                  <Pencil className="h-4.5 w-4.5 text-amber-600" />
                                 </Button>
                               </TooltipTrigger>
-                              <TooltipContent>
-                                <p>{t("common.edit")}</p>
-                              </TooltipContent>
+                              <TooltipContent>{t("common.edit")}</TooltipContent>
                             </Tooltip>
                           </div>
                         </TableCell>
@@ -459,198 +508,215 @@ export default function PrizesPage() {
               )}
             </CardContent>
           </Card>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogContent dir={dir}>
-              <DialogHeader>
-                <DialogTitle>{t("prizes.addPrize")}</DialogTitle>
+
+          <Dialog
+            open={isDialogOpen}
+            onOpenChange={(open) => (open ? setIsDialogOpen(true) : closeDialog())}
+          >
+            <DialogContent dir={dir} className="max-h-[90vh] max-w-3xl overflow-y-auto">
+              <DialogHeader className="text-start">
+                <DialogTitle>
+                  {dialogMode === "create" ? t("prizes.addPrize") : t("prizes.editPrize")}
+                </DialogTitle>
                 <DialogDescription>
-                  {t("prizes.addPrizeDesc")}
+                  {dialogMode === "create"
+                    ? t("prizes.addPrizeDesc")
+                    : t("prizes.editPrizeDesc")}
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="space-y-4">
-                {/* Definition */}
-                <div className="space-y-2">
-                  <Label>{t("prizes.prizeName")}</Label>
-                  <Select
-                    value={formData.definitionId}
-                    onValueChange={handleDefinitionSelect}
-                    dir={dir}
-                  >
-                    <SelectTrigger data-testid="select-definition">
-                      <SelectValue placeholder={t("prizes.selectDefinition")} />
-                    </SelectTrigger>
-                    <SelectContent dir={dir}>
-                      {activeDefinitions.map((def) => (
-                        <SelectItem key={def.id} value={def.id}>
-                          {language === "ar" ? def.nameAr : def.nameEn}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+              <div className="space-y-5">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>{t("prizes.selectDefinition")}</Label>
+                    <Select
+                      value={formData.definitionId}
+                      onValueChange={handleDefinitionSelect}
+                      dir={dir}
+                    >
+                      <SelectTrigger data-testid="select-definition">
+                        <SelectValue placeholder={t("prizes.selectDefinition")} />
+                      </SelectTrigger>
+                      <SelectContent dir={dir}>
+                        {activeDefinitions.map((definition) => (
+                          <SelectItem key={definition.id} value={definition.id}>
+                            {language === "ar" ? definition.nameAr : definition.nameEn}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {!hasAnyDefinitions && (
+                      <p className="text-xs text-muted-foreground">
+                        {t("prizes.selectFromDefinitions")}
+                      </p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>{t("prizes.level")}</Label>
+                    <Select
+                      value={String(formData.level)}
+                      onValueChange={(value) =>
+                        setFormData((current) => ({
+                          ...current,
+                          level: parseNumericInput(value, current.level),
+                        }))
+                      }
+                      dir={dir}
+                    >
+                      <SelectTrigger data-testid="select-prize-level">
+                        <SelectValue placeholder={t("prizes.selectLevel")} />
+                      </SelectTrigger>
+                      <SelectContent dir={dir}>
+                        {levelOptions.map((level) => (
+                          <SelectItem key={level} value={String(level)}>
+                            {`${t("prizes.level")} ${level}`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
-                {/* Arabic Description */}
-                <div className="space-y-2">
-                  <Label htmlFor="descriptionAr">
-                    {t("prizes.descriptionAr")}
-                  </Label>
-                  <Textarea
-                    id="descriptionAr"
-                    value={formData.descriptionAr}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        descriptionAr: e.target.value,
-                      })
-                    }
-                    dir="rtl"
-                    rows={3}
-                    data-testid="input-prize-desc-ar"
-                  />
-                </div>
-
-                {/* English Description */}
-                <div className="space-y-2">
-                  <Label htmlFor="descriptionEn">
-                    {t("prizes.descriptionEn")}
-                  </Label>
-                  <Textarea
-                    id="descriptionEn"
-                    value={formData.descriptionEn}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        descriptionEn: e.target.value,
-                      })
-                    }
-                    dir="ltr"
-                    rows={3}
-                    data-testid="input-prize-desc-en"
-                  />
-                </div>
-
-                {/* Level */}
-                <div className="space-y-2">
-                  <Label>{t("prizes.level")}</Label>
-                  <Select
-                    value={String(formData.level)}
-                    onValueChange={(val) =>
-                      setFormData({ ...formData, level: parseInt(val) })
-                    }
-                    dir={dir}
-                  >
-                    <SelectTrigger data-testid="select-prize-level">
-                      <SelectValue placeholder={t("prizes.selectLevel")} />
-                    </SelectTrigger>
-                    <SelectContent dir={dir}>
-                      <SelectItem value="1">{t("prizes.level1")}</SelectItem>
-                      <SelectItem value="2">{t("prizes.level2")}</SelectItem>
-                      <SelectItem value="3">{t("prizes.level3")}</SelectItem>
-                      <SelectItem value="4">{t("prizes.level4")}</SelectItem>
-                      <SelectItem value="5">{t("prizes.level5")}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Prize Count */}
-                <div className="space-y-2">
-                  <Label htmlFor="count">{t("prizes.count")}</Label>
-                  <Input
-                    id="count"
-                    type="number"
-                    min={1}
-                    value={formData.count}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        count: parseInt(e.target.value || "0"),
-                      })
-                    }
-                    data-testid="input-prize-count"
-                  />
-                </div>
-
-                {/* Order */}
-                <div className="space-y-2">
-                  <Label htmlFor="order">{t("prizes.order")}</Label>
-                  <Input
-                    id="order"
-                    type="number"
-                    min={1}
-                    value={formData.order}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        order: parseInt(e.target.value || "0"),
-                      })
-                    }
-                    data-testid="input-prize-order"
-                  />
-                </div>
-
-                {/* Card With Lookups */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>{t("prizes.additionalSettings")}</CardTitle>
+                <Card className="border-dashed">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">
+                      {t("prizes.translationPanelTitle")}
+                    </CardTitle>
+                    <CardDescription>{t("prizes.translationPanelDesc")}</CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    {/* First Lookup */}
-                    <div className="space-y-2">
-                      <Label>{t("prizes.firstLookup")}</Label>
-                      <Select
-                        value={formData.firstLookupId}
-                        onValueChange={(val) =>
-                          setFormData({ ...formData, firstLookupId: val })
-                        }
-                        dir={dir}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder={t("common.select")} />
-                        </SelectTrigger>
-                        <SelectContent dir={dir}>
-                          {firstLookupData.map((item) => (
-                            <SelectItem key={item.id} value={item.id}>
-                              {language === "ar" ? item.nameAr : item.nameEn}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Second Lookup */}
-                    <div className="space-y-2">
-                      <Label>{t("prizes.secondLookup")}</Label>
-                      <Select
-                        value={formData.secondLookupId}
-                        onValueChange={(val) =>
-                          setFormData({ ...formData, secondLookupId: val })
-                        }
-                        dir={dir}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder={t("common.select")} />
-                        </SelectTrigger>
-                        <SelectContent dir={dir}>
-                          {secondLookupData.map((item) => (
-                            <SelectItem key={item.id} value={item.id}>
-                              {language === "ar" ? item.nameAr : item.nameEn}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                  <CardContent>
+                    <Tabs defaultValue={language === "ar" ? "ar" : "en"} dir={dir}>
+                      <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="ar">العربية</TabsTrigger>
+                        <TabsTrigger value="en">English</TabsTrigger>
+                      </TabsList>
+                      <TabsContent value="ar" className="space-y-3">
+                        <div className="space-y-2">
+                          <Label htmlFor="prize-name-ar">{t("prizes.nameAr")}</Label>
+                          <Input
+                            id="prize-name-ar"
+                            dir="rtl"
+                            value={formData.nameAr}
+                            onChange={(event) =>
+                              setFormData((current) => ({
+                                ...current,
+                                nameAr: event.target.value,
+                              }))
+                            }
+                            data-testid="input-prize-name-ar"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="prize-desc-ar">{t("prizes.descriptionAr")}</Label>
+                          <Textarea
+                            id="prize-desc-ar"
+                            dir="rtl"
+                            rows={3}
+                            value={formData.descriptionAr}
+                            onChange={(event) =>
+                              setFormData((current) => ({
+                                ...current,
+                                descriptionAr: event.target.value,
+                              }))
+                            }
+                            data-testid="input-prize-desc-ar"
+                          />
+                        </div>
+                      </TabsContent>
+                      <TabsContent value="en" className="space-y-3">
+                        <div className="space-y-2">
+                          <Label htmlFor="prize-name-en">{t("prizes.nameEn")}</Label>
+                          <Input
+                            id="prize-name-en"
+                            dir="ltr"
+                            value={formData.nameEn}
+                            onChange={(event) =>
+                              setFormData((current) => ({
+                                ...current,
+                                nameEn: event.target.value,
+                              }))
+                            }
+                            data-testid="input-prize-name-en"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="prize-desc-en">{t("prizes.descriptionEn")}</Label>
+                          <Textarea
+                            id="prize-desc-en"
+                            dir="ltr"
+                            rows={3}
+                            value={formData.descriptionEn}
+                            onChange={(event) =>
+                              setFormData((current) => ({
+                                ...current,
+                                descriptionEn: event.target.value,
+                              }))
+                            }
+                            data-testid="input-prize-desc-en"
+                          />
+                        </div>
+                      </TabsContent>
+                    </Tabs>
                   </CardContent>
                 </Card>
 
-                {/* Active Switch */}
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="isActive">{t("common.active")}</Label>
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="prize-value">{t("prizes.value")}</Label>
+                    <Input
+                      id="prize-value"
+                      value={formData.value}
+                      onChange={(event) =>
+                        setFormData((current) => ({
+                          ...current,
+                          value: event.target.value,
+                        }))
+                      }
+                      data-testid="input-prize-value"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="prize-category">{t("prizes.category")}</Label>
+                    <Input
+                      id="prize-category"
+                      value={formData.category}
+                      onChange={(event) =>
+                        setFormData((current) => ({
+                          ...current,
+                          category: event.target.value,
+                        }))
+                      }
+                      data-testid="input-prize-category"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="prize-sort-order">{t("prizes.sortOrder")}</Label>
+                    <Input
+                      id="prize-sort-order"
+                      type="number"
+                      value={formData.sortOrder}
+                      onChange={(event) =>
+                        setFormData((current) => ({
+                          ...current,
+                          sortOrder: parseNumericInput(event.target.value, 0),
+                        }))
+                      }
+                      data-testid="input-prize-sort-order"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between rounded-lg border bg-muted/20 px-4 py-3">
+                  <div>
+                    <p className="text-sm font-medium">{t("common.status")}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {formData.isActive ? t("common.active") : t("common.inactive")}
+                    </p>
+                  </div>
                   <Switch
-                    id="isActive"
                     checked={formData.isActive}
                     onCheckedChange={(checked) =>
-                      setFormData({ ...formData, isActive: checked })
+                      setFormData((current) => ({ ...current, isActive: checked }))
                     }
                     data-testid="switch-prize-active"
                   />
@@ -658,145 +724,23 @@ export default function PrizesPage() {
               </div>
 
               <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsAddDialogOpen(false)}
-                >
-                  {t("common.cancel")}
-                </Button>
-
-                <Button
-                  onClick={handleSubmitAdd}
-                  disabled={
-                    createMutation.isPending ||
-                    !formData.definitionId ||
-                    formData.count < 1
-                  }
-                  data-testid="button-submit-create-prize"
-                >
-                  {createMutation.isPending
-                    ? t("common.loading")
-                    : t("common.add")}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-            <DialogContent dir={dir}>
-              <DialogHeader>
-                <DialogTitle>{t("prizes.editPrize")}</DialogTitle>
-                <DialogDescription>
-                  {t("prizes.editPrizeDesc")}
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>{t("prizes.prizeName")}</Label>
-                  <Select
-                    value={formData.definitionId}
-                    onValueChange={handleDefinitionSelect}
-                    dir={dir}
-                  >
-                    <SelectTrigger data-testid="select-edit-definition">
-                      <SelectValue placeholder={"أختر الجائزة"} />
-                    </SelectTrigger>
-                    <SelectContent dir={dir}>
-                      {activeDefinitions.map((def) => (
-                        <SelectItem key={def.id} value={def.id}>
-                          {language === "ar" ? def.nameAr : def.nameEn}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="editDescriptionAr">
-                    {t("prizes.descriptionAr")}
-                  </Label>
-                  <Textarea
-                    id="editDescriptionAr"
-                    value={formData.descriptionAr}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        descriptionAr: e.target.value,
-                      })
-                    }
-                    dir="rtl"
-                    rows={3}
-                    data-testid="input-edit-prize-desc-ar"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="editDescriptionEn">
-                    {t("prizes.descriptionEn")}
-                  </Label>
-                  <Textarea
-                    id="editDescriptionEn"
-                    value={formData.descriptionEn}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        descriptionEn: e.target.value,
-                      })
-                    }
-                    dir="ltr"
-                    rows={3}
-                    data-testid="input-edit-prize-desc-en"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>{t("prizes.level")}</Label>
-                  <Select
-                    value={String(formData.level)}
-                    onValueChange={(val) =>
-                      setFormData({ ...formData, level: parseInt(val) })
-                    }
-                    dir={dir}
-                  >
-                    <SelectTrigger data-testid="select-edit-prize-level">
-                      <SelectValue placeholder={t("prizes.selectLevel")} />
-                    </SelectTrigger>
-                    <SelectContent dir={dir}>
-                      <SelectItem value="1">{t("prizes.level1")}</SelectItem>
-                      <SelectItem value="2">{t("prizes.level2")}</SelectItem>
-                      <SelectItem value="3">{t("prizes.level3")}</SelectItem>
-                      <SelectItem value="4">{t("prizes.level4")}</SelectItem>
-                      <SelectItem value="5">{t("prizes.level5")}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="editIsActive">{t("common.active")}</Label>
-                  <Switch
-                    id="editIsActive"
-                    checked={formData.isActive}
-                    onCheckedChange={(checked) =>
-                      setFormData({ ...formData, isActive: checked })
-                    }
-                    data-testid="switch-edit-prize-active"
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsEditDialogOpen(false)}
-                >
+                <Button variant="outline" onClick={closeDialog}>
                   {t("common.cancel")}
                 </Button>
                 <Button
-                  onClick={handleSubmitEdit}
+                  onClick={handleDialogSubmit}
                   disabled={
-                    updateMutation.isPending ||
-                    !formData.nameAr ||
-                    !formData.nameEn
+                    isDialogSubmitting ||
+                    !formData.nameAr.trim() ||
+                    !formData.nameEn.trim()
                   }
-                  data-testid="button-submit-update-prize"
+                  data-testid="button-submit-prize"
                 >
-                  {updateMutation.isPending
+                  {isDialogSubmitting
                     ? t("common.loading")
-                    : t("common.save")}
+                    : dialogMode === "create"
+                      ? t("common.add")
+                      : t("common.save")}
                 </Button>
               </DialogFooter>
             </DialogContent>

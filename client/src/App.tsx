@@ -38,6 +38,7 @@ import AdminPermissions from "@/pages/admin/permissions";
 import AdminProfile from "@/pages/admin/profile";
 import AdminIssues from "@/pages/admin/issues";
 import AdminPrizes from "@/pages/admin/prizes";
+import PrizeResultsPage from "@/pages/admin/prize-results";
 import NotFound from "@/pages/not-found";
 import CardsPage from "./pages/admin/cards";
 import AdminWalletsPage from "./pages/admin/wallet";
@@ -272,6 +273,12 @@ function Router() {
       <Route path="/admin/prizes">
         <ProtectedRoute allowedRoles={["admin", "system_admin"]}>
           <AdminPrizes />
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/admin/prize-results">
+        <ProtectedRoute allowedRoles={["admin", "system_admin"]}>
+          <PrizeResultsPage />
         </ProtectedRoute>
       </Route>
 

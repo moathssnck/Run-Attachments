@@ -295,6 +295,83 @@ export const settingsTranslations: { [key: string]: { ar: string; en: string } }
   "prizes.level3": { ar: "المستوى الثالث", en: "Level 3" },
   "prizes.level4": { ar: "المستوى الرابع", en: "Level 4" },
   "prizes.level5": { ar: "المستوى الخامس", en: "Level 5" },
+  "prizes.resultsSheet": {
+    ar: "ورقة نتائج الجوائز",
+    en: "Prize Results Sheet",
+  },
+  "prizes.value": { ar: "القيمة", en: "Value" },
+  "prizes.category": { ar: "التصنيف", en: "Category" },
+  "prizes.sortOrder": { ar: "ترتيب العرض", en: "Sort Order" },
+  "prizes.translationPanelTitle": {
+    ar: "بيانات الترجمة",
+    en: "Translation Fields",
+  },
+  "prizes.translationPanelDesc": {
+    ar: "تحديث الاسم والوصف باللغتين العربية والإنجليزية",
+    en: "Update the Arabic and English naming and description fields",
+  },
+  "prizeResults.title": { ar: "ورقة نتائج الجوائز", en: "Prize Results Sheet" },
+  "prizeResults.description": {
+    ar: "تصميم وتعديل ورقة النتائج القابلة للطباعة والتصدير",
+    en: "Design and edit a printable/exportable results sheet",
+  },
+  "prizeResults.editHeader": { ar: "تعديل العنوان", en: "Edit Header" },
+  "prizeResults.editHeaderDesc": {
+    ar: "تحديث بيانات الإصدار وتاريخ السحب المعروضة في أعلى الصفحة",
+    en: "Update issue metadata and draw dates shown at the top",
+  },
+  "prizeResults.drawDate": { ar: "تاريخ السحب", en: "Draw Date" },
+  "prizeResults.nextDrawDate": { ar: "تاريخ السحب المقبل", en: "Next Draw Date" },
+  "prizeResults.orgName": {
+    ar: "الإتحاد العام للجمعيات الخيرية - الأردن",
+    en: "General Union of Charitable Societies - Jordan",
+  },
+  "prizeResults.sheetHeading": {
+    ar: "اليانصيب الخيري الأردني",
+    en: "Jordanian Charity Lottery",
+  },
+  "prizeResults.issueLabel": { ar: "الإصدار الخاص", en: "Special Issue" },
+  "prizeResults.specialEdition": { ar: "رأس السنة الميلادية", en: "New Year Edition" },
+  "prizeResults.exportPdf": { ar: "تصدير PDF", en: "Export PDF" },
+  "prizeResults.exporting": { ar: "جاري التصدير...", en: "Exporting..." },
+  "prizeResults.print": { ar: "طباعة", en: "Print" },
+  "prizeResults.share": { ar: "مشاركة", en: "Share" },
+  "prizeResults.consolationColumn": {
+    ar: "جوائز الترضية",
+    en: "Consolation Prizes",
+  },
+  "prizeResults.winningColumn": { ar: "الرقم الرابح", en: "Winning Number" },
+  "prizeResults.prizeColumn": { ar: "الجائزة وقيمتها", en: "Prize & Value" },
+  "prizeResults.endsWith": { ar: "تنتهي بـ", en: "Ends with" },
+  "prizeResults.multipleNumbers": { ar: "أرقام متعددة", en: "Multiple numbers" },
+  "prizeResults.coverPrizes": { ar: "جوائز الغلاف", en: "Cover Prizes" },
+  "prizeResults.coverMeta": {
+    ar: "عدد الجوائز (٦٣٠) جائزة كل جائزة ١٠ دنانير",
+    en: "Total prizes (630), each prize is 10 JOD",
+  },
+  "prizeResults.footerNote": {
+    ar: "تصرف الجوائز من الاتحاد العام للجمعيات الخيرية - جبل اللويبدة - يجري السحب المقبل يوم",
+    en: "Prizes are paid by the General Union of Charitable Societies - Al Lweibdeh - next draw date:",
+  },
+  "prizeResults.addRow": { ar: "إضافة سطر جائزة", en: "Add Prize Row" },
+  "prizeResults.newPrize": { ar: "جائزة جديدة", en: "New Prize" },
+  "prizeResults.exportSuccess": { ar: "تم التصدير", en: "Export completed" },
+  "prizeResults.exportSuccessDesc": {
+    ar: "تم حفظ ملف PDF بنجاح",
+    en: "PDF file has been generated successfully",
+  },
+  "prizeResults.exportError": {
+    ar: "تعذر تصدير ملف PDF",
+    en: "Could not export PDF",
+  },
+  "prizeResults.shareCopied": {
+    ar: "تم نسخ الرابط",
+    en: "Link copied",
+  },
+  "prizeResults.shareCopiedDesc": {
+    ar: "تم نسخ رابط الصفحة إلى الحافظة",
+    en: "Page link copied to clipboard",
+  },
   "settings.management": { ar: "الإعدادات", en: "Settings" },
   "settings.manageSettings": {
     ar: "إدارة إعدادات النظام والتفضيلات",
