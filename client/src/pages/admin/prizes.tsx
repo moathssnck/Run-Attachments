@@ -64,7 +64,6 @@ export default function PrizesPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedPrize, setSelectedPrize] = useState<Prize | null>(null);
-
   const [formData, setFormData] = useState({
     definitionId: "",
     nameAr: "",
@@ -73,6 +72,10 @@ export default function PrizesPage() {
     descriptionEn: "",
     level: 1,
     isActive: true,
+    count: 1,
+    order: 1,
+    firstLookupId: "",
+    secondLookupId: "",
   });
 
   const { data: prizesResponse, isLoading } = useQuery<{
@@ -92,6 +95,13 @@ export default function PrizesPage() {
   const prizes = prizesResponse?.data || [];
   const definitions = definitionsResponse?.data || [];
   const activeDefinitions = definitions.filter((d) => d.isActive);
+  const [firstLookupData, setFirstLookupData] = useState([
+    { id: " 1", nameAr: "", nameEn: "" },
+  ]);
+
+  const [secondLookupData, setSecondLookupData] = useState([
+    { id: " 1", nameAr: "", nameEn: "" },
+  ]);
 
   const filteredPrizes = useMemo(() => {
     let result = prizes;
@@ -119,6 +129,7 @@ export default function PrizesPage() {
         nameEn: data.nameEn,
         descriptionAr: data.descriptionAr,
         descriptionEn: data.descriptionEn,
+        count: data.count,
         level: data.level,
         isActive: data.isActive,
         value: "0",
@@ -204,9 +215,12 @@ export default function PrizesPage() {
       descriptionEn: "",
       level: 1,
       isActive: true,
+      count: 1,
+      order: 1,
+      firstLookupId: "",
+      secondLookupId: "",
     });
   };
-
   const handleAdd = () => {
     resetForm();
     setIsAddDialogOpen(true);
@@ -225,6 +239,10 @@ export default function PrizesPage() {
       descriptionEn: prize.descriptionEn || "",
       level: prize.level || 1,
       isActive: prize.isActive,
+      count: 1,
+      order: 1,
+      firstLookupId: "",
+      secondLookupId: "",
     });
     setIsEditDialogOpen(true);
   };
@@ -276,7 +294,9 @@ export default function PrizesPage() {
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-md">
                   <Trophy className="h-5 w-5" />
                 </div>
-                <CardTitle className="text-lg font-bold">{t("prizes.prizesList")}</CardTitle>
+                <CardTitle className="text-lg font-bold">
+                  {t("prizes.prizesList")}
+                </CardTitle>
               </div>
               <div className="flex items-center gap-2">
                 <div className="relative">
@@ -333,10 +353,18 @@ export default function PrizesPage() {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-primary/10 hover:bg-primary/10 border-b-2 border-primary/20">
-                      <TableHead className="font-bold text-sm uppercase tracking-wider text-foreground py-4">{t("prizes.prizeName")}</TableHead>
-                      <TableHead className="font-bold text-sm uppercase tracking-wider text-foreground py-4">{t("prizes.prizeDescription")}</TableHead>
-                      <TableHead className="font-bold text-sm uppercase tracking-wider text-foreground py-4">{t("prizes.level")}</TableHead>
-                      <TableHead className="font-bold text-sm uppercase tracking-wider text-foreground py-4">{t("common.status")}</TableHead>
+                      <TableHead className="font-bold text-sm uppercase tracking-wider text-foreground py-4">
+                        {t("prizes.prizeName")}
+                      </TableHead>
+                      <TableHead className="font-bold text-sm uppercase tracking-wider text-foreground py-4">
+                        {t("prizes.prizeDescription")}
+                      </TableHead>
+                      <TableHead className="font-bold text-sm uppercase tracking-wider text-foreground py-4">
+                        {t("prizes.level")}
+                      </TableHead>
+                      <TableHead className="font-bold text-sm uppercase tracking-wider text-foreground py-4">
+                        {t("common.status")}
+                      </TableHead>
                       <TableHead className="font-bold text-sm uppercase tracking-wider text-foreground text-center py-4">
                         {t("common.actions")}
                       </TableHead>
@@ -431,7 +459,6 @@ export default function PrizesPage() {
               )}
             </CardContent>
           </Card>
-
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogContent dir={dir}>
               <DialogHeader>
@@ -440,7 +467,9 @@ export default function PrizesPage() {
                   {t("prizes.addPrizeDesc")}
                 </DialogDescription>
               </DialogHeader>
+
               <div className="space-y-4">
+                {/* Definition */}
                 <div className="space-y-2">
                   <Label>{t("prizes.prizeName")}</Label>
                   <Select
@@ -460,6 +489,8 @@ export default function PrizesPage() {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Arabic Description */}
                 <div className="space-y-2">
                   <Label htmlFor="descriptionAr">
                     {t("prizes.descriptionAr")}
@@ -478,6 +509,8 @@ export default function PrizesPage() {
                     data-testid="input-prize-desc-ar"
                   />
                 </div>
+
+                {/* English Description */}
                 <div className="space-y-2">
                   <Label htmlFor="descriptionEn">
                     {t("prizes.descriptionEn")}
@@ -496,6 +529,8 @@ export default function PrizesPage() {
                     data-testid="input-prize-desc-en"
                   />
                 </div>
+
+                {/* Level */}
                 <div className="space-y-2">
                   <Label>{t("prizes.level")}</Label>
                   <Select
@@ -517,6 +552,98 @@ export default function PrizesPage() {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Prize Count */}
+                <div className="space-y-2">
+                  <Label htmlFor="count">{t("prizes.count")}</Label>
+                  <Input
+                    id="count"
+                    type="number"
+                    min={1}
+                    value={formData.count}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        count: parseInt(e.target.value || "0"),
+                      })
+                    }
+                    data-testid="input-prize-count"
+                  />
+                </div>
+
+                {/* Order */}
+                <div className="space-y-2">
+                  <Label htmlFor="order">{t("prizes.order")}</Label>
+                  <Input
+                    id="order"
+                    type="number"
+                    min={1}
+                    value={formData.order}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        order: parseInt(e.target.value || "0"),
+                      })
+                    }
+                    data-testid="input-prize-order"
+                  />
+                </div>
+
+                {/* Card With Lookups */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{t("prizes.additionalSettings")}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* First Lookup */}
+                    <div className="space-y-2">
+                      <Label>{t("prizes.firstLookup")}</Label>
+                      <Select
+                        value={formData.firstLookupId}
+                        onValueChange={(val) =>
+                          setFormData({ ...formData, firstLookupId: val })
+                        }
+                        dir={dir}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={t("common.select")} />
+                        </SelectTrigger>
+                        <SelectContent dir={dir}>
+                          {firstLookupData.map((item) => (
+                            <SelectItem key={item.id} value={item.id}>
+                              {language === "ar" ? item.nameAr : item.nameEn}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Second Lookup */}
+                    <div className="space-y-2">
+                      <Label>{t("prizes.secondLookup")}</Label>
+                      <Select
+                        value={formData.secondLookupId}
+                        onValueChange={(val) =>
+                          setFormData({ ...formData, secondLookupId: val })
+                        }
+                        dir={dir}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={t("common.select")} />
+                        </SelectTrigger>
+                        <SelectContent dir={dir}>
+                          {secondLookupData.map((item) => (
+                            <SelectItem key={item.id} value={item.id}>
+                              {language === "ar" ? item.nameAr : item.nameEn}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Active Switch */}
                 <div className="flex items-center justify-between">
                   <Label htmlFor="isActive">{t("common.active")}</Label>
                   <Switch
@@ -529,6 +656,7 @@ export default function PrizesPage() {
                   />
                 </div>
               </div>
+
               <DialogFooter>
                 <Button
                   variant="outline"
@@ -536,12 +664,13 @@ export default function PrizesPage() {
                 >
                   {t("common.cancel")}
                 </Button>
+
                 <Button
                   onClick={handleSubmitAdd}
                   disabled={
                     createMutation.isPending ||
-                    !formData.nameAr ||
-                    !formData.nameEn
+                    !formData.definitionId ||
+                    formData.count < 1
                   }
                   data-testid="button-submit-create-prize"
                 >
@@ -552,7 +681,6 @@ export default function PrizesPage() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
-
           <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
             <DialogContent dir={dir}>
               <DialogHeader>
