@@ -77,6 +77,7 @@ import { AdminLayout } from "@/components/admin-layout";
 import { useForm } from "react-hook-form";
 import { PageHeader } from "@/components/page-header";
 import {
+  CARD_PAGED_QUERY_KEY,
   fetchCardApiRecords,
   mapRawCardToLotteryCard,
 } from "@/lib/card-api-adapters";
@@ -108,7 +109,7 @@ export default function WalletsPage() {
     useState<WalletTransaction | null>(null);
 
   const { data: transactions = [] } = useQuery({
-    queryKey: ["/api/Card/all", "wallet-transactions"],
+    queryKey: [CARD_PAGED_QUERY_KEY, "wallet-transactions"],
     queryFn: async (): Promise<WalletTransaction[]> => {
       const rawCards = await fetchCardApiRecords();
       return rawCards.slice(0, 200).map((rawCard, index) => {

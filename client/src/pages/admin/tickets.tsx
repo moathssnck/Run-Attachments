@@ -84,6 +84,7 @@ import { Switch } from "@/components/ui/switch";
 import { AdminLayout } from "@/components/admin-layout";
 import { PageHeader } from "@/components/page-header";
 import {
+  CARD_PAGED_QUERY_KEY,
   fetchCardApiRecords,
   mapRawCardsToTicketBooks,
 } from "@/lib/card-api-adapters";
@@ -144,7 +145,7 @@ export default function LotteryBooksPage() {
 
   // Load books from external Card API
   const { data: books = [], isLoading } = useQuery({
-    queryKey: ["/api/Card/all", "tickets-books"],
+    queryKey: [CARD_PAGED_QUERY_KEY, "tickets-books"],
     queryFn: async () => {
       const rawCards = await fetchCardApiRecords();
       return mapRawCardsToTicketBooks(rawCards) as LotteryBook[];

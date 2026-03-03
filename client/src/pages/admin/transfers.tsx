@@ -52,6 +52,7 @@ import { useLanguage } from "@/lib/language-context";
 import { AdminLayout } from "@/components/admin-layout";
 import { PageHeader } from "@/components/page-header";
 import {
+  CARD_PAGED_QUERY_KEY,
   fetchCardApiRecords,
   mapRawCardToLotteryCard,
 } from "@/lib/card-api-adapters";
@@ -85,7 +86,7 @@ export default function TransfersPage() {
   );
 
   const { data: transfers = [] } = useQuery({
-    queryKey: ["/api/Card/all", "transfers"],
+    queryKey: [CARD_PAGED_QUERY_KEY, "transfers"],
     queryFn: async (): Promise<Transfer[]> => {
       const rawCards = await fetchCardApiRecords();
       return rawCards.slice(0, 200).map((rawCard, index) => {

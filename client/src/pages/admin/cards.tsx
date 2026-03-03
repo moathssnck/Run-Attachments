@@ -93,6 +93,7 @@ import { AdminLayout } from "@/components/admin-layout";
 import { Switch } from "@/components/ui/switch";
 import { PageHeader } from "@/components/page-header";
 import {
+  CARD_PAGED_QUERY_KEY,
   fetchCardApiRecords,
   mapRawCardToLotteryCard,
 } from "@/lib/card-api-adapters";
@@ -181,7 +182,7 @@ export default function CardsPage() {
 
   // Load cards from external API
   const { data: cards = [], isLoading } = useQuery({
-    queryKey: ["/api/Card/all"],
+    queryKey: [CARD_PAGED_QUERY_KEY],
     queryFn: async () => {
       const rawCards = await fetchCardApiRecords();
       return rawCards.map((card, index) => mapRawCardToLotteryCard(card, index)) as LotteryCard[];
