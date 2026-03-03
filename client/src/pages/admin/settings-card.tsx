@@ -44,6 +44,7 @@ import { AdminLayout } from "@/components/admin-layout";
 import { PageHeader } from "@/components/page-header";
 import { useLanguage } from "@/lib/language-context";
 import { useToast } from "@/hooks/use-toast";
+import { API_CONFIG } from "@/lib/api-config";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { CardSetting } from "@shared/schema";
@@ -722,28 +723,28 @@ export default function CardSettingsPage() {
   const [signaturePadOpen, setSignaturePadOpen] = useState<"manager" | "chairman" | null>(null);
 
   const { data: cardSettingsRes, isLoading } = useQuery({
-    queryKey: ["/api/admin/card-settings"],
+    queryKey: [API_CONFIG.cardSettings.get],
     queryFn: async () => {
-      const res = await apiRequest("GET", "/api/admin/card-settings");
+      const res = await apiRequest("GET", API_CONFIG.cardSettings.get);
       return res.json();
     },
   });
 
   useEffect(() => {
-    if (cardSettingsRes?.data) {
-      const s = cardSettingsRes.data;
+    if (cardSettingsRes) {
+      const s = cardSettingsRes.data ?? cardSettingsRes;
       setFormData({
-        topbarImage: s.topbarImage || null,
-        backgroundImage: s.backgroundImage || null,
-        imageDescription: s.imageDescription || "",
-        imageDescriptionEn: s.imageDescriptionEn || "",
-        cardPrice: s.cardPrice || "5.00",
-        managerSignature: s.managerSignature || null,
+        topbarImage: s.topbarImage || s.cardHeaderImage || null,
+        backgroundImage: s.backgroundImage || s.cardBackground || null,
+        imageDescription: s.imageDescription || s.caption || "",
+        imageDescriptionEn: s.imageDescriptionEn || s.captionEn || "",
+        cardPrice: s.cardPrice ? String(s.cardPrice) : "5.00",
+        managerSignature: s.managerSignature || s.directorSign || null,
         managerName: s.managerName || "",
         managerNameEn: s.managerNameEn || "",
         managerTitle: s.managerTitle || "",
         managerTitleEn: s.managerTitleEn || "",
-        chairmanSignature: s.chairmanSignature || null,
+        chairmanSignature: s.chairmanSignature || s.chairmanSign || null,
         chairmanName: s.chairmanName || "",
         chairmanNameEn: s.chairmanNameEn || "",
         chairmanTitle: s.chairmanTitle || "",
@@ -754,11 +755,34 @@ export default function CardSettingsPage() {
 
   const saveMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      const res = await apiRequest("PATCH", "/api/admin/card-settings", data);
+      const payload = {
+        topbarImage: data.topbarImage,
+        backgroundImage: data.backgroundImage,
+        imageDescription: data.imageDescription,
+        imageDescriptionEn: data.imageDescriptionEn,
+        cardPrice: data.cardPrice,
+        managerSignature: data.managerSignature,
+        managerName: data.managerName,
+        managerNameEn: data.managerNameEn,
+        managerTitle: data.managerTitle,
+        managerTitleEn: data.managerTitleEn,
+        chairmanSignature: data.chairmanSignature,
+        chairmanName: data.chairmanName,
+        chairmanNameEn: data.chairmanNameEn,
+        chairmanTitle: data.chairmanTitle,
+        chairmanTitleEn: data.chairmanTitleEn,
+        // Support Postman collection naming.
+        cardHeaderImage: data.topbarImage,
+        cardBackground: data.backgroundImage,
+        directorSign: data.managerSignature,
+        chairmanSign: data.chairmanSignature,
+        caption: data.imageDescription,
+      };
+      const res = await apiRequest("POST", API_CONFIG.cardSettings.upsert, payload);
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/card-settings"] });
+      queryClient.invalidateQueries({ queryKey: [API_CONFIG.cardSettings.get] });
       toast({
         title: t("cardSettings.saved"),
         description: t("cardSettings.savedDesc"),

@@ -73,12 +73,13 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/lib/language-context";
+import { API_CONFIG } from "@/lib/api-config";
 import { AdminLayout } from "@/components/admin-layout";
 import { useForm } from "react-hook-form";
 import { PageHeader } from "@/components/page-header";
 
 const PAYMENT_3DS_RETRIEVE_QUERY_KEY =
-  "/api/payments/3ds/retrieve?orderId=TEST-ORDER-3&transactionId=1";
+  API_CONFIG.payments.retrieve3dsTest;
 
 type RawTransactionPayload = Record<string, unknown>;
 

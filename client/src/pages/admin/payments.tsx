@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/select";
 import { AdminLayout } from "@/components/admin-layout";
 import { useLanguage } from "@/lib/language-context";
+import { API_CONFIG } from "@/lib/api-config";
 import type { Payment, User as UserType, Ticket } from "@shared/schema";
 import { format } from "date-fns";
 import { PageHeader } from "@/components/page-header";
@@ -46,7 +47,7 @@ interface PaymentWithDetails extends Payment {
 }
 
 const PAYMENT_3DS_RETRIEVE_QUERY_KEY =
-  "/api/payments/3ds/retrieve?orderId=TEST-ORDER-3&transactionId=1";
+  API_CONFIG.payments.retrieve3dsTest;
 
 type RawPaymentPayload = Record<string, unknown>;
 

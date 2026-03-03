@@ -97,6 +97,7 @@ import { useLanguage } from "@/lib/language-context";
 import { AdminLayout } from "@/components/admin-layout";
 import { PageHeader } from "@/components/page-header";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { API_CONFIG } from "@/lib/api-config";
 import { toWesternNumerals } from "@/lib/utils";
 import type { Issue, CreateIssueData } from "@shared/schema";
 import { createIssueSchema } from "@shared/schema";
@@ -155,7 +156,29 @@ export default function IssuesPage() {
     success: boolean;
     data: Issue[];
   }>({
-    queryKey: ["/api/admin/issues"],
+    queryKey: [API_CONFIG.issues.paged],
+    queryFn: async () => {
+      const res = await apiRequest("GET", API_CONFIG.issues.paged);
+      const payload = await res.json();
+
+      if (Array.isArray(payload)) {
+        return { success: true, data: payload as Issue[] };
+      }
+
+      if (Array.isArray(payload?.data)) {
+        return { success: true, data: payload.data as Issue[] };
+      }
+
+      if (Array.isArray(payload?.issues)) {
+        return { success: true, data: payload.issues as Issue[] };
+      }
+
+      if (Array.isArray(payload?.data?.issues)) {
+        return { success: true, data: payload.data.issues as Issue[] };
+      }
+
+      return { success: false, data: [] as Issue[] };
+    },
   });
 
   const issues = issuesResponse?.data || [];
@@ -252,13 +275,13 @@ export default function IssuesPage() {
     ) => {
       if (!user?.id) throw new Error("User not authenticated");
       const { initialStatus, ...formData } = data;
-      return apiRequest("POST", "/api/admin/issues", {
+      return apiRequest("POST", API_CONFIG.issues.base, {
         ...formData,
         createdBy: user.id,
       });
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/issues"] });
+      queryClient.invalidateQueries({ queryKey: [API_CONFIG.issues.paged] });
       setIsEditDialogOpen(false);
       createForm.reset();
       toast({
@@ -279,13 +302,13 @@ export default function IssuesPage() {
     mutationFn: async (data: IssueFormValues & { id: string }) => {
       if (!user?.id) throw new Error("User not authenticated");
       const { id, ...updateData } = data;
-      return apiRequest("PATCH", `/api/admin/issues/${id}`, {
+      return apiRequest("PUT", API_CONFIG.issues.byId(id), {
         ...updateData,
         adminId: user.id,
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/issues"] });
+      queryClient.invalidateQueries({ queryKey: [API_CONFIG.issues.paged] });
       setIsCreateDialogOpen(false);
       setSelectedIssue(null);
       toast({
@@ -305,12 +328,13 @@ export default function IssuesPage() {
   const closeIssueMutation = useMutation({
     mutationFn: async (id: string) => {
       if (!user?.id) throw new Error("User not authenticated");
-      return apiRequest("PATCH", `/api/admin/issues/${id}/close`, {
+      return apiRequest("PUT", API_CONFIG.issues.byId(id), {
+        isClosed: true,
         adminId: user.id,
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/issues"] });
+      queryClient.invalidateQueries({ queryKey: [API_CONFIG.issues.paged] });
       toast({
         title: t("issues.closed"),
         description: t("issues.closedDesc"),
@@ -321,12 +345,13 @@ export default function IssuesPage() {
   const reopenIssueMutation = useMutation({
     mutationFn: async (id: string) => {
       if (!user?.id) throw new Error("User not authenticated");
-      return apiRequest("PATCH", `/api/admin/issues/${id}/reopen`, {
+      return apiRequest("PUT", API_CONFIG.issues.byId(id), {
+        isClosed: false,
         adminId: user.id,
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/issues"] });
+      queryClient.invalidateQueries({ queryKey: [API_CONFIG.issues.paged] });
       toast({
         title: t("issues.reopened"),
         description: t("issues.reopenedDesc"),
@@ -337,12 +362,12 @@ export default function IssuesPage() {
   const deleteIssueMutation = useMutation({
     mutationFn: async (id: string) => {
       if (!user?.id) throw new Error("User not authenticated");
-      return apiRequest("DELETE", `/api/admin/issues/${id}`, {
+      return apiRequest("DELETE", API_CONFIG.issues.byId(id), {
         adminId: user.id,
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/issues"] });
+      queryClient.invalidateQueries({ queryKey: [API_CONFIG.issues.paged] });
       setIsDeleteDialogOpen(false);
       setSelectedIssue(null);
       toast({

@@ -1,6 +1,8 @@
+import { API_CONFIG } from "./api-config";
+
 type RawApiCard = Record<string, unknown>;
 
-export const CARD_PAGED_QUERY_KEY = "/api/Card/paged?pageNumber=1&pageSize=1000";
+export const CARD_PAGED_QUERY_KEY = API_CONFIG.cards.paged1000;
 
 function asString(value: unknown, fallback = ""): string {
   if (typeof value === "string") {
