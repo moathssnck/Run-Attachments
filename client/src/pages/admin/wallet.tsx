@@ -161,7 +161,7 @@ export default function WalletsPage() {
     useState<WalletTransaction | null>(null);
 
   const { data: transactions = [] } = useQuery({
-    queryKey: [PAYMENT_3DS_RETRIEVE_QUERY_KEY, "wallet-transactions"],
+ queryKey: [PAYMENT_3DS_RETRIEVE_QUERY_KEY, "wallet-transactions"],
     queryFn: async (): Promise<WalletTransaction[]> => {
       const response = await fetch(PAYMENT_3DS_RETRIEVE_QUERY_KEY, {
         credentials: "include",
