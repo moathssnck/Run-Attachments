@@ -49,6 +49,7 @@ import { cn } from "@/lib/utils";
 import { AdminLayout } from "@/components/admin-layout";
 import { useLanguage } from "@/lib/language-context";
 import { PageHeader } from "@/components/page-header";
+import { apiRequest } from "@/lib/queryClient";
 
 interface Permission {
   id: string;
@@ -96,7 +97,6 @@ const moduleIcons: Record<string, React.ReactNode> = {
   audit: <FileText className="h-4 w-4" />,
 };
 
-// Mock data for demonstration
 const mockRoles: Role[] = [
   {
     id: "1",
@@ -308,15 +308,81 @@ export default function PermissionsPage() {
     fetchData();
   }, []);
 
+  const extractArray = <T,>(payload: any): T[] => {
+    if (Array.isArray(payload)) return payload as T[];
+    if (payload?.data && Array.isArray(payload.data)) return payload.data as T[];
+    if (payload?.data?.items && Array.isArray(payload.data.items)) {
+      return payload.data.items as T[];
+    }
+    if (payload?.items && Array.isArray(payload.items)) {
+      return payload.items as T[];
+    }
+    return [];
+  };
+
   const fetchData = async () => {
     try {
       setLoading(true);
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setRoles(mockRoles);
-      setPermissions(mockPermissions);
-      setRolePermissions(mockRolePermissions);
+      const [rolesRes, permissionsRes, rolePermissionsRes] = await Promise.all([
+        apiRequest("GET", "/api/admin/roles"),
+        apiRequest("GET", "/api/admin/permissions"),
+        apiRequest("GET", "/api/admin/role-permissions"),
+      ]);
+
+      const [rolesPayload, permissionsPayload, rolePermissionsPayload] =
+        await Promise.all([
+          rolesRes.json(),
+          permissionsRes.json(),
+          rolePermissionsRes.json(),
+        ]);
+
+      const rolesData = extractArray<any>(rolesPayload).map((role) => ({
+        id: String(role.id ?? ""),
+        name: String(role.name ?? role.nameEn ?? ""),
+        nameEn: String(role.nameEn ?? role.name ?? ""),
+        nameAr: String(role.nameAr ?? role.name ?? ""),
+        description: role.description,
+        descriptionEn: role.descriptionEn,
+        descriptionAr: role.descriptionAr,
+        isSystem: Boolean(role.isSystem),
+        status: String(role.status ?? "active"),
+      }));
+
+      const permissionsData = extractArray<any>(permissionsPayload).map(
+        (perm) => ({
+          id: String(perm.id ?? perm.code ?? ""),
+          name: String(perm.name ?? perm.nameEn ?? ""),
+          nameEn: String(perm.nameEn ?? perm.name ?? ""),
+          nameAr: String(perm.nameAr ?? perm.name ?? ""),
+          description: perm.description,
+          descriptionEn: perm.descriptionEn,
+          descriptionAr: perm.descriptionAr,
+          module: String(perm.module ?? "general"),
+          parentId:
+            perm.parentId === undefined || perm.parentId === null
+              ? null
+              : String(perm.parentId),
+        }),
+      );
+
+      const rolePermissionsData = extractArray<any>(rolePermissionsPayload).map(
+        (entry) => ({
+          id: String(
+            entry.id ?? `${String(entry.roleId)}::${String(entry.permissionId)}`,
+          ),
+          roleId: String(entry.roleId ?? ""),
+          permissionId: String(entry.permissionId ?? ""),
+        }),
+      );
+
+      setRoles(rolesData);
+      setPermissions(permissionsData);
+      setRolePermissions(rolePermissionsData);
     } catch (error) {
       console.error("Failed to fetch data:", error);
+      setRoles([]);
+      setPermissions([]);
+      setRolePermissions([]);
     } finally {
       setLoading(false);
     }
@@ -505,24 +571,31 @@ export default function PermissionsPage() {
     if (pendingChanges.size === 0) return;
     setSaving(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      const newRolePermissions = [...rolePermissions];
-      pendingChanges.forEach((shouldBeAssigned, key) => {
-        const [roleId, permissionId] = key.split("::");
-        const existingIndex = newRolePermissions.findIndex(
-          (rp) => rp.roleId === roleId && rp.permissionId === permissionId
-        );
-        if (shouldBeAssigned && existingIndex === -1) {
-          newRolePermissions.push({
-            id: `new-${Date.now()}-${Math.random()}`,
+      const operations = Array.from(pendingChanges.entries()).map(
+        ([key, shouldAssign]) => {
+          const [roleId, permissionId] = key.split("::");
+          return { roleId, permissionId, shouldAssign };
+        },
+      );
+
+      await Promise.all(
+        operations.map(async ({ roleId, permissionId, shouldAssign }) => {
+          if (shouldAssign) {
+            await apiRequest("POST", "/api/admin/role-permissions", {
+              roleId,
+              permissionId,
+            });
+            return;
+          }
+
+          await apiRequest("DELETE", "/api/admin/role-permissions", {
             roleId,
             permissionId,
           });
-        } else if (!shouldBeAssigned && existingIndex !== -1) {
-          newRolePermissions.splice(existingIndex, 1);
-        }
-      });
-      setRolePermissions(newRolePermissions);
+        }),
+      );
+
+      await fetchData();
       setPendingChanges(new Map());
     } catch (error) {
       console.error("Failed to save permissions:", error);

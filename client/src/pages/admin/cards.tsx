@@ -92,6 +92,10 @@ import {
 import { AdminLayout } from "@/components/admin-layout";
 import { Switch } from "@/components/ui/switch";
 import { PageHeader } from "@/components/page-header";
+import {
+  fetchCardApiRecords,
+  mapRawCardToLotteryCard,
+} from "@/lib/card-api-adapters";
 
 // Types
 interface LotteryCard {
@@ -175,55 +179,12 @@ export default function CardsPage() {
     resolver: zodResolver(cardFormSchema),
   });
 
-  // Mock data - replace with actual API calls
+  // Load cards from external API
   const { data: cards = [], isLoading } = useQuery({
-    queryKey: ["lotteryCards"],
+    queryKey: ["/api/Card/all"],
     queryFn: async () => {
-      // Simulate API call
-      return [
-        {
-          id: 1,
-          cardNumber: "LC-2024-001",
-          fromDate: "2024-01-01",
-          toDate: "2024-01-31",
-          bookNumber: "BK-001",
-          issueNumber: "ISS-001",
-          issueDate: "2024-01-10",
-          drawDate: "2024-02-15",
-          cardSide: "left" as const,
-          isActive: true,
-          barcode: "123456789012",
-          createdAt: "2024-01-15T10:00:00Z",
-        },
-        {
-          id: 2,
-          cardNumber: "LC-2024-002",
-          fromDate: "2024-02-01",
-          toDate: "2024-02-28",
-          bookNumber: "BK-002",
-          issueNumber: "ISS-002",
-          issueDate: "2024-01-12",
-          drawDate: "2024-02-16",
-          cardSide: "right" as const,
-          isActive: true,
-          barcode: "123456789013",
-          createdAt: "2024-01-16T10:00:00Z",
-        },
-        {
-          id: 3,
-          cardNumber: "LC-2024-003",
-          fromDate: "2024-03-01",
-          toDate: "2024-03-31",
-          bookNumber: "BK-003",
-          issueNumber: "ISS-003",
-          issueDate: "2024-01-18",
-          drawDate: "2024-02-20",
-          cardSide: "left" as const,
-          isActive: false,
-          barcode: "123456789014",
-          createdAt: "2024-01-20T10:00:00Z",
-        },
-      ] as LotteryCard[];
+      const rawCards = await fetchCardApiRecords();
+      return rawCards.map((card, index) => mapRawCardToLotteryCard(card, index)) as LotteryCard[];
     },
   });
 

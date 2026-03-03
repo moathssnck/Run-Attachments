@@ -14,55 +14,47 @@ declare module "http" {
   }
 }
 
-const externalApiUrl = process.env.EXTERNAL_API_URL?.trim() || undefined;
-const externalProxyPrefixes = [
-  "/api/Auth",
-  "/api/UserManagement",
-  "/api/UserRoles",
-  "/api/Card",
-  "/api/CardSetting",
-];
+const fallbackExternalApiUrl = "https://ithink-71db.onrender.com/";
+const externalApiUrl =
+  process.env.EXTERNAL_API_URL?.trim() || fallbackExternalApiUrl;
 
-function shouldProxyToExternal(pathname: string): boolean {
-  return externalProxyPrefixes.some(
-    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
-  );
+function shouldProxyToExternalApi(pathname: string): boolean {
+  // Keep upload signing route local; proxy all other API calls.
+  return pathname.startsWith("/api") && !pathname.startsWith("/api/uploads");
 }
 
-if (externalApiUrl) {
-  app.use(
-    createProxyMiddleware({
-      target: externalApiUrl,
-      changeOrigin: true,
-      secure: true,
-      pathFilter: (pathname) => shouldProxyToExternal(pathname),
-      on: {
-        error: (err, _req, res) => {
-          const formattedTime = new Date().toLocaleTimeString("en-US", {
-            hour: "numeric",
-            minute: "2-digit",
-            second: "2-digit",
-            hour12: true,
+app.use(
+  createProxyMiddleware({
+    target: externalApiUrl,
+    changeOrigin: true,
+    secure: true,
+    pathFilter: (pathname) => shouldProxyToExternalApi(pathname),
+    on: {
+      error: (err, _req, res) => {
+        const formattedTime = new Date().toLocaleTimeString("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: true,
+        });
+
+        console.log(`${formattedTime} [express] Proxy error: ${err.message}`);
+
+        if (res && "writeHead" in res) {
+          (res as any).writeHead(502, {
+            "Content-Type": "application/json",
           });
-
-          console.log(`${formattedTime} [express] Proxy error: ${err.message}`);
-
-          if (res && "writeHead" in res) {
-            (res as any).writeHead(502, {
-              "Content-Type": "application/json",
-            });
-            (res as any).end(
-              JSON.stringify({
-                success: false,
-                error: "External API unavailable",
-              }),
-            );
-          }
-        },
+          (res as any).end(
+            JSON.stringify({
+              success: false,
+              error: "External API unavailable",
+            }),
+          );
+        }
       },
-    }),
-  );
-}
+    },
+  }),
+);
 
 app.use(
   express.json({
@@ -116,13 +108,9 @@ app.use((req, res, next) => {
 (async () => {
   await registerRoutes(httpServer, app);
 
-  if (externalApiUrl) {
-    log(
-      `Proxying external API prefixes (${externalProxyPrefixes.join(", ")}) to ${externalApiUrl}`,
-    );
-  } else {
-    log("External API proxy disabled; using local API routes");
-  }
+  log(
+    `Proxying /api/* to external API (${externalApiUrl}), except /api/uploads/*`,
+  );
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
