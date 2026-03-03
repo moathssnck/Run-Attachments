@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Plus, Search, Edit, Trash2, MoreHorizontal, Eye, ArrowLeftRight } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -50,6 +51,10 @@ import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/lib/language-context";
 import { AdminLayout } from "@/components/admin-layout";
 import { PageHeader } from "@/components/page-header";
+import {
+  fetchCardApiRecords,
+  mapRawCardToLotteryCard,
+} from "@/lib/card-api-adapters";
 
 interface Transfer {
   id: string;
@@ -61,39 +66,6 @@ interface Transfer {
   newOwner: string;
   status: "completed" | "pending" | "failed";
 }
-
-const mockTransfers: Transfer[] = [
-  {
-    id: "1",
-    movementNumber: "MOV001",
-    issueNumber: "ISS001",
-    transferDate: "2024-02-10",
-    cardNumber: "4532-8901-1234-5678",
-    previousOwner: "Ahmed Ali",
-    newOwner: "Fatima Hassan",
-    status: "completed",
-  },
-  {
-    id: "2",
-    movementNumber: "MOV002",
-    issueNumber: "ISS002",
-    transferDate: "2024-02-09",
-    cardNumber: "5412-3456-7890-1234",
-    previousOwner: "Mohammed Saleh",
-    newOwner: "Sara Mohammad",
-    status: "pending",
-  },
-  {
-    id: "3",
-    movementNumber: "MOV003",
-    issueNumber: "ISS003",
-    transferDate: "2024-02-08",
-    cardNumber: "6011-0012-3456-7890",
-    previousOwner: "Omar Khalid",
-    newOwner: "Layla Amr",
-    status: "completed",
-  },
-];
 
 export default function TransfersPage() {
   const { t, language } = useLanguage();
@@ -112,8 +84,32 @@ export default function TransfersPage() {
     null
   );
 
+  const { data: transfers = [] } = useQuery({
+    queryKey: ["/api/Card/all", "transfers"],
+    queryFn: async (): Promise<Transfer[]> => {
+      const rawCards = await fetchCardApiRecords();
+      return rawCards.slice(0, 200).map((rawCard, index) => {
+        const card = mapRawCardToLotteryCard(rawCard, index);
+        const userName =
+          typeof rawCard.userName === "string" && rawCard.userName.trim() !== ""
+            ? rawCard.userName
+            : "—";
+        return {
+          id: String(card.id),
+          movementNumber: `MOV-${String(card.id).padStart(5, "0")}`,
+          issueNumber: card.issueNumber,
+          transferDate: card.issueDate,
+          cardNumber: card.cardNumber,
+          previousOwner: userName,
+          newOwner: userName,
+          status: card.isActive ? "completed" : "pending",
+        };
+      });
+    },
+  });
+
   const filteredTransfers = useMemo(() => {
-    return mockTransfers.filter((transfer) => {
+    return transfers.filter((transfer) => {
       const matchesMovement = transfer.movementNumber
         .toLowerCase()
         .includes(searchMovement.toLowerCase());
@@ -142,6 +138,7 @@ export default function TransfersPage() {
       );
     });
   }, [
+    transfers,
     searchMovement,
     searchIssue,
     searchCard,

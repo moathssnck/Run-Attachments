@@ -83,6 +83,10 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { AdminLayout } from "@/components/admin-layout";
 import { PageHeader } from "@/components/page-header";
+import {
+  fetchCardApiRecords,
+  mapRawCardsToTicketBooks,
+} from "@/lib/card-api-adapters";
 
 // Types
 interface LotteryBook {
@@ -138,35 +142,12 @@ export default function LotteryBooksPage() {
     resolver: zodResolver(bookFormSchema),
   });
 
-  // Mock data - replace with actual API calls
+  // Load books from external Card API
   const { data: books = [], isLoading } = useQuery({
-    queryKey: ["lotteryBooks"],
+    queryKey: ["/api/Card/all", "tickets-books"],
     queryFn: async () => {
-      // Simulate API call
-      return [
-        {
-          id: 1,
-          bookNumber: "LB-2024-001",
-          fromNumber: 1,
-          toNumber: 1000,
-          date: "2024-01-15",
-          isActive: true,
-          qrCode: "QR-LB-2024-001",
-          barcode: "123456789012",
-          createdAt: "2024-01-10T10:00:00Z",
-        },
-        {
-          id: 2,
-          bookNumber: "LB-2024-002",
-          fromNumber: 1001,
-          toNumber: 2000,
-          date: "2024-02-15",
-          isActive: false,
-          qrCode: "QR-LB-2024-002",
-          barcode: "123456789013",
-          createdAt: "2024-02-10T10:00:00Z",
-        },
-      ] as LotteryBook[];
+      const rawCards = await fetchCardApiRecords();
+      return mapRawCardsToTicketBooks(rawCards) as LotteryBook[];
     },
   });
 

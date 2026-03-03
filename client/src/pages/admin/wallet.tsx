@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Plus,
   Search,
@@ -75,6 +76,10 @@ import { useLanguage } from "@/lib/language-context";
 import { AdminLayout } from "@/components/admin-layout";
 import { useForm } from "react-hook-form";
 import { PageHeader } from "@/components/page-header";
+import {
+  fetchCardApiRecords,
+  mapRawCardToLotteryCard,
+} from "@/lib/card-api-adapters";
 
 interface WalletTransaction {
   id: string;
@@ -86,69 +91,6 @@ interface WalletTransaction {
   date: string;
   type: "debit" | "credit";
 }
-
-const mockTransactions: WalletTransaction[] = [
-  {
-    id: "1",
-    transactionNumber: "TXN001234",
-    cardNumber: "4532-****-****-8901",
-    username: "Ahmed Hassan",
-    debit: 500,
-    credit: 0,
-    date: "2024-02-10",
-    type: "debit",
-  },
-  {
-    id: "2",
-    transactionNumber: "TXN001235",
-    cardNumber: "5412-****-****-7654",
-    username: "Fatima Ali",
-    debit: 0,
-    credit: 1500,
-    date: "2024-02-10",
-    type: "credit",
-  },
-  {
-    id: "3",
-    transactionNumber: "TXN001236",
-    cardNumber: "4532-****-****-8901",
-    username: "Ahmed Hassan",
-    debit: 250,
-    credit: 0,
-    date: "2024-02-09",
-    type: "debit",
-  },
-  {
-    id: "4",
-    transactionNumber: "TXN001237",
-    cardNumber: "3782-****-****-2156",
-    username: "Mohammed Ahmed",
-    debit: 0,
-    credit: 2000,
-    date: "2024-02-09",
-    type: "credit",
-  },
-  {
-    id: "5",
-    transactionNumber: "TXN001238",
-    cardNumber: "5412-****-****-7654",
-    username: "Fatima Ali",
-    debit: 750,
-    credit: 0,
-    date: "2024-02-08",
-    type: "debit",
-  },
-  {
-    id: "6",
-    transactionNumber: "TXN001239",
-    cardNumber: "4532-****-****-8901",
-    username: "Ahmed Hassan",
-    debit: 0,
-    credit: 1200,
-    date: "2024-02-08",
-    type: "credit",
-  },
-];
 
 export default function WalletsPage() {
   const { t, language, dir } = useLanguage();
@@ -165,8 +107,38 @@ export default function WalletsPage() {
   const [selectedTransaction, setSelectedTransaction] =
     useState<WalletTransaction | null>(null);
 
+  const { data: transactions = [] } = useQuery({
+    queryKey: ["/api/Card/all", "wallet-transactions"],
+    queryFn: async (): Promise<WalletTransaction[]> => {
+      const rawCards = await fetchCardApiRecords();
+      return rawCards.slice(0, 200).map((rawCard, index) => {
+        const card = mapRawCardToLotteryCard(rawCard, index);
+        const rawAmount =
+          Number((rawCard as any).prizeAmount ?? (rawCard as any).cardPrice ?? 0) || 0;
+        const amount = rawAmount > 0 ? rawAmount : 10;
+        const credit = card.isActive ? amount : 0;
+        const debit = card.isActive ? 0 : amount;
+        const username =
+          typeof (rawCard as any).userName === "string" && (rawCard as any).userName.trim() !== ""
+            ? (rawCard as any).userName
+            : "—";
+
+        return {
+          id: String(card.id),
+          transactionNumber: `TXN${String(card.id).padStart(6, "0")}`,
+          cardNumber: card.cardNumber,
+          username,
+          debit,
+          credit,
+          date: card.issueDate,
+          type: credit > 0 ? "credit" : "debit",
+        };
+      });
+    },
+  });
+
   const filteredTransactions = useMemo(() => {
-    return mockTransactions.filter((transaction) => {
+    return transactions.filter((transaction) => {
       const transactionNumberMatch = transaction.transactionNumber
         .toLowerCase()
         .includes(searchTransactionNumber.toLowerCase());
@@ -179,7 +151,7 @@ export default function WalletsPage() {
 
       return transactionNumberMatch && cardNumberMatch && usernameMatch;
     });
-  }, [searchTransactionNumber, searchCardNumber, searchUsername]);
+  }, [transactions, searchTransactionNumber, searchCardNumber, searchUsername]);
 
   const totalDebit = filteredTransactions.reduce((sum, t) => sum + t.debit, 0);
   const totalCredit = filteredTransactions.reduce(
