@@ -45,6 +45,81 @@ interface PaymentWithDetails extends Payment {
   ticket?: Ticket;
 }
 
+const PAYMENT_3DS_RETRIEVE_QUERY_KEY =
+  "/api/payments/3ds/retrieve?orderId=TEST-ORDER-3&transactionId=1";
+
+type RawPaymentPayload = Record<string, unknown>;
+
+function asString(value: unknown, fallback = ""): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  return fallback;
+}
+
+function asNumber(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return 0;
+}
+
+function normalizeStatus(value: unknown): Payment["status"] {
+  const status = asString(value).toLowerCase();
+  if (
+    status.includes("captured") ||
+    status.includes("success") ||
+    status.includes("complete") ||
+    status.includes("approved") ||
+    status.includes("paid")
+  ) {
+    return "completed";
+  }
+  if (status.includes("refund")) return "refunded";
+  if (status.includes("fail") || status.includes("declin") || status.includes("error")) {
+    return "failed";
+  }
+  return "pending";
+}
+
+function extractAmount(payload: RawPaymentPayload): number {
+  if (payload.amount && typeof payload.amount === "object") {
+    const amountObj = payload.amount as Record<string, unknown>;
+    return asNumber(amountObj.value ?? amountObj.amount ?? amountObj.total);
+  }
+  return asNumber(payload.amount ?? payload.totalAmount ?? payload.value ?? payload.orderAmount);
+}
+
+function extractPayments(payload: unknown): RawPaymentPayload[] {
+  if (Array.isArray(payload)) return payload as RawPaymentPayload[];
+  if (!payload || typeof payload !== "object") return [];
+
+  const root = payload as Record<string, unknown>;
+
+  if (Array.isArray(root.payments)) return root.payments as RawPaymentPayload[];
+  if (Array.isArray(root.transactions)) return root.transactions as RawPaymentPayload[];
+  if (Array.isArray(root.items)) return root.items as RawPaymentPayload[];
+  if (Array.isArray(root.data)) return root.data as RawPaymentPayload[];
+
+  if (root.data && typeof root.data === "object") {
+    const dataObj = root.data as Record<string, unknown>;
+    if (Array.isArray(dataObj.payments)) return dataObj.payments as RawPaymentPayload[];
+    if (Array.isArray(dataObj.transactions)) return dataObj.transactions as RawPaymentPayload[];
+    if (Array.isArray(dataObj.items)) return dataObj.items as RawPaymentPayload[];
+    if (Array.isArray(dataObj.data)) return dataObj.data as RawPaymentPayload[];
+    return [dataObj];
+  }
+
+  if (root._embedded && typeof root._embedded === "object") {
+    const embedded = root._embedded as Record<string, unknown>;
+    if (Array.isArray(embedded.payment)) return embedded.payment as RawPaymentPayload[];
+    if (Array.isArray(embedded.payments)) return embedded.payments as RawPaymentPayload[];
+  }
+
+  return [root];
+}
+
 function getStatusIcon(status: string) {
   switch (status) {
     case "completed":
@@ -101,7 +176,59 @@ export default function PaymentsPage() {
   };
 
   const { data: payments, isLoading } = useQuery<PaymentWithDetails[]>({
-    queryKey: ["/api/admin/payments"],
+    queryKey: [PAYMENT_3DS_RETRIEVE_QUERY_KEY, "transactions"],
+    queryFn: async (): Promise<PaymentWithDetails[]> => {
+      const response = await fetch(PAYMENT_3DS_RETRIEVE_QUERY_KEY, {
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to load transactions (${response.status})`);
+      }
+
+      const payload = await response.json();
+      const rows = extractPayments(payload);
+
+      return rows.map((entry, index) => {
+        const createdAtRaw = asString(
+          entry.createdAt ?? entry.transactionDate ?? entry.date ?? entry.time,
+          new Date().toISOString(),
+        );
+        const userRecord =
+          entry.user && typeof entry.user === "object"
+            ? (entry.user as Record<string, unknown>)
+            : undefined;
+        const ticketRecord =
+          entry.ticket && typeof entry.ticket === "object"
+            ? (entry.ticket as Record<string, unknown>)
+            : undefined;
+
+        return {
+          id: asString(entry.id ?? entry.transactionId ?? entry.reference, `payment-${index + 1}`),
+          ticketId: asString(entry.ticketId ?? entry.orderId, "N/A"),
+          userId: asString(entry.userId ?? entry.customerId, "N/A"),
+          amount: extractAmount(entry).toFixed(2),
+          status: normalizeStatus(entry.status ?? entry.state ?? entry.paymentStatus),
+          paymentMethod: asString(entry.paymentMethod ?? entry.method ?? entry.channel, "card"),
+          transactionId: asString(entry.transactionId ?? entry.reference ?? entry.id),
+          createdAt: new Date(createdAtRaw),
+          user: userRecord
+            ? ({
+                id: asString(userRecord.id ?? userRecord.userId, "N/A"),
+                firstName: asString(userRecord.firstName ?? userRecord.givenName, "N/A"),
+                lastName: asString(userRecord.lastName ?? userRecord.surname, ""),
+                email: asString(userRecord.email, "N/A"),
+              } as UserType)
+            : undefined,
+          ticket: ticketRecord
+            ? ({
+                id: asString(ticketRecord.id ?? ticketRecord.ticketId, "N/A"),
+                ticketNumber: asString(ticketRecord.ticketNumber ?? ticketRecord.number, "N/A"),
+              } as Ticket)
+            : undefined,
+        } as PaymentWithDetails;
+      });
+    },
   });
 
   const filteredPayments = payments?.filter((payment) => {

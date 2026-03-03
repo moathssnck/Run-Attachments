@@ -76,11 +76,63 @@ import { useLanguage } from "@/lib/language-context";
 import { AdminLayout } from "@/components/admin-layout";
 import { useForm } from "react-hook-form";
 import { PageHeader } from "@/components/page-header";
-import {
-  CARD_PAGED_QUERY_KEY,
-  fetchCardApiRecords,
-  mapRawCardToLotteryCard,
-} from "@/lib/card-api-adapters";
+
+const PAYMENT_3DS_RETRIEVE_QUERY_KEY =
+  "/api/payments/3ds/retrieve?orderId=TEST-ORDER-3&transactionId=1";
+
+type RawTransactionPayload = Record<string, unknown>;
+
+function asString(value: unknown, fallback = ""): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  return fallback;
+}
+
+function asNumber(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return 0;
+}
+
+function extractAmount(entry: RawTransactionPayload): number {
+  if (entry.amount && typeof entry.amount === "object") {
+    const amountObj = entry.amount as Record<string, unknown>;
+    return asNumber(amountObj.value ?? amountObj.amount ?? amountObj.total);
+  }
+  return asNumber(entry.amount ?? entry.value ?? entry.totalAmount ?? entry.orderAmount);
+}
+
+function extractTransactionRows(payload: unknown): RawTransactionPayload[] {
+  if (Array.isArray(payload)) return payload as RawTransactionPayload[];
+  if (!payload || typeof payload !== "object") return [];
+
+  const root = payload as Record<string, unknown>;
+
+  if (Array.isArray(root.transactions)) return root.transactions as RawTransactionPayload[];
+  if (Array.isArray(root.items)) return root.items as RawTransactionPayload[];
+  if (Array.isArray(root.data)) return root.data as RawTransactionPayload[];
+
+  if (root.data && typeof root.data === "object") {
+    const dataObj = root.data as Record<string, unknown>;
+    if (Array.isArray(dataObj.transactions)) return dataObj.transactions as RawTransactionPayload[];
+    if (Array.isArray(dataObj.items)) return dataObj.items as RawTransactionPayload[];
+    if (Array.isArray(dataObj.data)) return dataObj.data as RawTransactionPayload[];
+    return [dataObj as RawTransactionPayload];
+  }
+
+  if (root._embedded && typeof root._embedded === "object") {
+    const embedded = root._embedded as Record<string, unknown>;
+    if (Array.isArray(embedded.payment)) return embedded.payment as RawTransactionPayload[];
+    if (Array.isArray(embedded.payments)) return embedded.payments as RawTransactionPayload[];
+  }
+
+  return [root as RawTransactionPayload];
+}
 
 interface WalletTransaction {
   id: string;
@@ -109,30 +161,64 @@ export default function WalletsPage() {
     useState<WalletTransaction | null>(null);
 
   const { data: transactions = [] } = useQuery({
-    queryKey: [CARD_PAGED_QUERY_KEY, "wallet-transactions"],
+    queryKey: [PAYMENT_3DS_RETRIEVE_QUERY_KEY, "wallet-transactions"],
     queryFn: async (): Promise<WalletTransaction[]> => {
-      const rawCards = await fetchCardApiRecords();
-      return rawCards.slice(0, 200).map((rawCard, index) => {
-        const card = mapRawCardToLotteryCard(rawCard, index);
-        const rawAmount =
-          Number((rawCard as any).prizeAmount ?? (rawCard as any).cardPrice ?? 0) || 0;
-        const amount = rawAmount > 0 ? rawAmount : 10;
-        const credit = card.isActive ? amount : 0;
-        const debit = card.isActive ? 0 : amount;
-        const username =
-          typeof (rawCard as any).userName === "string" && (rawCard as any).userName.trim() !== ""
-            ? (rawCard as any).userName
-            : "—";
+      const response = await fetch(PAYMENT_3DS_RETRIEVE_QUERY_KEY, {
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to load transactions (${response.status})`);
+      }
+
+      const payload = await response.json();
+      const rows = extractTransactionRows(payload);
+
+      return rows.map((entry, index) => {
+        const amount = extractAmount(entry);
+        const state = asString(entry.status ?? entry.state ?? entry.paymentStatus).toLowerCase();
+        const isCredit =
+          state.includes("captured") ||
+          state.includes("success") ||
+          state.includes("complete") ||
+          state.includes("paid") ||
+          state.includes("approved");
+
+        const id = asString(
+          entry.id ?? entry.transactionId ?? entry.reference ?? entry.paymentId,
+          `txn-${index + 1}`,
+        );
+        const transactionNumber = asString(
+          entry.transactionId ?? entry.reference ?? entry.id,
+          `TXN${String(index + 1).padStart(6, "0")}`,
+        );
+        const cardNumber = asString(
+          entry.cardNumber ?? entry.maskedPan ?? entry.maskedCardNumber ?? entry.pan,
+          "—",
+        );
+        const username = asString(
+          entry.userName ??
+            entry.customerName ??
+            (entry.user && typeof entry.user === "object"
+              ? (entry.user as Record<string, unknown>).email ??
+                (entry.user as Record<string, unknown>).name
+              : undefined),
+          "—",
+        );
+        const date = asString(
+          entry.createdAt ?? entry.transactionDate ?? entry.date ?? entry.time,
+          new Date().toISOString(),
+        );
 
         return {
-          id: String(card.id),
-          transactionNumber: `TXN${String(card.id).padStart(6, "0")}`,
-          cardNumber: card.cardNumber,
+          id,
+          transactionNumber,
+          cardNumber,
           username,
-          debit,
-          credit,
-          date: card.issueDate,
-          type: credit > 0 ? "credit" : "debit",
+          debit: isCredit ? 0 : amount,
+          credit: isCredit ? amount : 0,
+          date,
+          type: isCredit ? "credit" : "debit",
         };
       });
     },
