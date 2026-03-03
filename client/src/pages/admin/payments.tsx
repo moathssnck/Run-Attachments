@@ -48,7 +48,6 @@ interface PaymentWithDetails extends Payment {
 
 const PAYMENT_3DS_RETRIEVE_QUERY_KEY =
   API_CONFIG.payments.retrieve3dsTest;
-
 type RawPaymentPayload = Record<string, unknown>;
 
 function asString(value: unknown, fallback = ""): string {
