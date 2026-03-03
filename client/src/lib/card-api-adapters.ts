@@ -1,5 +1,7 @@
 type RawApiCard = Record<string, unknown>;
 
+export const CARD_PAGED_QUERY_KEY = "/api/Card/paged?pageNumber=1&pageSize=1000";
+
 function asString(value: unknown, fallback = ""): string {
   if (typeof value === "string") {
     return value;
@@ -147,7 +149,7 @@ export type TicketBookView = {
 };
 
 export async function fetchCardApiRecords(): Promise<RawApiCard[]> {
-  const response = await fetch("/api/Card/all", {
+  const response = await fetch(CARD_PAGED_QUERY_KEY, {
     credentials: "include",
     headers: authHeaders(),
   });
