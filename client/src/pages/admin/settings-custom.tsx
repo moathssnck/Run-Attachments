@@ -10,6 +10,7 @@ import { AdminLayout } from "@/components/admin-layout";
 import { PageHeader } from "@/components/page-header";
 import { useLanguage } from "@/lib/language-context";
 import { useToast } from "@/hooks/use-toast";
+import { API_CONFIG } from "@/lib/api-config";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { CustomSetting } from "@shared/schema";
@@ -56,7 +57,7 @@ export default function CustomSettingsPage() {
   });
 
   const { data: settingsResponse, isLoading } = useQuery<{ success: boolean; data: CustomSetting[] }>({
-    queryKey: ["/api/admin/custom-settings"],
+    queryKey: [API_CONFIG.customSettingSystem.list],
   });
 
   const settings = settingsResponse?.data || [];
@@ -80,9 +81,9 @@ export default function CustomSettingsPage() {
 
   const updateMutation = useMutation({
     mutationFn: (data: { id: string; updates: Partial<typeof formData> }) =>
-      apiRequest("PATCH", `/api/admin/custom-settings/${data.id}`, data.updates),
+      apiRequest("PUT", API_CONFIG.customSettingSystem.byId(data.id), data.updates),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/custom-settings"] });
+      queryClient.invalidateQueries({ queryKey: [API_CONFIG.customSettingSystem.list] });
       setIsEditDialogOpen(false);
       setSelectedSetting(null);
       resetForm();
@@ -101,10 +102,31 @@ export default function CustomSettingsPage() {
   });
 
   const toggleMutation = useMutation({
-    mutationFn: (id: string) =>
-      apiRequest("PATCH", `/api/admin/custom-settings/${id}/toggle`, {}),
+    mutationFn: (id: string) => {
+      const setting = settings.find((item) => item.id === id);
+      const payload = {
+        id,
+        // Support external API payload shape.
+        description:
+          setting?.descriptionAr ||
+          setting?.descriptionEn ||
+          setting?.nameAr ||
+          setting?.nameEn ||
+          setting?.key,
+        status: !(setting?.isActive ?? false),
+        customeSettingSystemLookupId: Number((setting as any)?.customeSettingSystemLookupId ?? 0),
+        // Keep existing UI fields for compatibility.
+        nameAr: setting?.nameAr,
+        nameEn: setting?.nameEn,
+        descriptionAr: setting?.descriptionAr,
+        descriptionEn: setting?.descriptionEn,
+        isActive: !(setting?.isActive ?? false),
+      };
+
+      return apiRequest("PUT", API_CONFIG.customSettingSystem.byId(id), payload);
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/custom-settings"] });
+      queryClient.invalidateQueries({ queryKey: [API_CONFIG.customSettingSystem.list] });
       toast({
         title: isRTL ? "تم التحديث" : "Updated",
         description: isRTL ? "تم تغيير حالة التفعيل" : "Activation status changed",

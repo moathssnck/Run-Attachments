@@ -18,6 +18,7 @@ import { PageHeader } from "@/components/page-header";
 import { useLanguage } from "@/lib/language-context";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { API_CONFIG } from "@/lib/api-config";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -107,7 +108,7 @@ export default function PrizesPage() {
     success: boolean;
     data: Prize[];
   }>({
-    queryKey: ["/api/admin/prizes"],
+    queryKey: [API_CONFIG.prizes.base],
   });
 
   const { data: definitionsResponse } = useQuery<{
@@ -160,7 +161,7 @@ export default function PrizesPage() {
 
   const createMutation = useMutation({
     mutationFn: (data: PrizeFormData) =>
-      apiRequest("POST", "/api/admin/prizes", {
+      apiRequest("POST", API_CONFIG.prizes.base, {
         nameAr: data.nameAr.trim(),
         nameEn: data.nameEn.trim(),
         descriptionAr: data.descriptionAr.trim() || null,
@@ -172,7 +173,7 @@ export default function PrizesPage() {
         sortOrder: data.sortOrder,
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/prizes"] });
+      queryClient.invalidateQueries({ queryKey: [API_CONFIG.prizes.base] });
       closeDialog();
       toast({
         title: t("prizes.prizeCreated"),
@@ -190,7 +191,7 @@ export default function PrizesPage() {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: PrizeFormData }) =>
-      apiRequest("PATCH", `/api/admin/prizes/${id}`, {
+      apiRequest("PUT", API_CONFIG.prizes.byId(id), {
         nameAr: data.nameAr.trim(),
         nameEn: data.nameEn.trim(),
         descriptionAr: data.descriptionAr.trim() || null,
@@ -202,7 +203,7 @@ export default function PrizesPage() {
         sortOrder: data.sortOrder,
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/prizes"] });
+      queryClient.invalidateQueries({ queryKey: [API_CONFIG.prizes.base] });
       closeDialog();
       toast({
         title: t("prizes.prizeUpdated"),
@@ -220,9 +221,12 @@ export default function PrizesPage() {
 
   const toggleMutation = useMutation({
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
-      apiRequest("PATCH", `/api/admin/prizes/${id}`, { isActive: !isActive }),
+      apiRequest("PUT", API_CONFIG.prizes.byId(id), {
+        isActive: !isActive,
+        active: !isActive,
+      }),
     onSuccess: (_response, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/prizes"] });
+      queryClient.invalidateQueries({ queryKey: [API_CONFIG.prizes.base] });
       toast({
         title: variables.isActive
           ? t("prizes.prizeDisabled")

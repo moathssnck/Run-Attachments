@@ -74,9 +74,9 @@ import { Switch } from "@/components/ui/switch";
 import { AdminLayout } from "@/components/admin-layout";
 import { PageHeader } from "@/components/page-header";
 import {
-  CARD_PAGED_QUERY_KEY,
-  fetchCardApiRecords,
-  mapRawCardsToLotteryBooks,
+  NOTEBOOK_PAGED_QUERY_KEY,
+  fetchNotebookApiRecords,
+  mapRawNotebooksToLotteryBooks,
 } from "@/lib/card-api-adapters";
 
 // Types
@@ -135,12 +135,12 @@ export default function LotteryBooksPage() {
     resolver: zodResolver(bookFormSchema),
   });
 
-  // Load books from external Card API
+  // Load books from external NoteBook API
   const { data: books = [], isLoading } = useQuery({
-    queryKey: [CARD_PAGED_QUERY_KEY, "books"],
+    queryKey: [NOTEBOOK_PAGED_QUERY_KEY, "books"],
     queryFn: async () => {
-      const rawCards = await fetchCardApiRecords();
-      return mapRawCardsToLotteryBooks(rawCards) as LotteryBook[];
+      const rawNotebooks = await fetchNotebookApiRecords();
+      return mapRawNotebooksToLotteryBooks(rawNotebooks) as LotteryBook[];
     },
   });
 

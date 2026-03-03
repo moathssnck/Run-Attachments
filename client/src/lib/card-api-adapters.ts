@@ -1,6 +1,10 @@
-type RawApiCard = Record<string, unknown>;
+import { API_CONFIG } from "./api-config";
 
-export const CARD_PAGED_QUERY_KEY = "/api/Card/paged?pageNumber=1&pageSize=1000";
+type RawApiCard = Record<string, unknown>;
+type RawApiNotebook = Record<string, unknown>;
+
+export const CARD_PAGED_QUERY_KEY = API_CONFIG.cards.paged1000;
+export const NOTEBOOK_PAGED_QUERY_KEY = API_CONFIG.notebooks.paged;
 
 function asString(value: unknown, fallback = ""): string {
   if (typeof value === "string") {
@@ -101,6 +105,60 @@ function extractCardArray(payload: unknown): RawApiCard[] {
   return [];
 }
 
+function extractNotebookArray(payload: unknown): RawApiNotebook[] {
+  if (Array.isArray(payload)) {
+    return payload as RawApiNotebook[];
+  }
+
+  if (payload && typeof payload === "object") {
+    const asObj = payload as Record<string, unknown>;
+
+    if (Array.isArray(asObj.noteBooks)) {
+      return asObj.noteBooks as RawApiNotebook[];
+    }
+    if (Array.isArray(asObj.notebooks)) {
+      return asObj.notebooks as RawApiNotebook[];
+    }
+    if (Array.isArray(asObj.books)) {
+      return asObj.books as RawApiNotebook[];
+    }
+    if (Array.isArray(asObj.items)) {
+      return asObj.items as RawApiNotebook[];
+    }
+
+    if (asObj.data && typeof asObj.data === "object") {
+      const dataObj = asObj.data as Record<string, unknown>;
+      if (Array.isArray(dataObj.noteBooks)) {
+        return dataObj.noteBooks as RawApiNotebook[];
+      }
+      if (Array.isArray(dataObj.notebooks)) {
+        return dataObj.notebooks as RawApiNotebook[];
+      }
+      if (Array.isArray(dataObj.books)) {
+        return dataObj.books as RawApiNotebook[];
+      }
+      if (Array.isArray(dataObj.items)) {
+        return dataObj.items as RawApiNotebook[];
+      }
+      if (Array.isArray(dataObj.data)) {
+        return dataObj.data as RawApiNotebook[];
+      }
+    }
+
+    // Some APIs return a single notebook object.
+    if (
+      asObj.noteBookId !== undefined ||
+      asObj.noteBookNo !== undefined ||
+      asObj.noteBookNoFrom !== undefined ||
+      asObj.noteBookNoTo !== undefined
+    ) {
+      return [asObj as RawApiNotebook];
+    }
+  }
+
+  return [];
+}
+
 function authHeaders(): Record<string, string> {
   if (typeof window === "undefined") return {};
   const token = localStorage.getItem("lottery_token");
@@ -160,6 +218,20 @@ export async function fetchCardApiRecords(): Promise<RawApiCard[]> {
 
   const payload = await response.json();
   return extractCardArray(payload);
+}
+
+export async function fetchNotebookApiRecords(): Promise<RawApiNotebook[]> {
+  const response = await fetch(NOTEBOOK_PAGED_QUERY_KEY, {
+    credentials: "include",
+    headers: authHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to load notebooks (${response.status})`);
+  }
+
+  const payload = await response.json();
+  return extractNotebookArray(payload);
 }
 
 export function mapRawCardToLotteryCard(card: RawApiCard, index: number): LotteryCardView {
@@ -285,4 +357,95 @@ export function mapRawCardsToTicketBooks(cards: RawApiCard[]): TicketBookView[] 
       createdAt: book.createdAt,
     };
   });
+}
+
+function isNotebookActive(notebook: RawApiNotebook): boolean {
+  const explicit = notebook.isActive ?? notebook.active ?? notebook.status;
+  if (typeof explicit === "boolean") {
+    return explicit;
+  }
+
+  const statusName = asString(
+    notebook.noteBookStatusName ?? notebook.statusName ?? notebook.status,
+  ).toLowerCase();
+  if (
+    statusName.includes("inactive") ||
+    statusName.includes("closed") ||
+    statusName.includes("delete") ||
+    statusName.includes("void")
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+function mapRawNotebookBase(
+  notebook: RawApiNotebook,
+  index: number,
+): Omit<LotteryBookView, "fromDate" | "toDate"> & { fromDate: string; toDate: string } {
+  const id = asNumber(notebook.noteBookId ?? notebook.id) ?? index + 1;
+  const bookNumber = asString(
+    notebook.noteBookNo ?? notebook.bookNumber ?? notebook.noteBookNumber,
+    `BOOK-${index + 1}`,
+  );
+  const fromNumber = asNumber(
+    notebook.noteBookNoFrom ?? notebook.fromNumber ?? notebook.startNumber,
+  ) ?? 1;
+  const toNumber = asNumber(
+    notebook.noteBookNoTo ?? notebook.toNumber ?? notebook.endNumber,
+  ) ?? fromNumber;
+  const fromDate = normalizeDate(
+    notebook.issueDate ?? notebook.noteBookIssueDate ?? notebook.createdAt,
+  );
+  const toDate = normalizeDate(
+    notebook.issueDrawingDate ??
+      notebook.drawDate ??
+      notebook.updatedAt ??
+      notebook.issueDate ??
+      notebook.createdAt,
+  );
+
+  return {
+    id,
+    bookNumber,
+    fromNumber,
+    toNumber,
+    date: fromDate,
+    fromDate,
+    toDate,
+    isActive: isNotebookActive(notebook),
+    qrCode: asString(notebook.noteBookQR ?? notebook.qrCode),
+    barcode: asString(notebook.noteBookBarcode ?? notebook.barcode),
+    createdAt: asString(notebook.createdAt ?? notebook.issueDate, new Date().toISOString()),
+  };
+}
+
+export function mapRawNotebooksToLotteryBooks(
+  notebooks: RawApiNotebook[],
+): LotteryBookView[] {
+  return notebooks
+    .map((notebook, index) => mapRawNotebookBase(notebook, index))
+    .sort((a, b) => a.id - b.id);
+}
+
+export function mapRawNotebooksToTicketBooks(
+  notebooks: RawApiNotebook[],
+): TicketBookView[] {
+  return notebooks
+    .map((notebook, index) => {
+      const mapped = mapRawNotebookBase(notebook, index);
+      return {
+        id: mapped.id,
+        bookNumber: mapped.bookNumber,
+        fromNumber: mapped.fromNumber,
+        toNumber: mapped.toNumber,
+        date: mapped.date,
+        isActive: mapped.isActive,
+        qrCode: mapped.qrCode,
+        barcode: mapped.barcode,
+        createdAt: mapped.createdAt,
+      };
+    })
+    .sort((a, b) => a.id - b.id);
 }
