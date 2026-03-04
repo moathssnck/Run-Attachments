@@ -47,6 +47,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import type { SystemDefinition } from "@shared/schema";
+import { usePagination, paginate, TablePagination } from "@/components/ui/table-pagination";
 
 const CATEGORIES = [
   { code: "cities", nameAr: "المدن", nameEn: "Cities" },
@@ -94,7 +95,10 @@ export default function SystemSettingsPage() {
     return matchesSearch && matchesCategory;
   });
 
-  const groupedDefinitions = filteredDefinitions.reduce((acc, def) => {
+  const { currentPage, pageSize, totalPages, startIndex, endIndex, setCurrentPage, setPageSize } = usePagination(filteredDefinitions.length);
+  const paginatedDefinitions = paginate(filteredDefinitions, startIndex, endIndex);
+
+  const groupedDefinitions = paginatedDefinitions.reduce((acc, def) => {
     if (!acc[def.category]) {
       acc[def.category] = [];
     }
@@ -407,6 +411,18 @@ export default function SystemSettingsPage() {
             </Card>
           ))
         )}
+
+        <TablePagination
+          totalItems={filteredDefinitions.length}
+          currentPage={currentPage}
+          pageSize={pageSize}
+          totalPages={totalPages}
+          startIndex={startIndex}
+          endIndex={endIndex}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={setPageSize}
+          isRTL={isRTL}
+        />
 
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogContent className="max-w-lg" dir={dir}>

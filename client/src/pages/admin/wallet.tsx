@@ -77,6 +77,7 @@ import { API_CONFIG } from "@/lib/api-config";
 import { AdminLayout } from "@/components/admin-layout";
 import { useForm } from "react-hook-form";
 import { PageHeader } from "@/components/page-header";
+import { usePagination, paginate, TablePagination } from "@/components/ui/table-pagination";
 
 const PAYMENT_3DS_RETRIEVE_QUERY_KEY =
   API_CONFIG.payments.retrieve3dsTest;
@@ -242,6 +243,9 @@ export default function WalletsPage() {
     });
   }, [transactions, searchTransactionNumber, searchCardNumber, searchUsername]);
 
+  const { currentPage, pageSize, totalPages, startIndex, endIndex, setCurrentPage, setPageSize } = usePagination(filteredTransactions.length);
+  const paginatedTransactions = paginate(filteredTransactions, startIndex, endIndex);
+
   const totalDebit = filteredTransactions.reduce((sum, t) => sum + t.debit, 0);
   const totalCredit = filteredTransactions.reduce(
     (sum, t) => sum + t.credit,
@@ -382,7 +386,7 @@ export default function WalletsPage() {
                 {/* Body */}
                 <TableBody>
                   {filteredTransactions.length > 0 ? (
-                    filteredTransactions.map((transaction) => (
+                    paginatedTransactions.map((transaction) => (
                       <TableRow
                         key={transaction.id}
                         className="group transition-all hover:bg-primary/5 border-b border-border/50"
@@ -468,6 +472,17 @@ export default function WalletsPage() {
                   )}
                 </TableBody>
               </Table>
+              <TablePagination
+                totalItems={filteredTransactions.length}
+                currentPage={currentPage}
+                pageSize={pageSize}
+                totalPages={totalPages}
+                startIndex={startIndex}
+                endIndex={endIndex}
+                onPageChange={setCurrentPage}
+                onPageSizeChange={setPageSize}
+                isRTL={dir === "rtl"}
+              />
             </div>
           </CardContent>
         </Card>

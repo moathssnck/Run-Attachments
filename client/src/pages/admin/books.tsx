@@ -78,6 +78,7 @@ import {
   fetchNotebookApiRecords,
   mapRawNotebooksToLotteryBooks,
 } from "@/lib/card-api-adapters";
+import { usePagination, paginate, TablePagination } from "@/components/ui/table-pagination";
 
 // Types
 interface LotteryBook {
@@ -202,6 +203,9 @@ export default function LotteryBooksPage() {
       return matchesBookNumber && matchesFromDate && matchesToDate;
     });
   }, [books, searchBookNumber, searchFromDate, searchToDate]);
+
+  const { currentPage, pageSize, totalPages, startIndex, endIndex, setCurrentPage, setPageSize } = usePagination(filteredBooks.length);
+  const paginatedBooks = paginate(filteredBooks, startIndex, endIndex);
 
   // Handlers
   const handleSearch = () => {
@@ -556,7 +560,7 @@ export default function LotteryBooksPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredBooks.map((book) => (
+                      {paginatedBooks.map((book) => (
                         <TableRow
                           key={book.id}
                           className="group transition-all hover:bg-primary/5 border-b border-border/50"
@@ -651,6 +655,17 @@ export default function LotteryBooksPage() {
                       ))}
                     </TableBody>
                   </Table>
+                  <TablePagination
+                    totalItems={filteredBooks.length}
+                    currentPage={currentPage}
+                    pageSize={pageSize}
+                    totalPages={totalPages}
+                    startIndex={startIndex}
+                    endIndex={endIndex}
+                    onPageChange={setCurrentPage}
+                    onPageSizeChange={setPageSize}
+                    isRTL={language === "ar"}
+                  />
                 </div>
               )}
             </CardContent>

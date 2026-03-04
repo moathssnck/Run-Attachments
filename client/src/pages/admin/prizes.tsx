@@ -72,6 +72,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { usePagination, paginate, TablePagination } from "@/components/ui/table-pagination";
 
 // ─── API type helpers ─────────────────────────────────────────────────────────
 
@@ -215,6 +216,9 @@ export default function PrizesPage() {
     }
     return result;
   }, [prizes, levelFilter, searchQuery]);
+
+  const { currentPage, pageSize, totalPages, startIndex, endIndex, setCurrentPage, setPageSize } = usePagination(filteredPrizes.length);
+  const paginatedPrizes = paginate(filteredPrizes, startIndex, endIndex);
 
   // ── Mutations ─────────────────────────────────────────────────────────────
 
@@ -467,7 +471,7 @@ export default function PrizesPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredPrizes.map((prize) => (
+                    {paginatedPrizes.map((prize) => (
                       <TableRow key={prize.id} data-testid={`row-prize-${prize.id}`}>
                         <TableCell>
                           <p className="font-semibold">
@@ -556,6 +560,17 @@ export default function PrizesPage() {
                   </TableBody>
                 </Table>
               )}
+              <TablePagination
+                totalItems={filteredPrizes.length}
+                currentPage={currentPage}
+                pageSize={pageSize}
+                totalPages={totalPages}
+                startIndex={startIndex}
+                endIndex={endIndex}
+                onPageChange={setCurrentPage}
+                onPageSizeChange={setPageSize}
+                isRTL={isRTL}
+              />
             </CardContent>
           </Card>
 

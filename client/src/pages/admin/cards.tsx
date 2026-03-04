@@ -97,6 +97,7 @@ import {
   fetchCardApiRecords,
   mapRawCardToLotteryCard,
 } from "@/lib/card-api-adapters";
+import { usePagination, paginate, TablePagination } from "@/components/ui/table-pagination";
 
 // Types
 interface LotteryCard {
@@ -297,6 +298,9 @@ export default function CardsPage() {
       return matchesCardNumber && matchesFromDate && matchesToDate;
     });
   }, [cards, hasSearched, searchCardNumber, searchFromDate, searchToDate]);
+
+  const { currentPage, pageSize, totalPages, startIndex, endIndex, setCurrentPage, setPageSize } = usePagination(filteredCards.length);
+  const paginatedCards = paginate(filteredCards, startIndex, endIndex);
 
   // Helpers
   const formatDate = (dateString: string) => {
@@ -667,7 +671,7 @@ export default function CardsPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredCards.map((card) => (
+                        {paginatedCards.map((card) => (
                           <TableRow
                             key={card.id}
                             className="group transition-all hover:bg-primary/5 border-b border-border/50"
@@ -760,6 +764,17 @@ export default function CardsPage() {
                         ))}
                       </TableBody>
                     </Table>
+                    <TablePagination
+                      totalItems={filteredCards.length}
+                      currentPage={currentPage}
+                      pageSize={pageSize}
+                      totalPages={totalPages}
+                      startIndex={startIndex}
+                      endIndex={endIndex}
+                      onPageChange={setCurrentPage}
+                      onPageSizeChange={setPageSize}
+                      isRTL={language === "ar"}
+                    />
                   </div>
                 )}
               </CardContent>

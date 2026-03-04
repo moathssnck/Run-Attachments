@@ -40,6 +40,7 @@ import { API_CONFIG } from "@/lib/api-config";
 import type { Payment, User as UserType, Ticket } from "@shared/schema";
 import { format } from "date-fns";
 import { PageHeader } from "@/components/page-header";
+import { usePagination, paginate, TablePagination } from "@/components/ui/table-pagination";
 
 interface PaymentWithDetails extends Payment {
   user?: UserType;
@@ -243,6 +244,9 @@ export default function PaymentsPage() {
     return matchesSearch && matchesStatus;
   });
 
+  const { currentPage, pageSize, totalPages, startIndex, endIndex, setCurrentPage, setPageSize } = usePagination(filteredPayments?.length ?? 0);
+  const paginatedPayments = paginate(filteredPayments ?? [], startIndex, endIndex);
+
   const totalCompleted =
     payments
       ?.filter((p) => p.status === "completed")
@@ -412,7 +416,7 @@ export default function PaymentsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredPayments.map((payment) => (
+                    {paginatedPayments.map((payment) => (
                       <TableRow
                         key={payment.id}
                         data-testid={`row-payment-${payment.id}`}
@@ -471,6 +475,17 @@ export default function PaymentsPage() {
                     ))}
                   </TableBody>
                 </Table>
+                <TablePagination
+                  totalItems={filteredPayments?.length ?? 0}
+                  currentPage={currentPage}
+                  pageSize={pageSize}
+                  totalPages={totalPages}
+                  startIndex={startIndex}
+                  endIndex={endIndex}
+                  onPageChange={setCurrentPage}
+                  onPageSizeChange={setPageSize}
+                  isRTL={isRTL}
+                />
               </div>
             ) : (
               <div className="text-center py-12">

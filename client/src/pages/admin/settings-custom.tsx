@@ -47,6 +47,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { usePagination, paginate, TablePagination } from "@/components/ui/table-pagination";
 
 // ─── API type helpers ─────────────────────────────────────────────────────────
 
@@ -173,6 +174,9 @@ export default function CustomSettingsPage() {
 
     return matchesSearch && matchesStatus;
   });
+
+  const { currentPage, pageSize, totalPages, startIndex, endIndex, setCurrentPage, setPageSize } = usePagination(filteredSettings.length);
+  const paginatedSettings = paginate(filteredSettings, startIndex, endIndex);
 
   // ── Mutations ─────────────────────────────────────────────────────────────
 
@@ -386,7 +390,7 @@ export default function CustomSettingsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredSettings.map((setting) => (
+                  {paginatedSettings.map((setting) => (
                     <TableRow key={setting.id} data-testid={`row-setting-${setting.id}`}>
                       <TableCell>
                         <Badge variant="secondary" className="font-mono">
@@ -440,6 +444,17 @@ export default function CustomSettingsPage() {
                   ))}
                 </TableBody>
               </Table>
+              <TablePagination
+                totalItems={filteredSettings.length}
+                currentPage={currentPage}
+                pageSize={pageSize}
+                totalPages={totalPages}
+                startIndex={startIndex}
+                endIndex={endIndex}
+                onPageChange={setCurrentPage}
+                onPageSizeChange={setPageSize}
+                isRTL={isRTL}
+              />
             </CardContent>
           </Card>
         )}

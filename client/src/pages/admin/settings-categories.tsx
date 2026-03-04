@@ -54,6 +54,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/lib/language-context";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { API_CONFIG } from "@/lib/api-config";
+import { usePagination, paginate, TablePagination } from "@/components/ui/table-pagination";
 
 // ─── LookupCategory API helpers ───────────────────────────────────────────────
 
@@ -201,6 +202,12 @@ export default function SettingsCategoriesPage() {
       (l) => l.lookupCategoryId === Number(lookupCategoryFilter)
     );
   }, [lookups, lookupCategoryFilter]);
+
+  const { currentPage: catPage, pageSize: catPageSize, totalPages: catTotalPages, startIndex: catStart, endIndex: catEnd, setCurrentPage: setCatPage, setPageSize: setCatPageSize } = usePagination(filteredCategories.length);
+  const paginatedCategories = paginate(filteredCategories, catStart, catEnd);
+
+  const { currentPage: lookupPage, pageSize: lookupPageSize, totalPages: lookupTotalPages, startIndex: lookupStart, endIndex: lookupEnd, setCurrentPage: setLookupPage, setPageSize: setLookupPageSize } = usePagination(filteredLookups.length);
+  const paginatedLookups = paginate(filteredLookups, lookupStart, lookupEnd);
 
   const getCategoryName = (catId: number) => {
     const cat = categories.find((c) => c.id === catId);
@@ -433,7 +440,7 @@ export default function SettingsCategoriesPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredCategories.map((cat) => (
+                  {paginatedCategories.map((cat) => (
                     <TableRow key={cat.id} data-testid={`row-category-${cat.id}`}>
                       <TableCell className="font-medium">{cat.lookupCategoryAr}</TableCell>
                       <TableCell>{cat.lookupCategoryEn}</TableCell>
@@ -467,6 +474,17 @@ export default function SettingsCategoriesPage() {
                 </TableBody>
               </Table>
             )}
+            <TablePagination
+              totalItems={filteredCategories.length}
+              currentPage={catPage}
+              pageSize={catPageSize}
+              totalPages={catTotalPages}
+              startIndex={catStart}
+              endIndex={catEnd}
+              onPageChange={setCatPage}
+              onPageSizeChange={setCatPageSize}
+              isRTL={isRTL}
+            />
           </CardContent>
         </Card>
 
@@ -528,7 +546,7 @@ export default function SettingsCategoriesPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredLookups.map((lookup) => (
+                  {paginatedLookups.map((lookup) => (
                     <TableRow key={lookup.id} data-testid={`row-definition-${lookup.id}`}>
                       <TableCell className="font-medium">{lookup.lookupAr}</TableCell>
                       <TableCell>{lookup.lookupEn}</TableCell>
@@ -572,6 +590,17 @@ export default function SettingsCategoriesPage() {
                 </TableBody>
               </Table>
             )}
+            <TablePagination
+              totalItems={filteredLookups.length}
+              currentPage={lookupPage}
+              pageSize={lookupPageSize}
+              totalPages={lookupTotalPages}
+              startIndex={lookupStart}
+              endIndex={lookupEnd}
+              onPageChange={setLookupPage}
+              onPageSizeChange={setLookupPageSize}
+              isRTL={isRTL}
+            />
           </CardContent>
         </Card>
 

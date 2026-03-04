@@ -56,6 +56,7 @@ import {
   fetchCardApiRecords,
   mapRawCardToLotteryCard,
 } from "@/lib/card-api-adapters";
+import { usePagination, paginate, TablePagination } from "@/components/ui/table-pagination";
 
 interface Transfer {
   id: string;
@@ -147,6 +148,9 @@ export default function TransfersPage() {
     searchNewOwner,
     filterStatus,
   ]);
+
+  const { currentPage, pageSize, totalPages, startIndex, endIndex, setCurrentPage, setPageSize } = usePagination(filteredTransfers.length);
+  const paginatedTransfers = paginate(filteredTransfers, startIndex, endIndex);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -351,7 +355,7 @@ export default function TransfersPage() {
                 </TableHeader>
                 <TableBody>
                   {filteredTransfers.length > 0 ? (
-                    filteredTransfers.map((transfer) => (
+                    paginatedTransfers.map((transfer) => (
                       <TableRow key={transfer.id} className="group transition-all hover:bg-primary/5 border-b border-border/50">
                         <TableCell className="font-medium">
                           {transfer.movementNumber}
@@ -394,6 +398,17 @@ export default function TransfersPage() {
                   )}
                 </TableBody>
               </Table>
+              <TablePagination
+                totalItems={filteredTransfers.length}
+                currentPage={currentPage}
+                pageSize={pageSize}
+                totalPages={totalPages}
+                startIndex={startIndex}
+                endIndex={endIndex}
+                onPageChange={setCurrentPage}
+                onPageSizeChange={setPageSize}
+                isRTL={language === "ar"}
+              />
             </div>
           </CardContent>
         </Card>

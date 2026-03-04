@@ -46,6 +46,7 @@ import { useAuth } from "@/lib/auth-context";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { RefundWithDetails } from "@shared/schema";
 import { format } from "date-fns";
+import { usePagination, paginate, TablePagination } from "@/components/ui/table-pagination";
 
 function getStatusIcon(status: string) {
   switch (status) {
@@ -163,6 +164,9 @@ export default function RefundsPage() {
     
     return matchesSearch && matchesStatus;
   }) || [];
+
+  const { currentPage, pageSize, totalPages, startIndex, endIndex, setCurrentPage, setPageSize } = usePagination(filteredRefunds.length);
+  const paginatedRefunds = paginate(filteredRefunds, startIndex, endIndex);
 
   const stats = {
     total: refunds?.length || 0,
@@ -286,7 +290,7 @@ export default function RefundsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredRefunds.map((refund) => (
+                    {paginatedRefunds.map((refund) => (
                       <TableRow key={refund.id} data-testid={`row-refund-${refund.id}`} className="group transition-all hover:bg-primary/5 border-b border-border/50">
                         <TableCell className="font-mono text-sm">
                           {refund.id.slice(0, 8)}...
@@ -355,6 +359,16 @@ export default function RefundsPage() {
                     ))}
                   </TableBody>
                 </Table>
+                <TablePagination
+                  totalItems={filteredRefunds.length}
+                  currentPage={currentPage}
+                  pageSize={pageSize}
+                  totalPages={totalPages}
+                  startIndex={startIndex}
+                  endIndex={endIndex}
+                  onPageChange={setCurrentPage}
+                  onPageSizeChange={setPageSize}
+                />
               </div>
             )}
           </CardContent>
