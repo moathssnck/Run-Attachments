@@ -4,7 +4,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useLocation } from "wouter";
 import { Eye, EyeOff, Loader2, Mail, Lock, ArrowRight, Shield, User } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -19,7 +18,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth-context";
 import { useLanguage } from "@/lib/language-context";
 import { loginSchema, type LoginData } from "@shared/schema";
-import { apiRequest } from "@/lib/queryClient";
 import { AuthLayout } from "@/components/auth-layout";
 import logoImage from "@assets/logo01_1767784684828.png";
 
@@ -114,6 +112,109 @@ const AnimatedBackground = () => (
   </div>
 );
 
+function decodeJwt(token: string): Record<string, unknown> {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return {};
+    const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    return JSON.parse(atob(base64));
+  } catch {
+    return {};
+  }
+}
+
+function extractToken(result: Record<string, unknown>): string | null {
+  return (
+    (result.token as string) ||
+    (result.accessToken as string) ||
+    ((result.data as any)?.token as string) ||
+    ((result.data as any)?.accessToken as string) ||
+    null
+  );
+}
+
+function extractRefreshToken(result: Record<string, unknown>): string | null {
+  return (
+    (result.refreshToken as string) ||
+    ((result.data as any)?.refreshToken as string) ||
+    null
+  );
+}
+
+function buildUserFromResponse(
+  result: Record<string, unknown>,
+  token: string,
+  fallbackEmail: string,
+): Record<string, unknown> {
+  const fromResult =
+    (result.user as any) ||
+    (result.data as any)?.user ||
+    (result.data as any) ||
+    null;
+
+  const payload = decodeJwt(token);
+
+  const id =
+    String(
+      fromResult?.id ||
+        fromResult?.userId ||
+        payload.sub ||
+        payload.userId ||
+        (payload as any)?.["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"] ||
+        result.userId ||
+        ""
+    );
+
+  const email = String(
+    fromResult?.email || payload.email || result.email || fallbackEmail
+  );
+
+  const role = String(
+    fromResult?.role ||
+      payload.role ||
+      (payload as any)?.["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] ||
+      result.role ||
+      "end_user"
+  );
+
+  const firstName = String(
+    fromResult?.firstName ||
+      fromResult?.first_name ||
+      payload.given_name ||
+      (payload as any)?.firstName ||
+      result.firstName ||
+      email.split("@")[0] ||
+      ""
+  );
+
+  const lastName = String(
+    fromResult?.lastName ||
+      fromResult?.last_name ||
+      payload.family_name ||
+      (payload as any)?.lastName ||
+      result.lastName ||
+      ""
+  );
+
+  return {
+    id,
+    email,
+    firstName,
+    lastName,
+    mobile: String(fromResult?.mobile || fromResult?.phoneNumber || payload.phone || ""),
+    status: "active",
+    role,
+    mfaEnabled: false,
+    failedLoginAttempts: 0,
+    emailConfirmed: true,
+    phoneNumberConfirmed: true,
+  };
+}
+
+function isAdminRole(role: string): boolean {
+  return ["admin", "system_admin", "finance_admin", "auditor", "Admin", "SuperAdmin"].includes(role);
+}
+
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -121,7 +222,6 @@ export default function LoginPage() {
   const { login } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
-  const { executeRecaptcha } = useGoogleReCaptcha();
   const { t, language } = useLanguage();
   const isRTL = language === "ar";
 
@@ -137,74 +237,54 @@ export default function LoginPage() {
     async (data: LoginData) => {
       setIsLoading(true);
       try {
-        let recaptchaToken = "";
-        if (executeRecaptcha) {
-          recaptchaToken = await executeRecaptcha("login");
-        }
-
-        const headers: Record<string, string> = {
-          "Content-Type": "application/json",
-        };
         const response = await fetch("/api/Auth/login", {
           method: "POST",
-          headers,
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            ...data,
+            email: data.email,
+            password: data.password,
             rememberMe: true,
-            Language: language,
-            recaptchaToken,
           }),
         });
-        const result = await response.json();
 
-        if (result.success) {
-          let userData: any;
-          let tokenValue: string;
-          let refreshTokenValue: string;
+        let result: Record<string, unknown> = {};
+        try {
+          result = await response.json();
+        } catch {
+          // non-JSON response
+        }
 
-          if (result.data && result.data.user) {
-            userData = result.data.user;
-            tokenValue = result.data.token;
-            refreshTokenValue = result.data.refreshToken;
-          } else {
-            userData = {
-              id: String(result.userId),
-              email: result.email || data.email || "",
-              firstName: result.firstName || result.email?.split("@")[0] || "",
-              lastName: result.lastName || "",
-              mobile: result.phoneNumber || "",
-              status: "active",
-              role: result.role || "end_user",
-              mfaEnabled: false,
-              failedLoginAttempts: 0,
-              emailConfirmed: result.emailConfirmed || false,
-              phoneNumberConfirmed: result.phoneNumberConfirmed || false,
-            };
-            tokenValue = result.token;
-            refreshTokenValue = result.refreshToken;
-          }
+        const token = extractToken(result);
+        const isSucceeded =
+          response.ok ||
+          result.success === true ||
+          (result as any).isSucceeded === true ||
+          (result as any).succeeded === true;
 
-          login(userData, tokenValue, refreshTokenValue);
+        if (isSucceeded && token) {
+          const refreshToken = extractRefreshToken(result);
+          const userData = buildUserFromResponse(result, token, data.email);
+
+          login(userData as any, token, refreshToken ?? undefined);
           toast({
             title: t("auth.welcomeBack"),
             description: t("auth.loginSuccess"),
           });
 
-          const role = userData.role;
-          if (
-            role === "admin" ||
-            role === "system_admin" ||
-            role === "finance_admin" ||
-            role === "auditor"
-          ) {
+          if (isAdminRole(userData.role as string)) {
             setLocation("/admin/dashboard");
           } else {
             setLocation("/buy-ticket");
           }
         } else {
+          const message =
+            (result.message as string) ||
+            (result.error as string) ||
+            ((result as any).errors as string) ||
+            t("auth.invalidCredentials");
           toast({
             title: t("auth.loginFailed"),
-            description: result.message || result.error || t("auth.invalidCredentials"),
+            description: message,
             variant: "destructive",
           });
         }
@@ -218,7 +298,7 @@ export default function LoginPage() {
         setIsLoading(false);
       }
     },
-    [executeRecaptcha, login, toast, setLocation, t],
+    [login, toast, setLocation, t],
   );
 
   const DEMO_ACCOUNTS: Record<string, { email: string; firstName: string; lastName: string; role: string }> = {
