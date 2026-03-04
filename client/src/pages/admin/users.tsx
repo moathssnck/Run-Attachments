@@ -25,6 +25,9 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  KeyRound,
+  Check,
+  Loader2,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import {
@@ -74,6 +77,8 @@ import { ActionsCombobox } from "@/components/ui/actions-combobox";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { AdminLayout } from "@/components/admin-layout";
 import { PageHeader } from "@/components/page-header";
@@ -137,9 +142,110 @@ export default function UsersPage() {
     role: "end_user",
     status: "active",
   });
+  const [rolesPermissionsUser, setRolesPermissionsUser] = useState<User | null>(null);
+  const [selectedRoleId, setSelectedRoleId] = useState<string>("");
+  const [pendingPermissions, setPendingPermissions] = useState<Map<string, boolean>>(new Map());
 
   const { data: users, isLoading } = useQuery<User[]>({
     queryKey: ["/api/UserManagement/get-all-users"],
+  });
+
+  const authHeader = (): Record<string, string> => {
+    const token = localStorage.getItem("lottery_token");
+    const headers: Record<string, string> = {};
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    return headers;
+  };
+
+  const { data: allRoles = [] } = useQuery<{ id: string; name: string; nameAr: string }[]>({
+    queryKey: ["/api/Role"],
+    queryFn: async () => {
+      const res = await fetch("/api/Role", { headers: authHeader() });
+      const data = await res.json();
+      const arr = Array.isArray(data) ? data : (data?.data ?? []);
+      return arr.map((r: any) => ({
+        id: String(r.id ?? r.roleId ?? ""),
+        name: r.name ?? r.nameEn ?? r.roleName ?? "",
+        nameAr: r.nameAr ?? r.name ?? "",
+      }));
+    },
+  });
+
+  const { data: allPermissions = [] } = useQuery<{ id: string; name: string; nameAr: string; module: string }[]>({
+    queryKey: ["/api/Permission"],
+    queryFn: async () => {
+      const res = await fetch("/api/Permission", { headers: authHeader() });
+      const data = await res.json();
+      const arr = Array.isArray(data) ? data : (data?.data ?? []);
+      return arr.map((p: any) => ({
+        id: String(p.id ?? p.permissionId ?? ""),
+        name: p.name ?? p.nameEn ?? p.permissionName ?? "",
+        nameAr: p.nameAr ?? p.name ?? "",
+        module: p.module ?? p.category ?? "general",
+      }));
+    },
+  });
+
+  const { data: userPermissionIds = [], refetch: refetchUserPermissions } = useQuery<string[]>({
+    queryKey: ["/api/UserPermission/user", rolesPermissionsUser?.id],
+    enabled: !!rolesPermissionsUser,
+    queryFn: async () => {
+      const userId = rolesPermissionsUser!.id;
+      const res = await fetch(`/api/UserPermission/user/${userId}`, { headers: authHeader() });
+      if (!res.ok) return [];
+      const data = await res.json();
+      const arr = Array.isArray(data) ? data : (data?.data ?? []);
+      return arr.map((p: any) => String(p.permissionId ?? p.id ?? p));
+    },
+  });
+
+  const assignRoleMutation = useMutation({
+    mutationFn: async ({ userId, roleId }: { userId: string; roleId: string }) => {
+      const res = await apiRequest("POST", "/api/UserManagement/AssignRole", { userId, roleId });
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: language === "ar" ? "تم تعيين الدور" : "Role assigned", description: language === "ar" ? "تم تحديث دور المستخدم بنجاح" : "User role updated successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/UserManagement/get-all-users"] });
+    },
+    onError: () => {
+      toast({ title: language === "ar" ? "خطأ" : "Error", description: language === "ar" ? "فشل تعيين الدور" : "Failed to assign role", variant: "destructive" });
+    },
+  });
+
+  const togglePermissionMutation = useMutation({
+    mutationFn: async ({ userId, permissionId, grant }: { userId: string; permissionId: string; grant: boolean }) => {
+      if (grant) {
+        const res = await apiRequest("POST", "/api/UserPermission", { userId, permissionId });
+        return res.json();
+      } else {
+        const res = await apiRequest("DELETE", `/api/UserPermission/${userId}/${permissionId}`, undefined);
+        return res.json();
+      }
+    },
+    onSuccess: () => {
+      refetchUserPermissions();
+    },
+    onError: () => {
+      toast({ title: language === "ar" ? "خطأ" : "Error", description: language === "ar" ? "فشل تحديث الصلاحية" : "Failed to update permission", variant: "destructive" });
+    },
+  });
+
+  const savePermissionsMutation = useMutation({
+    mutationFn: async ({ userId, grants, revokes }: { userId: string; grants: string[]; revokes: string[] }) => {
+      await Promise.allSettled([
+        ...grants.map((pid) => apiRequest("POST", "/api/UserPermission", { userId, permissionId: pid })),
+        ...revokes.map((pid) => apiRequest("DELETE", `/api/UserPermission/${userId}/${pid}`, undefined)),
+      ]);
+    },
+    onSuccess: () => {
+      toast({ title: language === "ar" ? "تم الحفظ" : "Saved", description: language === "ar" ? "تم تحديث الصلاحيات بنجاح" : "Permissions updated successfully" });
+      setPendingPermissions(new Map());
+      refetchUserPermissions();
+    },
+    onError: () => {
+      toast({ title: language === "ar" ? "خطأ" : "Error", description: language === "ar" ? "فشل حفظ الصلاحيات" : "Failed to save permissions", variant: "destructive" });
+    },
   });
 
   const createUserMutation = useMutation({
@@ -525,6 +631,11 @@ export default function UsersPage() {
                                 label: t("users.viewDetails"),
                                 icon: <Eye className="h-4 w-4" />,
                               },
+                              {
+                                value: "roles-permissions",
+                                label: language === "ar" ? "الأدوار والصلاحيات" : "Roles & Permissions",
+                                icon: <KeyRound className="h-4 w-4" />,
+                              },
                               user.status === "locked"
                                 ? {
                                     value: "unlock",
@@ -558,6 +669,11 @@ export default function UsersPage() {
                               else if (action === "unlock") handleQuickAction(user.id, "unlock");
                               else if (action === "activate") handleQuickAction(user.id, "activate");
                               else if (action === "suspend") handleQuickAction(user.id, "suspend");
+                              else if (action === "roles-permissions") {
+                                setRolesPermissionsUser(user);
+                                setSelectedRoleId(user.role || "");
+                                setPendingPermissions(new Map());
+                              }
                             }}
                             data-testid={`button-actions-${user.id}`}
                           />
@@ -1159,6 +1275,217 @@ export default function UsersPage() {
               {createUserMutation.isPending
                 ? t("common.loading")
                 : t("common.save")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Roles & Permissions Dialog */}
+      <Dialog
+        open={!!rolesPermissionsUser}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRolesPermissionsUser(null);
+            setPendingPermissions(new Map());
+          }
+        }}
+      >
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <KeyRound className="h-5 w-5" />
+              {language === "ar" ? "إدارة الأدوار والصلاحيات" : "Manage Roles & Permissions"}
+            </DialogTitle>
+            <DialogDescription>
+              {rolesPermissionsUser && (
+                <span>
+                  {rolesPermissionsUser.firstName} {rolesPermissionsUser.lastName} — {rolesPermissionsUser.email}
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          {rolesPermissionsUser && (
+            <div className="flex-1 overflow-hidden flex flex-col gap-5 py-2">
+              {/* Role Section */}
+              <div className="rounded-lg border p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-primary" />
+                  <h3 className="font-semibold text-sm">
+                    {language === "ar" ? "الدور" : "Role"}
+                  </h3>
+                </div>
+                <div className="flex items-center gap-3">
+                  {allRoles.length > 0 ? (
+                    <Select
+                      value={selectedRoleId}
+                      onValueChange={setSelectedRoleId}
+                    >
+                      <SelectTrigger className="flex-1" data-testid="select-user-role">
+                        <SelectValue placeholder={language === "ar" ? "اختر دوراً" : "Select a role"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {allRoles.map((role) => (
+                          <SelectItem key={role.id} value={role.id}>
+                            {language === "ar" ? role.nameAr : role.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Select
+                      value={selectedRoleId}
+                      onValueChange={setSelectedRoleId}
+                    >
+                      <SelectTrigger className="flex-1" data-testid="select-user-role-fallback">
+                        <SelectValue placeholder={language === "ar" ? "اختر دوراً" : "Select a role"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="end_user">{t("role.end_user")}</SelectItem>
+                        <SelectItem value="admin">{t("role.admin")}</SelectItem>
+                        <SelectItem value="finance_admin">{t("role.finance_admin")}</SelectItem>
+                        <SelectItem value="system_admin">{t("role.system_admin")}</SelectItem>
+                        <SelectItem value="auditor">{t("role.auditor")}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      if (selectedRoleId && rolesPermissionsUser) {
+                        assignRoleMutation.mutate({ userId: rolesPermissionsUser.id, roleId: selectedRoleId });
+                      }
+                    }}
+                    disabled={assignRoleMutation.isPending || !selectedRoleId}
+                    data-testid="button-assign-role"
+                  >
+                    {assignRoleMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Check className="h-4 w-4" />
+                    )}
+                    <span className="ms-1">{language === "ar" ? "تعيين" : "Assign"}</span>
+                  </Button>
+                </div>
+              </div>
+
+              {/* Permissions Section */}
+              <div className="rounded-lg border flex-1 overflow-hidden flex flex-col">
+                <div className="flex items-center justify-between p-4 border-b">
+                  <div className="flex items-center gap-2">
+                    <KeyRound className="h-4 w-4 text-primary" />
+                    <h3 className="font-semibold text-sm">
+                      {language === "ar" ? "الصلاحيات" : "Permissions"}
+                    </h3>
+                    {pendingPermissions.size > 0 && (
+                      <Badge variant="secondary" className="text-xs">
+                        {pendingPermissions.size} {language === "ar" ? "تغيير معلق" : "pending changes"}
+                      </Badge>
+                    )}
+                  </div>
+                  {pendingPermissions.size > 0 && (
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        const grants: string[] = [];
+                        const revokes: string[] = [];
+                        pendingPermissions.forEach((grant, pid) => {
+                          if (grant) grants.push(pid);
+                          else revokes.push(pid);
+                        });
+                        savePermissionsMutation.mutate({ userId: rolesPermissionsUser.id, grants, revokes });
+                      }}
+                      disabled={savePermissionsMutation.isPending}
+                      data-testid="button-save-permissions"
+                    >
+                      {savePermissionsMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin me-1" />
+                      ) : null}
+                      {language === "ar" ? "حفظ التغييرات" : "Save Changes"}
+                    </Button>
+                  )}
+                </div>
+
+                {allPermissions.length === 0 ? (
+                  <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm p-8 text-center">
+                    <div>
+                      <KeyRound className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                      <p>{language === "ar" ? "لا توجد صلاحيات متاحة من الخادم" : "No permissions available from the server"}</p>
+                      <p className="text-xs mt-1 opacity-70">{language === "ar" ? "يتم إدارة الصلاحيات من خلال الأدوار" : "Permissions are managed through roles"}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <ScrollArea className="flex-1 p-4">
+                    {(() => {
+                      const grouped: Record<string, typeof allPermissions> = {};
+                      allPermissions.forEach((p) => {
+                        const mod = p.module || "general";
+                        if (!grouped[mod]) grouped[mod] = [];
+                        grouped[mod].push(p);
+                      });
+                      return Object.entries(grouped).map(([module, perms]) => (
+                        <div key={module} className="mb-4">
+                          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 capitalize">{module}</p>
+                          <div className="space-y-2">
+                            {perms.map((perm) => {
+                              const pending = pendingPermissions.get(perm.id);
+                              const base = userPermissionIds.includes(perm.id);
+                              const isChecked = pending !== undefined ? pending : base;
+                              const hasChange = pending !== undefined && pending !== base;
+                              return (
+                                <div
+                                  key={perm.id}
+                                  className={`flex items-center gap-3 p-2 rounded-md transition-colors ${hasChange ? "bg-primary/5 border border-primary/20" : "hover:bg-muted/50"}`}
+                                  data-testid={`permission-${perm.id}`}
+                                >
+                                  <Checkbox
+                                    id={`perm-${perm.id}`}
+                                    checked={isChecked}
+                                    onCheckedChange={(checked) => {
+                                      setPendingPermissions((prev) => {
+                                        const next = new Map(prev);
+                                        const currentVal = !!checked;
+                                        if (currentVal === base) {
+                                          next.delete(perm.id);
+                                        } else {
+                                          next.set(perm.id, currentVal);
+                                        }
+                                        return next;
+                                      });
+                                    }}
+                                  />
+                                  <label
+                                    htmlFor={`perm-${perm.id}`}
+                                    className="text-sm cursor-pointer flex-1"
+                                  >
+                                    {language === "ar" ? perm.nameAr : perm.name}
+                                  </label>
+                                  {hasChange && (
+                                    <Badge variant="secondary" className="text-xs py-0">
+                                      {language === "ar" ? "معلق" : "pending"}
+                                    </Badge>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ));
+                    })()}
+                  </ScrollArea>
+                )}
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setRolesPermissionsUser(null);
+                setPendingPermissions(new Map());
+              }}
+            >
+              {language === "ar" ? "إغلاق" : "Close"}
             </Button>
           </DialogFooter>
         </DialogContent>
