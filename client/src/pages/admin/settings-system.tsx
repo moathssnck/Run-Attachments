@@ -285,10 +285,10 @@ export default function SystemSettingsPage() {
                 </div>
                 <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                   <SelectTrigger className="w-full md:w-48" data-testid="select-category-filter">
-                    <SelectValue placeholder={isRTL ? "جميع الفئات" : "All Categories"} />
+                    <SelectValue placeholder={isRTL ? "جميع القوائم" : "All Lookups"} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">{isRTL ? "جميع الفئات" : "All Categories"}</SelectItem>
+                    <SelectItem value="all">{isRTL ? "جميع القوائم" : "All Lookups"}</SelectItem>
                     {CATEGORIES.map((cat) => (
                       <SelectItem key={cat.code} value={cat.code}>
                         {isRTL ? cat.nameAr : cat.nameEn}
@@ -418,13 +418,13 @@ export default function SystemSettingsPage() {
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label>{isRTL ? "الفئة" : "Category"} *</Label>
+                <Label>{isRTL ? "القائمة" : "Lookup"} *</Label>
                 <Select
                   value={formData.category}
                   onValueChange={(value) => setFormData({ ...formData, category: value })}
                 >
                   <SelectTrigger data-testid="select-category">
-                    <SelectValue placeholder={isRTL ? "اختر الفئة" : "Select category"} />
+                    <SelectValue placeholder={isRTL ? "اختر القائمة" : "Select lookup"} />
                   </SelectTrigger>
                   <SelectContent>
                     {CATEGORIES.map((cat) => (
@@ -527,13 +527,13 @@ export default function SystemSettingsPage() {
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label>{isRTL ? "الفئة" : "Category"} *</Label>
+                <Label>{isRTL ? "القائمة" : "Lookup"} *</Label>
                 <Select
                   value={formData.category}
                   onValueChange={(value) => setFormData({ ...formData, category: value })}
                 >
                   <SelectTrigger data-testid="edit-select-category">
-                    <SelectValue placeholder={isRTL ? "اختر الفئة" : "Select category"} />
+                    <SelectValue placeholder={isRTL ? "اختر القائمة" : "Select lookup"} />
                   </SelectTrigger>
                   <SelectContent>
                     {CATEGORIES.map((cat) => (
