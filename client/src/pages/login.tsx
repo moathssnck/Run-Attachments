@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useLocation } from "wouter";
-import { Eye, EyeOff, Loader2, Mail, Lock, ArrowRight, Shield, User } from "lucide-react";
+import { Eye, EyeOff, Loader2, Mail, Lock, ArrowRight, Shield, User, ChevronDown, KeyRound } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -264,6 +264,8 @@ const QUICK_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [tokenPanelOpen, setTokenPanelOpen] = useState(false);
+  const [pastedToken, setPastedToken] = useState("");
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const { login } = useAuth();
   const { toast } = useToast();
@@ -621,17 +623,56 @@ export default function LoginPage() {
               </div>
 
               <div className="mt-3">
-                <Button
-                  variant="outline"
+                <button
                   type="button"
-                  className="w-full h-11 font-medium bg-emerald-500/5 hover:bg-emerald-500/10 border-emerald-500/30 hover:border-emerald-500/50 text-emerald-700 dark:text-emerald-400 transition-all duration-300 rounded-xl gap-2"
-                  onClick={() => loginWithToken(QUICK_TOKEN, login, setLocation)}
-                  disabled={isLoading}
-                  data-testid="button-quick-api-login"
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
+                  onClick={() => setTokenPanelOpen((v) => !v)}
+                  data-testid="button-toggle-token-panel"
                 >
-                  <Shield className="h-4 w-4" />
-                  <span className="text-sm">{isRTL ? "دخول سريع (API)" : "Quick API Login"}</span>
-                </Button>
+                  <span className="flex items-center gap-1.5">
+                    <KeyRound className="h-3.5 w-3.5" />
+                    {isRTL ? "دخول بالرمز المؤقت" : "Login with token"}
+                  </span>
+                  <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${tokenPanelOpen ? "rotate-180" : ""}`} />
+                </button>
+
+                <AnimatePresence>
+                  {tokenPanelOpen && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="pt-2 flex flex-col gap-2">
+                        <textarea
+                          value={pastedToken}
+                          onChange={(e) => setPastedToken(e.target.value)}
+                          placeholder={isRTL ? "الصق الرمز هنا..." : "Paste your JWT token here..."}
+                          rows={3}
+                          data-testid="input-paste-token"
+                          className="w-full rounded-xl border border-border bg-muted/30 px-3 py-2 text-xs font-mono text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 resize-none"
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="w-full rounded-xl gap-2"
+                          disabled={!pastedToken.trim()}
+                          onClick={() => {
+                            if (pastedToken.trim()) {
+                              loginWithToken(pastedToken.trim(), login, setLocation);
+                            }
+                          }}
+                          data-testid="button-submit-token"
+                        >
+                          <Shield className="h-3.5 w-3.5" />
+                          {isRTL ? "دخول" : "Login"}
+                        </Button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </motion.div>
 
