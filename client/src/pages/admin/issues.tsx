@@ -4,13 +4,13 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import {
   BookOpen,
   Plus,
   Search,
   Calendar,
   Hash,
-  DollarSign,
   Ticket,
   Package,
   Lock,
@@ -21,7 +21,6 @@ import {
   DoorClosed,
   Edit,
   Trash2,
-  MoreHorizontal,
   ToggleLeft,
   ToggleRight,
 } from "lucide-react";
@@ -69,12 +68,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -99,15 +92,143 @@ import { PageHeader } from "@/components/page-header";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { API_CONFIG } from "@/lib/api-config";
 import { toWesternNumerals } from "@/lib/utils";
-import type { Issue, CreateIssueData } from "@shared/schema";
-import { createIssueSchema } from "@shared/schema";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import type { ReactNode } from "react";
 
-type IssueFormValues = CreateIssueData;
+// ─── API type helpers ────────────────────────────────────────────────────────
 
-// --- Detail item for view dialog ---
+type RawApiIssue = Record<string, unknown>;
+
+type NormalizedIssue = {
+  id: number;
+  issueNo: string;
+  issueTypeId: number;
+  issueTypeName: string;
+  issueDate: string;
+  issueDrawingDate: string;
+  issueFrom: number;
+  issueTo: number;
+  issueSead: number;
+  isOpen: boolean;
+  issueStatusId: number;
+  createdAt: string;
+};
+
+function asStr(value: unknown, fallback = ""): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean")
+    return String(value);
+  return fallback;
+}
+
+function asNum(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "") {
+    const p = Number(value);
+    if (Number.isFinite(p)) return p;
+  }
+  return null;
+}
+
+function normalizeIssue(raw: RawApiIssue, index: number): NormalizedIssue {
+  const id = asNum(raw.issueId ?? raw.id) ?? index + 1;
+  const issueNo = asStr(raw.issueNo ?? raw.issueNumber, String(id));
+  const issueTypeId = asNum(raw.issueTypeId) ?? 1;
+  const issueTypeName = asStr(
+    raw.issueTypeName ?? raw.issueTypeNameAr ?? raw.typeName
+  );
+  const issueDate = asStr(
+    raw.issueDate ?? raw.startDate,
+    new Date().toISOString()
+  );
+  const issueDrawingDate = asStr(
+    raw.issueDrawingDate ?? raw.endDate ?? raw.drawDate,
+    issueDate
+  );
+  const issueFrom =
+    asNum(raw.issueFrom ?? raw.startTicketNumber ?? raw.fromNumber) ?? 1;
+  const issueTo =
+    asNum(raw.issueTo ?? raw.endTicketNumber ?? raw.toNumber) ?? issueFrom;
+  const issueSead =
+    asNum(
+      raw.issueSead ?? raw.issueSeed ?? raw.seed ?? raw.ticketsPerBook
+    ) ?? 10;
+  const issueStatusId = asNum(raw.issueStatusId) ?? 1;
+  const isClosed =
+    typeof raw.isClosed === "boolean" ? raw.isClosed : issueStatusId !== 1;
+  const createdAt = asStr(raw.createdAt ?? raw.issueDate, issueDate);
+
+  return {
+    id,
+    issueNo,
+    issueTypeId,
+    issueTypeName,
+    issueDate,
+    issueDrawingDate,
+    issueFrom,
+    issueTo,
+    issueSead,
+    isOpen: !isClosed,
+    issueStatusId,
+    createdAt,
+  };
+}
+
+function extractIssues(payload: unknown): NormalizedIssue[] {
+  let raw: RawApiIssue[] = [];
+  if (Array.isArray(payload)) {
+    raw = payload as RawApiIssue[];
+  } else if (payload && typeof payload === "object") {
+    const obj = payload as Record<string, unknown>;
+    if (Array.isArray(obj.data)) raw = obj.data as RawApiIssue[];
+    else if (Array.isArray(obj.issues)) raw = obj.issues as RawApiIssue[];
+    else if (Array.isArray(obj.items)) raw = obj.items as RawApiIssue[];
+    else if (obj.data && typeof obj.data === "object") {
+      const d = obj.data as Record<string, unknown>;
+      if (Array.isArray(d.issues)) raw = d.issues as RawApiIssue[];
+      else if (Array.isArray(d.items)) raw = d.items as RawApiIssue[];
+      else if (Array.isArray(d.data)) raw = d.data as RawApiIssue[];
+    }
+  }
+  return raw.map(normalizeIssue);
+}
+
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+const ISSUE_TYPE_OPTIONS = [
+  { label: "regular", value: 1 },
+  { label: "special", value: 2 },
+  { label: "support", value: 3 },
+] as const;
+
+const ISSUE_STATUS_OPEN = 1;
+const ISSUE_STATUS_CLOSED = 64;
+
+// ─── Form schemas ─────────────────────────────────────────────────────────────
+
+const createWithCardsSchema = z.object({
+  issueTypeId: z.number().min(1, "نوع الإصدار مطلوب"),
+  issueDate: z.string().min(1, "تاريخ الإصدار مطلوب"),
+  issueDrawingDate: z.string().min(1, "تاريخ السحب مطلوب"),
+  issueFrom: z.number().min(1, "رقم البداية مطلوب"),
+  issueTo: z.number().min(1, "رقم النهاية مطلوب"),
+  issueSead: z.number().min(1, "البذرة مطلوبة"),
+});
+type CreateFormValues = z.infer<typeof createWithCardsSchema>;
+
+const editIssueSchema = z.object({
+  issueNo: z.number().min(1, "رقم الإصدار مطلوب"),
+  issueTypeId: z.number().min(1),
+  issueDate: z.string().min(1, "تاريخ الإصدار مطلوب"),
+  issueDrawingDate: z.string().min(1, "تاريخ السحب مطلوب"),
+  issueAnnual: z.string().optional(),
+  issueStatusId: z.number().min(1),
+});
+type EditFormValues = z.infer<typeof editIssueSchema>;
+
+// ─── Detail item ──────────────────────────────────────────────────────────────
+
 function DetailItem({
   label,
   value,
@@ -128,298 +249,236 @@ function DetailItem({
   );
 }
 
+// ─── Main component ───────────────────────────────────────────────────────────
+
 export default function IssuesPage() {
   const { t, language, dir } = useLanguage();
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // --- Search / filter state ---
+  // Search / filter state
   const [searchIssueNumber, setSearchIssueNumber] = useState("");
   const [searchType, setSearchType] = useState<string>("all");
-  const [seed, setSeed] = useState<string>("0");
   const [searchFromDate, setSearchFromDate] = useState("");
   const [searchToDate, setSearchToDate] = useState("");
-  const [searchFromNumber, setSearchFromNumber] = useState("");
-  const [searchToNumber, setSearchToNumber] = useState("");
   const [searchStatus, setSearchStatus] = useState<string>("all");
   const [hasSearched, setHasSearched] = useState(false);
 
-  // --- Dialog state ---
+  // Dialog state
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
-  const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
+  const [selectedIssue, setSelectedIssue] = useState<NormalizedIssue | null>(
+    null
+  );
 
-  // --- API query ---
-  const { data: issuesResponse, isLoading } = useQuery<{
-    success: boolean;
-    data: Issue[];
-  }>({
+  // ── Fetch all issues (paged) ──────────────────────────────────────────────
+
+  const { data: issues = [], isLoading } = useQuery<NormalizedIssue[]>({
     queryKey: [API_CONFIG.issues.paged],
     queryFn: async () => {
       const res = await apiRequest("GET", API_CONFIG.issues.paged);
       const payload = await res.json();
-
-      if (Array.isArray(payload)) {
-        return { success: true, data: payload as Issue[] };
-      }
-
-      if (Array.isArray(payload?.data)) {
-        return { success: true, data: payload.data as Issue[] };
-      }
-
-      if (Array.isArray(payload?.issues)) {
-        return { success: true, data: payload.issues as Issue[] };
-      }
-
-      if (Array.isArray(payload?.data?.issues)) {
-        return { success: true, data: payload.data.issues as Issue[] };
-      }
-
-      return { success: false, data: [] as Issue[] };
+      return extractIssues(payload);
     },
   });
 
-  const issues = issuesResponse?.data || [];
+  // ── Search query (called on-demand) ──────────────────────────────────────
 
-  // --- Filtered results ---
-  const filteredIssues = useMemo(() => {
-    if (!hasSearched) return issues;
+  const {
+    data: searchResults,
+    isLoading: isSearchLoading,
+    refetch: refetchSearch,
+  } = useQuery<NormalizedIssue[]>({
+    queryKey: [API_CONFIG.issues.search, searchIssueNumber, searchType, searchFromDate, searchToDate, searchStatus],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (searchIssueNumber) params.set("searchTerm", searchIssueNumber);
+      if (searchType && searchType !== "all") {
+        const typeOpt = ISSUE_TYPE_OPTIONS.find((o) => o.label === searchType);
+        if (typeOpt) params.set("issueTypeId", String(typeOpt.value));
+      }
+      if (searchStatus === "open") params.set("issueStatusId", String(ISSUE_STATUS_OPEN));
+      if (searchStatus === "closed") params.set("issueStatusId", String(ISSUE_STATUS_CLOSED));
+      if (searchFromDate) params.set("fromDate", searchFromDate);
+      if (searchToDate) params.set("toDate", searchToDate);
+      params.set("pageNumber", "1");
+      params.set("pageSize", "100");
+      const res = await apiRequest("GET", `${API_CONFIG.issues.search}?${params.toString()}`);
+      const payload = await res.json();
+      return extractIssues(payload);
+    },
+    enabled: false,
+  });
 
-    return issues.filter((issue) => {
-      if (
-        searchIssueNumber &&
-        !issue.issueNumber
-          .toLowerCase()
-          .includes(searchIssueNumber.toLowerCase())
-      ) {
-        return false;
-      }
-      if (
-        searchType &&
-        searchType !== "all" &&
-        issue.issueType !== searchType
-      ) {
-        return false;
-      }
-      if (searchFromDate) {
-        const issueStart = format(new Date(issue.startDate), "yyyy-MM-dd");
-        if (issueStart < searchFromDate) return false;
-      }
-      if (searchToDate) {
-        const issueEnd = format(new Date(issue.endDate), "yyyy-MM-dd");
-        if (issueEnd > searchToDate) return false;
-      }
-      if (searchFromNumber) {
-        const fromNum = Number.parseInt(searchFromNumber);
-        if (issue.startTicketNumber < fromNum) return false;
-      }
-      if (searchToNumber) {
-        const toNum = Number.parseInt(searchToNumber);
-        if (issue.startTicketNumber > toNum) return false;
-      }
-      if (searchStatus && searchStatus !== "all") {
-        const isClosed = searchStatus === "closed";
-        if (issue.isClosed !== isClosed) return false;
-      }
-      return true;
-    });
-  }, [
-    issues,
-    searchIssueNumber,
-    searchType,
-    searchFromDate,
-    searchToDate,
-    searchFromNumber,
-    searchToNumber,
-    searchStatus,
-    hasSearched,
-  ]);
+  const displayIssues = hasSearched ? (searchResults ?? []) : issues;
 
-  // --- Forms ---
-  const createForm = useForm<IssueFormValues>({
-    resolver: zodResolver(createIssueSchema),
+  // ── Forms ─────────────────────────────────────────────────────────────────
+
+  const createForm = useForm<CreateFormValues>({
+    resolver: zodResolver(createWithCardsSchema),
     defaultValues: {
-      issueNumber: "",
-      issueType: "regular",
-      startDate: "",
-      endDate: "",
-      totalTickets: 100000,
-      ticketsPerBook: 10,
-      bookPrice: "24.00",
-      startTicketNumber: 1,
-      prizesAccountNumber: "",
+      issueTypeId: 1,
+      issueDate: "",
+      issueDrawingDate: "",
+      issueFrom: 1,
+      issueTo: 100000,
+      issueSead: 10,
     },
   });
 
-  const editForm = useForm<IssueFormValues>({
-    resolver: zodResolver(createIssueSchema),
+  const editForm = useForm<EditFormValues>({
+    resolver: zodResolver(editIssueSchema),
     defaultValues: {
-      issueNumber: "",
-      issueType: "regular",
-      startDate: "",
-      endDate: "",
-      totalTickets: 100000,
-      ticketsPerBook: 10,
-      bookPrice: "24.00",
-      startTicketNumber: 1,
-      prizesAccountNumber: "",
+      issueNo: 1,
+      issueTypeId: 1,
+      issueDate: "",
+      issueDrawingDate: "",
+      issueAnnual: "",
+      issueStatusId: ISSUE_STATUS_OPEN,
     },
   });
 
-  // --- Mutations ---
+  // ── Mutations ─────────────────────────────────────────────────────────────
+
   const createIssueMutation = useMutation({
-    mutationFn: async (
-      data: IssueFormValues & { initialStatus?: "open" | "closed" }
-    ) => {
-      if (!user?.id) throw new Error("User not authenticated");
-      const { initialStatus, ...formData } = data;
-      return apiRequest("POST", API_CONFIG.issues.base, {
-        ...formData,
-        createdBy: user.id,
-      });
-    },
-    onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [API_CONFIG.issues.paged] });
-      setIsEditDialogOpen(false);
-      createForm.reset();
-      toast({
-        title: t("issues.created"),
-        description: t("issues.createdDesc"),
-      });
-    },
-    onError: () => {
-      toast({
-        title: t("issues.error"),
-        description: t("issues.createError"),
-        variant: "destructive",
-      });
-    },
-  });
-
-  const updateIssueMutation = useMutation({
-    mutationFn: async (data: IssueFormValues & { id: string }) => {
-      if (!user?.id) throw new Error("User not authenticated");
-      const { id, ...updateData } = data;
-      return apiRequest("PUT", API_CONFIG.issues.byId(id), {
-        ...updateData,
-        adminId: user.id,
+    mutationFn: async (data: CreateFormValues) => {
+      return apiRequest("POST", API_CONFIG.issues.createWithCards, {
+        issueFrom: data.issueFrom,
+        issueTo: data.issueTo,
+        issueSead: data.issueSead,
+        issueDate: new Date(data.issueDate).toISOString(),
+        issueDrawingDate: new Date(data.issueDrawingDate).toISOString(),
+        issueTypeId: data.issueTypeId,
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [API_CONFIG.issues.paged] });
       setIsCreateDialogOpen(false);
-      setSelectedIssue(null);
-      toast({
-        title: t("issues.updated"),
-        description: t("issues.updatedDesc"),
-      });
+      createForm.reset();
+      toast({ title: t("issues.created"), description: t("issues.createdDesc") });
     },
     onError: () => {
-      toast({
-        title: t("issues.error"),
-        description: t("issues.updateError"),
-        variant: "destructive",
+      toast({ title: t("issues.error"), description: t("issues.createError"), variant: "destructive" });
+    },
+  });
+
+  const updateIssueMutation = useMutation({
+    mutationFn: async (data: EditFormValues & { id: number }) => {
+      const { id, ...body } = data;
+      return apiRequest("PUT", API_CONFIG.issues.byId(id), {
+        issueId: id,
+        issueNo: body.issueNo,
+        issueDate: new Date(body.issueDate).toISOString(),
+        issueDrawingDate: new Date(body.issueDrawingDate).toISOString(),
+        issueAnnual: body.issueAnnual
+          ? new Date(body.issueAnnual).toISOString()
+          : undefined,
+        issueTypeId: body.issueTypeId,
+        issueStatusId: body.issueStatusId,
       });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [API_CONFIG.issues.paged] });
+      setIsEditDialogOpen(false);
+      setSelectedIssue(null);
+      toast({ title: t("issues.updated"), description: t("issues.updatedDesc") });
+    },
+    onError: () => {
+      toast({ title: t("issues.error"), description: t("issues.updateError"), variant: "destructive" });
     },
   });
 
   const closeIssueMutation = useMutation({
-    mutationFn: async (id: string) => {
-      if (!user?.id) throw new Error("User not authenticated");
-      return apiRequest("PUT", API_CONFIG.issues.byId(id), {
-        isClosed: true,
-        adminId: user.id,
+    mutationFn: async (issue: NormalizedIssue) => {
+      return apiRequest("PUT", API_CONFIG.issues.byId(issue.id), {
+        issueId: issue.id,
+        issueNo: Number(issue.issueNo),
+        issueDate: new Date(issue.issueDate).toISOString(),
+        issueDrawingDate: new Date(issue.issueDrawingDate).toISOString(),
+        issueTypeId: issue.issueTypeId,
+        issueStatusId: ISSUE_STATUS_CLOSED,
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [API_CONFIG.issues.paged] });
-      toast({
-        title: t("issues.closed"),
-        description: t("issues.closedDesc"),
-      });
+      toast({ title: t("issues.closed"), description: t("issues.closedDesc") });
     },
   });
 
   const reopenIssueMutation = useMutation({
-    mutationFn: async (id: string) => {
-      if (!user?.id) throw new Error("User not authenticated");
-      return apiRequest("PUT", API_CONFIG.issues.byId(id), {
-        isClosed: false,
-        adminId: user.id,
+    mutationFn: async (issue: NormalizedIssue) => {
+      return apiRequest("PUT", API_CONFIG.issues.byId(issue.id), {
+        issueId: issue.id,
+        issueNo: Number(issue.issueNo),
+        issueDate: new Date(issue.issueDate).toISOString(),
+        issueDrawingDate: new Date(issue.issueDrawingDate).toISOString(),
+        issueTypeId: issue.issueTypeId,
+        issueStatusId: ISSUE_STATUS_OPEN,
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [API_CONFIG.issues.paged] });
-      toast({
-        title: t("issues.reopened"),
-        description: t("issues.reopenedDesc"),
-      });
+      toast({ title: t("issues.reopened"), description: t("issues.reopenedDesc") });
     },
   });
 
   const deleteIssueMutation = useMutation({
-    mutationFn: async (id: string) => {
-      if (!user?.id) throw new Error("User not authenticated");
-      return apiRequest("DELETE", API_CONFIG.issues.byId(id), {
-        adminId: user.id,
-      });
+    mutationFn: async (id: number) => {
+      return apiRequest("DELETE", API_CONFIG.issues.byId(id));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [API_CONFIG.issues.paged] });
       setIsDeleteDialogOpen(false);
       setSelectedIssue(null);
-      toast({
-        title: t("issues.deleted"),
-        description: t("issues.deletedDesc"),
-      });
+      toast({ title: t("issues.deleted"), description: t("issues.deletedDesc") });
     },
   });
 
-  // --- Handlers ---
-  const handleSearch = () => setHasSearched(true);
+  // ── Handlers ──────────────────────────────────────────────────────────────
+
+  const handleSearch = () => {
+    setHasSearched(true);
+    refetchSearch();
+  };
 
   const handleClearSearch = () => {
     setSearchIssueNumber("");
     setSearchType("all");
     setSearchFromDate("");
     setSearchToDate("");
-    setSearchFromNumber("");
-    setSearchToNumber("");
     setSearchStatus("all");
     setHasSearched(false);
   };
 
-  const handleEditIssue = (issue: Issue) => {
+  const handleEditIssue = (issue: NormalizedIssue) => {
     setSelectedIssue(issue);
     editForm.reset({
-      issueNumber: issue.issueNumber,
-      issueType: issue.issueType as "regular" | "special" | "support",
-      startDate: format(new Date(issue.startDate), "yyyy-MM-dd"),
-      endDate: format(new Date(issue.endDate), "yyyy-MM-dd"),
-      totalTickets: issue.totalTickets,
-      ticketsPerBook: issue.ticketsPerBook,
-      bookPrice: issue.bookPrice,
-      startTicketNumber: issue.startTicketNumber,
-      prizesAccountNumber: issue.prizesAccountNumber || "",
+      issueNo: Number(issue.issueNo) || 1,
+      issueTypeId: issue.issueTypeId,
+      issueDate: issue.issueDate ? format(new Date(issue.issueDate), "yyyy-MM-dd") : "",
+      issueDrawingDate: issue.issueDrawingDate ? format(new Date(issue.issueDrawingDate), "yyyy-MM-dd") : "",
+      issueAnnual: "",
+      issueStatusId: issue.issueStatusId,
     });
     setIsEditDialogOpen(true);
   };
 
-  const onCreateSubmit = (data: IssueFormValues) => {
+  const onCreateSubmit = (data: CreateFormValues) => {
     createIssueMutation.mutate(data);
   };
 
-  const onEditSubmit = (data: IssueFormValues) => {
+  const onEditSubmit = (data: EditFormValues) => {
     if (selectedIssue) {
       updateIssueMutation.mutate({ ...data, id: selectedIssue.id });
     }
   };
 
-  // --- Badge helpers ---
-  const getStatusBadge = (isClosed: boolean) => {
-    if (isClosed) {
+  // ── Badge helpers ─────────────────────────────────────────────────────────
+
+  const getStatusBadge = (isOpen: boolean) => {
+    if (!isOpen) {
       return (
         <Badge className="bg-red-500 hover:bg-red-600 text-white border-0 gap-1 font-medium px-2.5 py-0.5">
           <Lock className="h-3 w-3" />
@@ -435,14 +494,20 @@ export default function IssuesPage() {
     );
   };
 
-  const getTypeBadge = (type: string) => {
+  const resolveIssueTypeKey = (issue: NormalizedIssue): "regular" | "special" | "support" => {
+    const name = (issue.issueTypeName ?? "").toLowerCase();
+    if (name.includes("special") || name.includes("خاص")) return "special";
+    if (name.includes("support") || name.includes("دعم")) return "support";
+    if (issue.issueTypeId === 2) return "special";
+    if (issue.issueTypeId === 3) return "support";
+    return "regular";
+  };
+
+  const getTypeBadge = (typeKey: "regular" | "special" | "support") => {
     const styles: Record<string, string> = {
-      regular:
-        "bg-emerald-500/10 text-emerald-700 border-emerald-500/30 hover:bg-emerald-500/15 dark:text-emerald-400 dark:border-emerald-500/30",
-      special:
-        "bg-amber-500/10 text-amber-700 border-amber-500/30 hover:bg-amber-500/15 dark:text-amber-400 dark:border-amber-500/30",
-      support:
-        "bg-red-500/10 text-red-700 border-red-500/30 hover:bg-red-500/15 dark:text-red-400 dark:border-red-500/30",
+      regular: "bg-emerald-500/10 text-emerald-700 border-emerald-500/30 hover:bg-emerald-500/15 dark:text-emerald-400",
+      special: "bg-amber-500/10 text-amber-700 border-amber-500/30 hover:bg-amber-500/15 dark:text-amber-400",
+      support: "bg-red-500/10 text-red-700 border-red-500/30 hover:bg-red-500/15 dark:text-red-400",
     };
     const labels: Record<string, string> = {
       regular: t("issues.typeRegular"),
@@ -450,231 +515,332 @@ export default function IssuesPage() {
       support: t("issues.typeSupport"),
     };
     return (
-      <Badge
-        className={`${
-          styles[type] || styles.regular
-        } font-medium px-2.5 py-0.5`}
-      >
-        {labels[type] || type}
+      <Badge className={`${styles[typeKey]} font-medium px-2.5 py-0.5`}>
+        {labels[typeKey]}
       </Badge>
     );
   };
 
-  const formatDate = (date: Date | string) => {
-    return format(new Date(date), "dd/MM/yyyy", {
-      locale: language === "ar" ? ar : undefined,
-    });
+  const formatDate = (date: string) => {
+    try {
+      return format(new Date(date), "dd/MM/yyyy", {
+        locale: language === "ar" ? ar : undefined,
+      });
+    } catch {
+      return date;
+    }
   };
 
-  const formatCurrency = (amount: string) => {
-    return `${toWesternNumerals(parseFloat(amount).toFixed(2))} ${
-      language === "ar" ? "د.أ" : "JOD"
-    }`;
-  };
+  // ── Create Form Content ───────────────────────────────────────────────────
 
-  // --- Shared form content ---
-  const IssueFormContent = ({
-    form,
-    onSubmit,
-    isPending,
-  }: {
-    form: ReturnType<typeof useForm<IssueFormValues>>;
-    onSubmit: (data: IssueFormValues) => void;
-    isPending: boolean;
-  }) => {
-    const totalTickets = form.watch("totalTickets") || 0;
-    const startTicketNumber = form.watch("startTicketNumber") || 0;
-    const calculatedToNumber = startTicketNumber + totalTickets - 1;
-
-    return (
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="issueNumber"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-lg font-semibold uppercase tracking-wide text-muted-foreground">
-                    {t("issues.issueNumber")}
-                  </FormLabel>
+  const CreateFormContent = () => (
+    <Form {...createForm}>
+      <form onSubmit={createForm.handleSubmit(onCreateSubmit)} className="space-y-6">
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={createForm.control}
+            name="issueTypeId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-lg font-semibold uppercase tracking-wide text-muted-foreground">
+                  {t("issues.issueType")}
+                </FormLabel>
+                <Select
+                  value={String(field.value)}
+                  onValueChange={(v) => field.onChange(Number(v))}
+                >
                   <FormControl>
-                    <div className="relative">
-                      <Hash className="absolute start-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/60" />
-                      <Input
-                        data-testid="input-issue-number"
-                        placeholder={t("issues.issueNumberPlaceholder")}
-                        className="ps-10 h-12 text-base"
-                        {...field}
-                      />
-                    </div>
+                    <SelectTrigger data-testid="select-create-type" className="h-12 text-base">
+                      <SelectValue />
+                    </SelectTrigger>
                   </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="issueType"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-lg font-semibold uppercase tracking-wide text-muted-foreground">
-                    {t("issues.issueType")}
-                  </FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger
-                        data-testid="select-issue-type"
-                        className="h-12 text-base"
-                      >
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="regular">
-                        {t("issues.typeRegular")}
+                  <SelectContent>
+                    {ISSUE_TYPE_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={String(opt.value)}>
+                        {t(`issues.type${opt.label.charAt(0).toUpperCase() + opt.label.slice(1)}`)}
                       </SelectItem>
-                      <SelectItem value="special">
-                        {t("issues.typeSpecial")}
-                      </SelectItem>
-                      <SelectItem value="support">
-                        {t("issues.typeSupport")}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-          <div className="grid grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="startDate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-lg font-semibold uppercase tracking-wide text-muted-foreground">
-                    {t("issues.issueDate")}
-                  </FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <Calendar className="absolute start-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/60" />
-                      <Input
-                        data-testid="input-start-date"
-                        type="date"
-                        className="ps-10 h-12 text-base"
-                        {...field}
-                      />
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="endDate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-lg font-semibold uppercase tracking-wide text-muted-foreground">
-                    {t("issues.drawDate")}
-                  </FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <Calendar className="absolute start-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/60" />
-                      <Input
-                        data-testid="input-end-date"
-                        type="date"
-                        className="ps-10 h-12 text-base"
-                        {...field}
-                      />
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+          <FormField
+            control={createForm.control}
+            name="issueSead"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-lg font-semibold uppercase tracking-wide text-muted-foreground">
+                  {t("issues.seed")}
+                </FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <Package className="absolute start-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/60" />
+                    <Input
+                      data-testid="input-create-seed"
+                      type="number"
+                      className="ps-10 h-12 text-base"
+                      {...field}
+                      onChange={(e) => field.onChange(Number(e.target.value) || 0)}
+                    />
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
-          <div className="grid grid-cols-3 gap-4">
-            <FormField
-              control={form.control}
-              name="startTicketNumber"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-lg font-semibold uppercase tracking-wide text-muted-foreground">
-                    {t("issues.fromNumber")}
-                  </FormLabel>
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={createForm.control}
+            name="issueDate"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-lg font-semibold uppercase tracking-wide text-muted-foreground">
+                  {t("issues.issueDate")}
+                </FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <Calendar className="absolute start-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/60" />
+                    <Input data-testid="input-create-issue-date" type="date" className="ps-10 h-12 text-base" {...field} />
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={createForm.control}
+            name="issueDrawingDate"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-lg font-semibold uppercase tracking-wide text-muted-foreground">
+                  {t("issues.drawDate")}
+                </FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <Calendar className="absolute start-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/60" />
+                    <Input data-testid="input-create-draw-date" type="date" className="ps-10 h-12 text-base" {...field} />
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={createForm.control}
+            name="issueFrom"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-lg font-semibold uppercase tracking-wide text-muted-foreground">
+                  {t("issues.fromNumber")}
+                </FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <Hash className="absolute start-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/60" />
+                    <Input
+                      data-testid="input-create-from"
+                      type="number"
+                      className="ps-10 h-12 text-base"
+                      {...field}
+                      onChange={(e) => field.onChange(Number(e.target.value) || 0)}
+                    />
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={createForm.control}
+            name="issueTo"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-lg font-semibold uppercase tracking-wide text-muted-foreground">
+                  {t("issues.toNumber")}
+                </FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <Hash className="absolute start-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/60" />
+                    <Input
+                      data-testid="input-create-to"
+                      type="number"
+                      className="ps-10 h-12 text-base"
+                      {...field}
+                      onChange={(e) => field.onChange(Number(e.target.value) || 0)}
+                    />
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+      </form>
+    </Form>
+  );
+
+  // ── Edit Form Content ─────────────────────────────────────────────────────
+
+  const EditFormContent = () => (
+    <Form {...editForm}>
+      <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-6">
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={editForm.control}
+            name="issueNo"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-lg font-semibold uppercase tracking-wide text-muted-foreground">
+                  {t("issues.issueNumber")}
+                </FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <Hash className="absolute start-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/60" />
+                    <Input
+                      data-testid="input-edit-issue-no"
+                      type="number"
+                      className="ps-10 h-12 text-base"
+                      {...field}
+                      onChange={(e) => field.onChange(Number(e.target.value) || 0)}
+                    />
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={editForm.control}
+            name="issueTypeId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-lg font-semibold uppercase tracking-wide text-muted-foreground">
+                  {t("issues.issueType")}
+                </FormLabel>
+                <Select
+                  value={String(field.value)}
+                  onValueChange={(v) => field.onChange(Number(v))}
+                >
                   <FormControl>
-                    <div className="relative">
-                      <Hash className="absolute start-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/60" />
-                      <Input
-                        data-testid="input-start-ticket-number"
-                        type="number"
-                        placeholder={t("issues.startTicketNumberPlaceholder")}
-                        readOnly
-                        disabled
-                        className="ps-10 h-12 text-base"
-                        {...field}
-                        onChange={(e) =>
-                          field.onChange(Number.parseInt(e.target.value) || 0)
-                        }
-                      />
-                    </div>
+                    <SelectTrigger data-testid="select-edit-type" className="h-12 text-base">
+                      <SelectValue />
+                    </SelectTrigger>
                   </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="space-y-1.5">
-              <FormLabel className="text-lg font-semibold uppercase tracking-wide text-muted-foreground">
-                {t("issues.toNumber")}
-              </FormLabel>
-              <div className="relative">
-                <Hash className="absolute start-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/60" />
-                <Input
-                  data-testid="input-to-number"
-                  type="number"
-                  defaultValue={1000}
-                  className="ps-10 h-12 text-base "
-                />
-              </div>
-            </div>
-            <FormField
-              control={form.control}
-              name="totalTickets"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-lg font-semibold uppercase tracking-wide text-muted-foreground">
-                    {t("issues.seed")}
-                  </FormLabel>
+                  <SelectContent>
+                    {ISSUE_TYPE_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={String(opt.value)}>
+                        {t(`issues.type${opt.label.charAt(0).toUpperCase() + opt.label.slice(1)}`)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={editForm.control}
+            name="issueDate"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-lg font-semibold uppercase tracking-wide text-muted-foreground">
+                  {t("issues.issueDate")}
+                </FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <Calendar className="absolute start-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/60" />
+                    <Input data-testid="input-edit-issue-date" type="date" className="ps-10 h-12 text-base" {...field} />
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={editForm.control}
+            name="issueDrawingDate"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-lg font-semibold uppercase tracking-wide text-muted-foreground">
+                  {t("issues.drawDate")}
+                </FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <Calendar className="absolute start-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/60" />
+                    <Input data-testid="input-edit-draw-date" type="date" className="ps-10 h-12 text-base" {...field} />
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={editForm.control}
+            name="issueAnnual"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-lg font-semibold uppercase tracking-wide text-muted-foreground">
+                  {t("issues.issueAnnual") || "السنوي"}
+                </FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <Calendar className="absolute start-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/60" />
+                    <Input data-testid="input-edit-annual" type="date" className="ps-10 h-12 text-base" {...field} />
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={editForm.control}
+            name="issueStatusId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-lg font-semibold uppercase tracking-wide text-muted-foreground">
+                  {t("issues.status")}
+                </FormLabel>
+                <Select
+                  value={String(field.value)}
+                  onValueChange={(v) => field.onChange(Number(v))}
+                >
                   <FormControl>
-                    <div className="relative">
-                      <Ticket className="absolute start-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/60" />
-                      <Input
-                        data-testid="input-total-tickets"
-                        type="number"
-                        placeholder={t("issues.totalTicketsPlaceholder")}
-                        className="ps-10 h-12 text-base"
-                        {...field}
-                        value={seed}
-                        onChange={(e) => setSeed(e.target.value)}
-                      />
-                    </div>
+                    <SelectTrigger data-testid="select-edit-status" className="h-12 text-base">
+                      <SelectValue />
+                    </SelectTrigger>
                   </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-        </form>
-      </Form>
-    );
-  };
+                  <SelectContent>
+                    <SelectItem value={String(ISSUE_STATUS_OPEN)}>
+                      {t("issues.statusOpen")}
+                    </SelectItem>
+                    <SelectItem value={String(ISSUE_STATUS_CLOSED)}>
+                      {t("issues.statusClosed")}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+      </form>
+    </Form>
+  );
+
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <AdminLayout>
@@ -731,6 +897,7 @@ export default function IssuesPage() {
                     <Hash className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
                     <Input
                       id="search-issue-number"
+                      data-testid="input-search-issue-number"
                       placeholder={t("issues.issueNumberPlaceholder")}
                       value={searchIssueNumber}
                       onChange={(e) => setSearchIssueNumber(e.target.value)}
@@ -748,44 +915,16 @@ export default function IssuesPage() {
                     {t("issues.issueType")}
                   </Label>
                   <Select value={searchType} onValueChange={setSearchType}>
-                    <SelectTrigger id="search-type">
+                    <SelectTrigger id="search-type" data-testid="select-search-type">
                       <SelectValue placeholder={t("issues.allTypes")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">
-                        {t("issues.allTypes")}
-                      </SelectItem>
-                      <SelectItem value="regular">
-                        {t("issues.typeRegular")}
-                      </SelectItem>
-                      <SelectItem value="special">
-                        {t("issues.typeSpecial")}
-                      </SelectItem>
-                      <SelectItem value="support">
-                        {t("issues.typeSupport")}
-                      </SelectItem>
+                      <SelectItem value="all">{t("issues.allTypes")}</SelectItem>
+                      <SelectItem value="regular">{t("issues.typeRegular")}</SelectItem>
+                      <SelectItem value="special">{t("issues.typeSpecial")}</SelectItem>
+                      <SelectItem value="support">{t("issues.typeSupport")}</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-
-                {/* To Date */}
-                <div className="space-y-1.5">
-                  <Label
-                    htmlFor="search-to"
-                    className="text-lg font-semibold uppercase tracking-wide text-muted-foreground"
-                  >
-                    {t("issues.issueDate")}
-                  </Label>
-                  <div className="relative">
-                    <Calendar className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
-                    <Input
-                      id="search-to"
-                      type="date"
-                      value={searchToDate}
-                      onChange={(e) => setSearchToDate(e.target.value)}
-                      className="ps-9"
-                    />
-                  </div>
                 </div>
 
                 {/* From Date */}
@@ -794,15 +933,37 @@ export default function IssuesPage() {
                     htmlFor="search-from"
                     className="text-lg font-semibold uppercase tracking-wide text-muted-foreground"
                   >
-                    {t("issues.drawDate")}
+                    {t("issues.issueDate")}
                   </Label>
                   <div className="relative">
                     <Calendar className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
                     <Input
                       id="search-from"
+                      data-testid="input-search-from-date"
                       type="date"
                       value={searchFromDate}
                       onChange={(e) => setSearchFromDate(e.target.value)}
+                      className="ps-9"
+                    />
+                  </div>
+                </div>
+
+                {/* To Date */}
+                <div className="space-y-1.5">
+                  <Label
+                    htmlFor="search-to"
+                    className="text-lg font-semibold uppercase tracking-wide text-muted-foreground"
+                  >
+                    {t("issues.drawDate")}
+                  </Label>
+                  <div className="relative">
+                    <Calendar className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
+                    <Input
+                      id="search-to"
+                      data-testid="input-search-to-date"
+                      type="date"
+                      value={searchToDate}
+                      onChange={(e) => setSearchToDate(e.target.value)}
                       className="ps-9"
                     />
                   </div>
@@ -817,19 +978,13 @@ export default function IssuesPage() {
                     {t("issues.status")}
                   </Label>
                   <Select value={searchStatus} onValueChange={setSearchStatus}>
-                    <SelectTrigger id="search-status">
+                    <SelectTrigger id="search-status" data-testid="select-search-status">
                       <SelectValue placeholder={t("issues.allStatuses")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">
-                        {t("issues.allStatuses")}
-                      </SelectItem>
-                      <SelectItem value="open">
-                        {t("issues.statusOpen")}
-                      </SelectItem>
-                      <SelectItem value="closed">
-                        {t("issues.statusClosed")}
-                      </SelectItem>
+                      <SelectItem value="all">{t("issues.allStatuses")}</SelectItem>
+                      <SelectItem value="open">{t("issues.statusOpen")}</SelectItem>
+                      <SelectItem value="closed">{t("issues.statusClosed")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -844,6 +999,7 @@ export default function IssuesPage() {
                     size="sm"
                     onClick={handleClearSearch}
                     className="text-muted-foreground hover:text-foreground gap-1.5 font-medium"
+                    data-testid="button-clear-search"
                   >
                     <X className="h-3.5 w-3.5" />
                     {t("issues.clear")}
@@ -852,7 +1008,9 @@ export default function IssuesPage() {
                 <Button
                   onClick={handleSearch}
                   size="sm"
+                  disabled={isSearchLoading}
                   className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-md gap-1.5 font-semibold"
+                  data-testid="button-search"
                 >
                   <Search className="h-3.5 w-3.5" />
                   {t("issues.search")}
@@ -871,23 +1029,18 @@ export default function IssuesPage() {
                   </div>
                   <div>
                     <CardTitle className="text-lg font-bold">
-                      {hasSearched
-                        ? t("issues.searchResults")
-                        : t("issues.allIssues")}
+                      {hasSearched ? t("issues.searchResults") : t("issues.allIssues")}
                     </CardTitle>
                     <CardDescription className="text-sm mt-1">
-                      {filteredIssues.length}{" "}
-                      {filteredIssues.length === 1
+                      {displayIssues.length}{" "}
+                      {displayIssues.length === 1
                         ? t("issues.issueFound")
                         : t("issues.issuesFound")}
                     </CardDescription>
                   </div>
                 </div>
                 {hasSearched && (
-                  <Badge
-                    variant="secondary"
-                    className="text-lg font-medium gap-1"
-                  >
+                  <Badge variant="secondary" className="text-lg font-medium gap-1">
                     <Filter className="h-3 w-3" />
                     {t("issues.searchResults")}
                   </Badge>
@@ -895,7 +1048,7 @@ export default function IssuesPage() {
               </div>
             </CardHeader>
             <CardContent className="px-0 pb-0">
-              {isLoading ? (
+              {isLoading || isSearchLoading ? (
                 <div className="px-6 pb-6 space-y-3">
                   {[1, 2, 3, 4].map((i) => (
                     <div key={i} className="flex items-center gap-4">
@@ -908,7 +1061,7 @@ export default function IssuesPage() {
                     </div>
                   ))}
                 </div>
-              ) : filteredIssues.length === 0 ? (
+              ) : displayIssues.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
                   <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10 mb-5 shadow-md">
                     <BookOpen className="h-10 w-10 text-primary" />
@@ -923,7 +1076,6 @@ export default function IssuesPage() {
               ) : (
                 <div className="overflow-x-auto rounded-2xl border border-border/40 shadow-lg bg-background">
                   <Table>
-                    {/* Header */}
                     <TableHeader>
                       <TableRow className="bg-primary/10 hover:bg-primary/10 border-b-2 border-primary/20">
                         {[
@@ -948,10 +1100,8 @@ export default function IssuesPage() {
                         ))}
                       </TableRow>
                     </TableHeader>
-
-                    {/* Body */}
                     <TableBody>
-                      {filteredIssues.map((issue) => (
+                      {displayIssues.map((issue) => (
                         <TableRow
                           key={issue.id}
                           className="group transition-all hover:bg-primary/5 border-b border-border/50"
@@ -964,7 +1114,7 @@ export default function IssuesPage() {
                                 <Hash className="h-4.5 w-4.5" />
                               </div>
                               <span className="text-base font-bold tracking-wide">
-                                {toWesternNumerals(issue.issueNumber)}
+                                {toWesternNumerals(issue.issueNo)}
                               </span>
                             </div>
                           </TableCell>
@@ -972,59 +1122,49 @@ export default function IssuesPage() {
                           {/* Type */}
                           <TableCell className="py-5">
                             <div className="scale-95 group-hover:scale-100 transition">
-                              {getTypeBadge(issue.issueType)}
+                              {getTypeBadge(resolveIssueTypeKey(issue))}
                             </div>
                           </TableCell>
 
                           {/* Issue Date */}
                           <TableCell className="py-5">
                             <span className="text-base font-medium tabular-nums text-foreground/90">
-                              {formatDate(issue.startDate)}
+                              {formatDate(issue.issueDate)}
                             </span>
                           </TableCell>
 
                           {/* Draw Date */}
                           <TableCell className="py-5">
                             <span className="text-base font-medium tabular-nums text-foreground/90">
-                              {formatDate(issue.endDate)}
+                              {formatDate(issue.issueDrawingDate)}
                             </span>
                           </TableCell>
 
                           {/* From */}
                           <TableCell className="py-5">
                             <span className="inline-block px-3 py-1 rounded-lg bg-primary/10 text-primary font-bold tabular-nums shadow-sm">
-                              {toWesternNumerals(
-                                issue.startTicketNumber?.toString() || "0"
-                              )}
+                              {toWesternNumerals(String(issue.issueFrom))}
                             </span>
                           </TableCell>
 
                           {/* To */}
                           <TableCell className="py-5">
                             <span className="inline-block px-3 py-1 rounded-lg bg-primary/10 text-primary font-bold tabular-nums shadow-sm">
-                              {toWesternNumerals(
-                                (
-                                  (issue.startTicketNumber || 0) +
-                                  (issue.totalTickets || 0) -
-                                  1
-                                ).toString()
-                              )}
+                              {toWesternNumerals(String(issue.issueTo))}
                             </span>
                           </TableCell>
 
                           {/* Seed */}
                           <TableCell className="py-5">
                             <span className="inline-block px-3 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 font-bold tabular-nums shadow-sm">
-                              {toWesternNumerals(
-                                issue.totalTickets?.toString() || "0"
-                              )}
+                              {toWesternNumerals(String(issue.issueSead))}
                             </span>
                           </TableCell>
 
                           {/* Status */}
                           <TableCell className="py-5">
                             <div className="scale-95 group-hover:scale-100 transition">
-                              {getStatusBadge(issue.isClosed)}
+                              {getStatusBadge(issue.isOpen)}
                             </div>
                           </TableCell>
 
@@ -1042,13 +1182,12 @@ export default function IssuesPage() {
                                       setSelectedIssue(issue);
                                       setIsViewDialogOpen(true);
                                     }}
+                                    data-testid={`button-view-issue-${issue.id}`}
                                   >
                                     <Eye className="h-5 w-5" />
                                   </Button>
                                 </TooltipTrigger>
-                                <TooltipContent>
-                                  {t("issues.viewIssue")}
-                                </TooltipContent>
+                                <TooltipContent>{t("issues.viewIssue")}</TooltipContent>
                               </Tooltip>
 
                               {/* Edit */}
@@ -1059,33 +1198,29 @@ export default function IssuesPage() {
                                     size="icon"
                                     className="h-10 w-10 rounded-xl text-amber-600 hover:bg-amber-100/60 hover:text-amber-700 shadow-sm hover:shadow-md transition-all"
                                     onClick={() => handleEditIssue(issue)}
+                                    data-testid={`button-edit-issue-${issue.id}`}
                                   >
                                     <Edit className="h-5 w-5" />
                                   </Button>
                                 </TooltipTrigger>
-                                <TooltipContent>
-                                  {t("issues.editIssue")}
-                                </TooltipContent>
+                                <TooltipContent>{t("issues.editIssue")}</TooltipContent>
                               </Tooltip>
 
-                              {/* Toggle */}
-                              {!issue.isClosed ? (
+                              {/* Toggle close/open */}
+                              {issue.isOpen ? (
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <Button
                                       variant="ghost"
                                       size="icon"
                                       className="h-10 w-10 rounded-xl text-gray-600 hover:bg-gray-100/60 hover:text-gray-700 shadow-sm hover:shadow-md transition-all"
-                                      onClick={() =>
-                                        closeIssueMutation.mutate(issue.id)
-                                      }
+                                      onClick={() => closeIssueMutation.mutate(issue)}
+                                      data-testid={`button-close-issue-${issue.id}`}
                                     >
                                       <ToggleRight className="h-5 w-5" />
                                     </Button>
                                   </TooltipTrigger>
-                                  <TooltipContent>
-                                    {t("issues.closeIssue")}
-                                  </TooltipContent>
+                                  <TooltipContent>{t("issues.closeIssue")}</TooltipContent>
                                 </Tooltip>
                               ) : (
                                 <Tooltip>
@@ -1094,18 +1229,34 @@ export default function IssuesPage() {
                                       variant="ghost"
                                       size="icon"
                                       className="h-10 w-10 rounded-xl text-emerald-600 hover:bg-emerald-100/60 hover:text-emerald-700 shadow-sm hover:shadow-md transition-all"
-                                      onClick={() =>
-                                        reopenIssueMutation.mutate(issue.id)
-                                      }
+                                      onClick={() => reopenIssueMutation.mutate(issue)}
+                                      data-testid={`button-reopen-issue-${issue.id}`}
                                     >
                                       <ToggleLeft className="h-5 w-5" />
                                     </Button>
                                   </TooltipTrigger>
-                                  <TooltipContent>
-                                    {t("issues.reopenIssue")}
-                                  </TooltipContent>
+                                  <TooltipContent>{t("issues.reopenIssue")}</TooltipContent>
                                 </Tooltip>
                               )}
+
+                              {/* Delete */}
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-10 w-10 rounded-xl text-red-600 hover:bg-red-100/60 hover:text-red-700 shadow-sm hover:shadow-md transition-all"
+                                    onClick={() => {
+                                      setSelectedIssue(issue);
+                                      setIsDeleteDialogOpen(true);
+                                    }}
+                                    data-testid={`button-delete-issue-${issue.id}`}
+                                  >
+                                    <Trash2 className="h-5 w-5" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>{t("issues.deleteIssue")}</TooltipContent>
+                              </Tooltip>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -1118,13 +1269,13 @@ export default function IssuesPage() {
           </Card>
         </div>
 
-        {/* Edit Issue Dialog */}
+        {/* Create Issue Dialog */}
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto border-none shadow-2xl">
+          <DialogContent className="sm:max-w-[1100px] h-[75vh] overflow-y-auto border-none shadow-2xl">
             <DialogHeader className="pb-4">
               <div className="flex items-center gap-4">
                 <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg">
-                  <Edit className="h-7 w-7" />
+                  <Plus className="h-7 w-7" />
                 </div>
                 <div>
                   <DialogTitle className="text-2xl font-bold">
@@ -1138,47 +1289,75 @@ export default function IssuesPage() {
             </DialogHeader>
             <Separator />
             <div className="py-2">
-              <IssueFormContent
-                form={editForm}
-                onSubmit={onEditSubmit}
-                isPending={updateIssueMutation.isPending}
-              />
+              <CreateFormContent />
             </div>
             <Separator />
-            <DialogFooter className="gap-3 sm:gap-3 flex justify-center pt-4">
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={() => setIsCreateDialogOpen(false)}
-                className="font-semibold gap-2  hover:bg-destructive hover:text-destructive-foreground transition-all"
-              >
-                <X className="h-5 w-5" />
-                {t("issues.cancel")}
-              </Button>
-              <Button
-                onClick={editForm.handleSubmit(onEditSubmit)}
-                disabled={updateIssueMutation.isPending}
-                size="lg"
-                className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold gap-2 px-8 transition-all"
-              >
-                {updateIssueMutation.isPending ? (
-                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
-                ) : (
-                  <Edit className="h-5 w-5" />
-                )}
-                {t("issues.create")}
-              </Button>
+            <DialogFooter className="pt-6">
+              <div className="grid grid-cols-2 gap-4 w-full">
+                <Button
+                  onClick={() => setIsCreateDialogOpen(false)}
+                  variant="outline"
+                  className="h-16 text-lg font-bold gap-3 border-none bg-red-600 text-white hover:bg-destructive hover:text-destructive-foreground transition-all shadow-md"
+                  data-testid="button-cancel-create"
+                >
+                  <X className="h-6 w-6" />
+                  {t("issues.cancel")}
+                </Button>
+                <Button
+                  onClick={createForm.handleSubmit(onCreateSubmit)}
+                  disabled={createIssueMutation.isPending}
+                  className="h-16 text-lg font-bold gap-3 bg-primary text-primary-foreground hover:bg-primary/90 transition-all border-none shadow-md"
+                  data-testid="button-submit-create"
+                >
+                  {createIssueMutation.isPending ? (
+                    <span className="h-6 w-6 animate-spin rounded-full border-3 border-primary-foreground border-t-transparent" />
+                  ) : (
+                    <Plus className="h-6 w-6" />
+                  )}
+                  {t("issues.newIssue")}
+                </Button>
+                <Button
+                  onClick={createForm.handleSubmit((data) =>
+                    createIssueMutation.mutate({ ...data, issueTypeId: data.issueTypeId })
+                  )}
+                  disabled={createIssueMutation.isPending}
+                  className="h-16 text-lg font-bold gap-3 bg-emerald-600 text-white hover:bg-emerald-700 transition-all border-none shadow-md"
+                  data-testid="button-open-create"
+                >
+                  {createIssueMutation.isPending ? (
+                    <span className="h-6 w-6 animate-spin rounded-full border-3 border-white border-t-transparent" />
+                  ) : (
+                    <DoorOpen className="h-6 w-6" />
+                  )}
+                  {t("issues.openIssue")}
+                </Button>
+                <Button
+                  onClick={createForm.handleSubmit((data) =>
+                    createIssueMutation.mutate({ ...data, issueTypeId: data.issueTypeId })
+                  )}
+                  disabled={createIssueMutation.isPending}
+                  className="h-16 text-lg font-bold gap-3 bg-primary text-primary-foreground hover:bg-primary/90 transition-all border-none shadow-md"
+                  data-testid="button-close-create"
+                >
+                  {createIssueMutation.isPending ? (
+                    <span className="h-6 w-6 animate-spin rounded-full border-3 border-white border-t-transparent" />
+                  ) : (
+                    <DoorClosed className="h-6 w-6" />
+                  )}
+                  {t("issues.closeIssue")}
+                </Button>
+              </div>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
-        {/* Create Issue Dialog */}
+        {/* Edit Issue Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="sm:max-w-[1100px] h-[75vh] overflow-y-auto border-none shadow-2xl">
+          <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto border-none shadow-2xl">
             <DialogHeader className="pb-4">
               <div className="flex items-center gap-4">
                 <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg">
-                  <Plus className="h-7 w-7" />
+                  <Edit className="h-7 w-7" />
                 </div>
                 <div>
                   <DialogTitle className="text-2xl font-bold">
@@ -1192,60 +1371,34 @@ export default function IssuesPage() {
             </DialogHeader>
             <Separator />
             <div className="py-2">
-              <IssueFormContent
-                form={createForm}
-                onSubmit={onCreateSubmit}
-                isPending={createIssueMutation.isPending}
-              />
+              <EditFormContent />
             </div>
             <Separator />
-            <DialogFooter className="pt-6">
-              <div className="grid grid-cols-2 gap-4 w-full">
-                <Button
-                  onClick={() => setIsEditDialogOpen(false)}
-                  variant="outline"
-                  className="h-16 text-lg font-bold gap-3 border-none bg-red-600 text-white hover:bg-destructive hover:text-destructive-foreground transition-all shadow-md"
-                >
-                  <X className="h-6 w-6" />
-                  {t("issues.cancel")}
-                </Button>
-                <Button
-                  onClick={createForm.handleSubmit(onCreateSubmit)}
-                  disabled={createIssueMutation.isPending}
-                  className="h-16 text-lg font-bold gap-3 bg-primary text-primary-foreground hover:bg-primary/90 transition-all border-none shadow-md"
-                >
-                  {createIssueMutation.isPending ? (
-                    <span className="h-6 w-6 animate-spin rounded-full border-3 border-primary-foreground border-t-transparent" />
-                  ) : (
-                    <Plus className="h-6 w-6" />
-                  )}
-                  {t("issues.newIssue")}
-                </Button>
-                <Button
-                  onClick={createForm.handleSubmit(onCreateSubmit)}
-                  disabled={createIssueMutation.isPending}
-                  className="h-16 text-lg font-bold gap-3 bg-emerald-600 text-white hover:bg-emerald-700 transition-all border-none shadow-md"
-                >
-                  {createIssueMutation.isPending ? (
-                    <span className="h-6 w-6 animate-spin rounded-full border-3 border-white border-t-transparent" />
-                  ) : (
-                    <DoorOpen className="h-6 w-6" />
-                  )}
-                  {t("issues.openIssue")}
-                </Button>
-                <Button
-                  onClick={createForm.handleSubmit(onCreateSubmit)}
-                  disabled={createIssueMutation.isPending}
-                  className="h-16 text-lg font-bold gap-3 bg-primary text-primary-foreground hover:bg-primary/90 transition-all border-none shadow-md"
-                >
-                  {createIssueMutation.isPending ? (
-                    <span className="h-6 w-6 animate-spin rounded-full border-3 border-white border-t-transparent" />
-                  ) : (
-                    <DoorClosed className="h-6 w-6" />
-                  )}
-                  {t("issues.closeIssue")}
-                </Button>
-              </div>
+            <DialogFooter className="gap-3 sm:gap-3 flex justify-center pt-4">
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() => setIsEditDialogOpen(false)}
+                className="font-semibold gap-2 hover:bg-destructive hover:text-destructive-foreground transition-all"
+                data-testid="button-cancel-edit"
+              >
+                <X className="h-5 w-5" />
+                {t("issues.cancel")}
+              </Button>
+              <Button
+                onClick={editForm.handleSubmit(onEditSubmit)}
+                disabled={updateIssueMutation.isPending}
+                size="lg"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold gap-2 px-8 transition-all"
+                data-testid="button-submit-edit"
+              >
+                {updateIssueMutation.isPending ? (
+                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+                ) : (
+                  <Edit className="h-5 w-5" />
+                )}
+                {t("issues.save") || t("issues.create")}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -1260,7 +1413,7 @@ export default function IssuesPage() {
                 </div>
                 <div>
                   <DialogTitle className="flex items-center gap-2 text-2xl font-bold">
-                    {t("issues.issueNumber")} {selectedIssue?.issueNumber}
+                    {t("issues.issueNumber")} {selectedIssue?.issueNo}
                   </DialogTitle>
                   <DialogDescription className="text-lg mt-1">
                     {t("issues.issueDetails")}
@@ -1276,63 +1429,43 @@ export default function IssuesPage() {
                 <DetailItem
                   icon={<Hash className="h-3 w-3 text-muted-foreground/70" />}
                   label={t("issues.detailIssueNumber")}
-                  value={selectedIssue.issueNumber}
+                  value={toWesternNumerals(selectedIssue.issueNo)}
                 />
                 <DetailItem
                   label={t("issues.detailType")}
-                  value={getTypeBadge(selectedIssue.issueType)}
+                  value={getTypeBadge(resolveIssueTypeKey(selectedIssue))}
                 />
-
                 <DetailItem
-                  icon={
-                    <Calendar className="h-3 w-3 text-muted-foreground/70" />
-                  }
+                  icon={<Calendar className="h-3 w-3 text-muted-foreground/70" />}
                   label={t("issues.issueDate")}
-                  value={formatDate(selectedIssue.startDate)}
+                  value={formatDate(selectedIssue.issueDate)}
                 />
                 <DetailItem
-                  icon={
-                    <Calendar className="h-3 w-3 text-muted-foreground/70" />
-                  }
+                  icon={<Calendar className="h-3 w-3 text-muted-foreground/70" />}
                   label={t("issues.drawDate")}
-                  value={formatDate(selectedIssue.endDate)}
+                  value={formatDate(selectedIssue.issueDrawingDate)}
                 />
                 <DetailItem
                   icon={<Ticket className="h-3 w-3 text-muted-foreground/70" />}
                   label={t("issues.fromNumber")}
-                  value={toWesternNumerals(
-                    selectedIssue.startTicketNumber?.toString() || "0"
-                  )}
+                  value={toWesternNumerals(String(selectedIssue.issueFrom))}
                 />
-
                 <DetailItem
                   icon={<Ticket className="h-3 w-3 text-muted-foreground/70" />}
                   label={t("issues.toNumber")}
-                  value={toWesternNumerals(
-                    (
-                      (selectedIssue.startTicketNumber || 0) +
-                      (selectedIssue.totalTickets || 0) -
-                      1
-                    ).toString()
-                  )}
+                  value={toWesternNumerals(String(selectedIssue.issueTo))}
                 />
                 <DetailItem
-                  icon={
-                    <Package className="h-3 w-3 text-muted-foreground/70" />
-                  }
+                  icon={<Package className="h-3 w-3 text-muted-foreground/70" />}
                   label={t("issues.seed")}
-                  value={toWesternNumerals(
-                    selectedIssue.totalTickets?.toString() || "0"
-                  )}
+                  value={toWesternNumerals(String(selectedIssue.issueSead))}
                 />
                 <DetailItem
                   label={t("issues.detailStatus")}
-                  value={getStatusBadge(selectedIssue.isClosed)}
+                  value={getStatusBadge(selectedIssue.isOpen)}
                 />
                 <DetailItem
-                  icon={
-                    <Calendar className="h-3 w-3 text-muted-foreground/70" />
-                  }
+                  icon={<Calendar className="h-3 w-3 text-muted-foreground/70" />}
                   label={t("issues.detailCreated")}
                   value={formatDate(selectedIssue.createdAt)}
                 />
@@ -1346,6 +1479,7 @@ export default function IssuesPage() {
                 variant="outline"
                 onClick={() => setIsViewDialogOpen(false)}
                 className="font-semibold gap-2"
+                data-testid="button-close-view"
               >
                 <X className="h-4 w-4" />
                 {t("common.close")}
@@ -1355,10 +1489,7 @@ export default function IssuesPage() {
         </Dialog>
 
         {/* Delete Confirmation */}
-        <AlertDialog
-          open={isDeleteDialogOpen}
-          onOpenChange={setIsDeleteDialogOpen}
-        >
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
           <AlertDialogContent className="border-none shadow-2xl">
             <AlertDialogHeader>
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-destructive/10 mb-3">
@@ -1368,8 +1499,8 @@ export default function IssuesPage() {
                 {t("issues.deleteTitle")}
               </AlertDialogTitle>
               <AlertDialogDescription className="leading-relaxed text-base">
-                {t("issues.deleteConfirm")} &ldquo;{selectedIssue?.issueNumber}
-                &rdquo;? {t("issues.deleteWarning")}
+                {t("issues.deleteConfirm")} &ldquo;{selectedIssue?.issueNo}&rdquo;?{" "}
+                {t("issues.deleteWarning")}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter className="gap-2 sm:gap-2">
