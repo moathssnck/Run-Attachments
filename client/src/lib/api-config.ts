@@ -50,4 +50,10 @@ export const API_CONFIG = {
     base: "/api/LookupCategory",
     byId: (id: ApiEntityId) => `/api/LookupCategory/${id}`,
   },
+  lookup: {
+    list: "/api/Lookup?includeDeleted=false",
+    base: "/api/Lookup",
+    byId: (id: ApiEntityId) => `/api/Lookup/${id}`,
+    byCategory: (id: ApiEntityId) => `/api/Lookup/active/${id}`,
+  },
 } as const;
