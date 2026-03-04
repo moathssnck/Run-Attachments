@@ -141,6 +141,29 @@ function extractRefreshToken(result: Record<string, unknown>): string | null {
   );
 }
 
+const CLAIM = {
+  nameId: "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier",
+  email: "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress",
+  name: "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name",
+  role: "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+};
+
+function normalizeRole(raw: string): string {
+  const map: Record<string, string> = {
+    USER: "end_user",
+    ADMIN: "admin",
+    SUPERADMIN: "system_admin",
+    SUPER_ADMIN: "system_admin",
+    FINANCEADMIN: "finance_admin",
+    FINANCE_ADMIN: "finance_admin",
+    FINANCE: "finance_admin",
+    AUDITOR: "auditor",
+    SYSTEM_ADMIN: "system_admin",
+    SYSTEMADMIN: "system_admin",
+  };
+  return map[raw.toUpperCase()] ?? raw.toLowerCase();
+}
+
 function buildUserFromResponse(
   result: Record<string, unknown>,
   token: string,
@@ -152,48 +175,52 @@ function buildUserFromResponse(
     (result.data as any) ||
     null;
 
-  const payload = decodeJwt(token);
+  const payload = decodeJwt(token) as Record<string, unknown>;
 
-  const id =
-    String(
-      fromResult?.id ||
-        fromResult?.userId ||
-        payload.sub ||
-        payload.userId ||
-        (payload as any)?.["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"] ||
-        result.userId ||
-        ""
-    );
+  const id = String(
+    fromResult?.id ||
+    fromResult?.userId ||
+    payload[CLAIM.nameId] ||
+    payload.sub ||
+    payload.userId ||
+    result.userId ||
+    ""
+  );
 
   const email = String(
-    fromResult?.email || payload.email || result.email || fallbackEmail
+    fromResult?.email ||
+    payload[CLAIM.email] ||
+    payload.email ||
+    payload[CLAIM.name] ||
+    result.email ||
+    fallbackEmail
   );
 
-  const role = String(
+  const rawRole = String(
     fromResult?.role ||
-      payload.role ||
-      (payload as any)?.["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] ||
-      result.role ||
-      "end_user"
+    payload[CLAIM.role] ||
+    payload.role ||
+    result.role ||
+    "USER"
   );
+  const role = normalizeRole(rawRole);
 
+  const namePart = String(payload[CLAIM.name] || payload.name || email).split("@")[0];
   const firstName = String(
     fromResult?.firstName ||
-      fromResult?.first_name ||
-      payload.given_name ||
-      (payload as any)?.firstName ||
-      result.firstName ||
-      email.split("@")[0] ||
-      ""
+    fromResult?.first_name ||
+    payload.given_name ||
+    result.firstName ||
+    namePart ||
+    ""
   );
 
   const lastName = String(
     fromResult?.lastName ||
-      fromResult?.last_name ||
-      payload.family_name ||
-      (payload as any)?.lastName ||
-      result.lastName ||
-      ""
+    fromResult?.last_name ||
+    payload.family_name ||
+    result.lastName ||
+    ""
   );
 
   return {
@@ -211,9 +238,28 @@ function buildUserFromResponse(
   };
 }
 
-function isAdminRole(role: string): boolean {
-  return ["admin", "system_admin", "finance_admin", "auditor", "Admin", "SuperAdmin"].includes(role);
+function loginWithToken(
+  rawToken: string,
+  login: (user: any, token: string, refreshToken?: string) => void,
+  setLocation: (path: string) => void,
+) {
+  const payload = decodeJwt(rawToken) as Record<string, unknown>;
+  const email = String(payload[CLAIM.email] || payload.email || payload[CLAIM.name] || "");
+  const userData = buildUserFromResponse({}, rawToken, email);
+  login(userData, rawToken);
+  const role = userData.role as string;
+  if (isAdminRole(role)) {
+    setLocation("/admin/dashboard");
+  } else {
+    setLocation("/buy-ticket");
+  }
 }
+
+function isAdminRole(role: string): boolean {
+  return ["admin", "system_admin", "finance_admin", "auditor"].includes(role);
+}
+
+const QUICK_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEwMDEyIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvZW1haWxhZGRyZXNzIjoibXV0MTIzNDU2MjFAZXhhbXBsZS5jb20iLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoibXV0MTIzNDU2MjFAZXhhbXBsZS5jb20iLCJqdGkiOiIwY2Y2Y2M0OS1jNWMxLTRiZTktOTE3NC0yNDE2NjNiZjlkMjEiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJVU0VSIiwiZXhwIjoxNzc1MjE3MTA0LCJpc3MiOiJJVGhpbmsiLCJhdWQiOiJJVGhpbmsifQ.sfcipLOVCbf7NpY2TpfyThocanrg3ueub5MtGIe0XTE";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -571,6 +617,20 @@ export default function LoginPage() {
                 >
                   <User className="h-4 w-4" />
                   <span className="text-sm">{isRTL ? "مستخدم" : "User"}</span>
+                </Button>
+              </div>
+
+              <div className="mt-3">
+                <Button
+                  variant="outline"
+                  type="button"
+                  className="w-full h-11 font-medium bg-emerald-500/5 hover:bg-emerald-500/10 border-emerald-500/30 hover:border-emerald-500/50 text-emerald-700 dark:text-emerald-400 transition-all duration-300 rounded-xl gap-2"
+                  onClick={() => loginWithToken(QUICK_TOKEN, login, setLocation)}
+                  disabled={isLoading}
+                  data-testid="button-quick-api-login"
+                >
+                  <Shield className="h-4 w-4" />
+                  <span className="text-sm">{isRTL ? "دخول سريع (API)" : "Quick API Login"}</span>
                 </Button>
               </div>
             </motion.div>
