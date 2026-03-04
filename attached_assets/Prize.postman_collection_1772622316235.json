@@ -1,0 +1,286 @@
+{
+  "info": {
+    "_postman_id": "16414bcf-1c87-4908-8646-dbc426b010c2",
+    "name": "Prize",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "51925085",
+    "_collection_link": "https://go.postman.co/collection/29386686-16414bcf-1c87-4908-8646-dbc426b010c2?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Add Prize",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "accept",
+            "value": "*/*"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"PrizeNameId\":10,\r\n  \"amount\": 110,\r\n  \"active\": true,\r\n  \"PrizeLevel\": 1,\r\n  \"Description\":\"الجائزة رقم 20\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{URL}}/api/Prize",
+          "host": [
+            "{{URL}}"
+          ],
+          "path": [
+            "api",
+            "Prize"
+          ]
+        },
+        "description": "Generated from cURL: curl -X 'POST' \\\r\n  'http://localhost:8080/api/Prize' \\\r\n  -H 'accept: */*' \\\r\n  -H 'Content-Type: application/json' \\\r\n  -d '{\r\n  \"prizeFkCategoryId\": 0,\r\n  \"amount\": 0,\r\n  \"active\": true,\r\n  \"level\": 2147483647\r\n}'"
+      },
+      "response": []
+    },
+    {
+      "name": "Get All Prize",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "accept",
+            "value": "*/*"
+          }
+        ],
+        "url": {
+          "raw": "{{URL}}/api/Prize",
+          "host": [
+            "{{URL}}"
+          ],
+          "path": [
+            "api",
+            "Prize"
+          ]
+        },
+        "description": "Generated from cURL: curl -X 'GET' \\\r\n  'http://localhost:8080/api/Prize' \\\r\n  -H 'accept: */*'"
+      },
+      "response": []
+    },
+    {
+      "name": "Get Prize By Id",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "accept",
+            "value": "*/*"
+          }
+        ],
+        "url": {
+          "raw": "{{URL}}/api/Prize/1",
+          "host": [
+            "{{URL}}"
+          ],
+          "path": [
+            "api",
+            "Prize",
+            "1"
+          ]
+        },
+        "description": "Generated from cURL: curl -X 'GET' \\\r\n  'http://localhost:8080/api/Prize/1' \\\r\n  -H 'accept: */*'"
+      },
+      "response": []
+    },
+    {
+      "name": "Update Prize",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "accept",
+            "value": "*/*"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"prizeId\": 1,\r\n  \"prizeNameId\": 1,\r\n  \"amount\": 110,\r\n  \"active\": true,\r\n  \"prizeLevel\": 1\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{URL}}/api/Prize/1",
+          "host": [
+            "{{URL}}"
+          ],
+          "path": [
+            "api",
+            "Prize",
+            "1"
+          ]
+        },
+        "description": "Generated from cURL: curl -X 'PUT' \\\r\n  'http://localhost:8080/api/Prize/1' \\\r\n  -H 'accept: */*' \\\r\n  -H 'Content-Type: application/json' \\\r\n  -d '{\r\n  \"prizeId\": 1,\r\n  \"prizeFkCategoryId\": 0,\r\n  \"amount\": 0,\r\n  \"active\": true,\r\n  \"level\": 2147483647\r\n}'"
+      },
+      "response": []
+    },
+    {
+      "name": "Delete Prize",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "accept",
+            "value": "*/*"
+          }
+        ],
+        "url": {
+          "raw": "{{URL}}/api/Prize/1",
+          "host": [
+            "{{URL}}"
+          ],
+          "path": [
+            "api",
+            "Prize",
+            "1"
+          ]
+        },
+        "description": "Generated from cURL: curl -X 'DELETE' \\\r\n  'http://localhost:8080/api/Prize/1' \\\r\n  -H 'accept: */*'"
+      },
+      "response": []
+    },
+    {
+      "name": "GetPrize By Category",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "accept",
+            "value": "*/*"
+          }
+        ],
+        "url": {
+          "raw": "{{URL}}/api/Prize/category/1",
+          "host": [
+            "{{URL}}"
+          ],
+          "path": [
+            "api",
+            "Prize",
+            "category",
+            "1"
+          ]
+        },
+        "description": "Generated from cURL: curl -X 'GET' \\\r\n  'http://localhost:8080/api/Prize/category/1' \\\r\n  -H 'accept: */*'"
+      },
+      "response": []
+    },
+    {
+      "name": "Get Prize By Level",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "accept",
+            "value": "*/*"
+          }
+        ],
+        "url": {
+          "raw": "{{URL}}/api/Prize/level/2",
+          "host": [
+            "{{URL}}"
+          ],
+          "path": [
+            "api",
+            "Prize",
+            "level",
+            "2"
+          ]
+        },
+        "description": "Generated from cURL: curl -X 'GET' \\\r\n  'http://localhost:8080/api/Prize/level/1' \\\r\n  -H 'accept: */*'"
+      },
+      "response": []
+    },
+    {
+      "name": "http://localhost:8080/api/lottery-pdf/generate-from-db",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "accept",
+            "value": "*/*"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"editionNumber\": \"4 / 2026\",\r\n  \"editionType\": \"الاصدار العادي رقم\",\r\n  \"subtitle\": null,\r\n  \"drawDate\": \"10 / 2 / 2026\",\r\n  \"organizationName\": \"الاتحاد العام للجمعيات الخيرية - الأردن\",\r\n  \"prizeResults\": [\r\n    {\r\n      \"level\": 46,\r\n      \"autoGenrate\": true,\r\n      \"winningNumber\": \"35341\",\r\n      \"consolationNumbers\": []\r\n    },\r\n    {\r\n      \"level\": 47,\r\n      \"autoGenrate\": true,\r\n      \"winningNumber\": \"40596\",\r\n      \"consolationNumbers\": []\r\n    },\r\n    {\r\n      \"level\": 48,\r\n      \"autoGenrate\": true,\r\n      \"winningNumber\": \"89983\",\r\n      \"consolationNumbers\": []\r\n    },\r\n    {\r\n      \"level\": 49,\r\n      \"autoGenrate\": true,\r\n      \"winningNumber\": \"01144\",\r\n      \"consolationNumbers\": []\r\n    },\r\n    {\r\n      \"level\": 50,\r\n      \"autoGenrate\": true,\r\n      \"winningNumber\": \"19817\",\r\n      \"consolationNumbers\": []\r\n    },\r\n    {\r\n      \"level\": 51,\r\n      \"autoGenrate\": true,\r\n      \"winningNumber\": \"12373\",\r\n      \"consolationNumbers\": []\r\n    },\r\n    {\r\n      \"level\": 52,\r\n      \"autoGenrate\": false,\r\n      \"winningNumber\": \"19366\",\r\n      \"consolationNumbers\": [\r\n        \"03823\",\r\n        \"01417\",\r\n        \"90331\",\r\n        \"04317\"\r\n      ]\r\n    },\r\n    {\r\n      \"level\": 53,\r\n      \"autoGenrate\": false,\r\n      \"winningNumber\": \"04317\",\r\n      \"consolationNumbers\": [\r\n        \"03823\",\r\n        \"01417\",\r\n        \"90331\",\r\n        \"04317\",\r\n        \"38451\",\r\n        \"30300\"\r\n      ]\r\n    },\r\n    {\r\n      \"level\": 54,\r\n      \"autoGenrate\": false,\r\n      \"winningNumber\": \"38451\",\r\n      \"consolationNumbers\": [\r\n        \"30300\",\r\n        \"43365\",\r\n        \"51307\",\r\n        \"19840\"\r\n      ]\r\n    },\r\n    {\r\n      \"level\": 55,\r\n      \"autoGenrate\": false,\r\n      \"winningNumber\": \"20134\",\r\n      \"consolationNumbers\": [\r\n        \"32535\",\r\n        \"18880\",\r\n        \"31106\",\r\n        \"20034\",\r\n        \"20234\"\r\n      ]\r\n    },\r\n    {\r\n      \"level\": 56,\r\n      \"autoGenrate\": false,\r\n      \"winningNumber\": \"95986\",\r\n      \"consolationNumbers\": [\r\n        \"44176\",\r\n        \"62430\",\r\n        \"34635\",\r\n        \"43409\"\r\n      ]\r\n    },\r\n    {\r\n      \"level\": 57,\r\n      \"autoGenrate\": false,\r\n      \"winningNumber\": \"5521\",\r\n      \"consolationNumbers\": [\r\n        \"17419\",\r\n        \"27133\",\r\n        \"85054\"\r\n      ]\r\n    },\r\n    {\r\n      \"level\": 58,\r\n      \"autoGenrate\": false,\r\n      \"winningNumber\": \"9889\",\r\n      \"consolationNumbers\": [\r\n        \"9819\",\r\n        \"0765\",\r\n        \"3019\",\r\n        \"3786\"\r\n      ]\r\n    },\r\n    {\r\n      \"level\": 59,\r\n      \"autoGenrate\": false,\r\n      \"winningNumber\": \"البطاقات التي تنتهي بالرقم ( 93 )\",\r\n      \"consolationNumbers\": [\r\n        \"1950\",\r\n        \"7343\",\r\n        \"6165\"\r\n      ]\r\n    },\r\n    {\r\n      \"level\": 60,\r\n      \"autoGenrate\": false,\r\n      \"winningNumber\": \"البطاقات التي تنتهي بالرقم ( 790 )\",\r\n      \"consolationNumbers\": []\r\n    },\r\n    {\r\n      \"level\": 61,\r\n      \"autoGenrate\": false,\r\n      \"winningNumber\": \"البطاقات التي تنتهي بالرقم ( 95 )\",\r\n      \"consolationNumbers\": []\r\n    },\r\n    {\r\n      \"level\": 62,\r\n      \"autoGenrate\": false,\r\n      \"winningNumber\": \"البطاقات التي تنتهي بالرقم ( 9 )\",\r\n      \"consolationNumbers\": []\r\n    }\r\n  ],\r\n  \"envelopePrizes\": {\r\n    \"title\": \"جوائز الغلاف\",\r\n    \"countText\": \"عددها ( 490 ) جائزة كل جائزة\",\r\n    \"prizeValue\": \"10 دنانير\",\r\n    \"wheelCount\": \"3 دواليب\",\r\n    \"numberGrid\": [\r\n      [\r\n        \"361\",\r\n        \"312\",\r\n        \"360\",\r\n        \"371\",\r\n        \"351\",\r\n        \"411\",\r\n        \"361\",\r\n        \"311\"\r\n      ],\r\n      [\r\n        \"158\",\r\n        \"259\",\r\n        \"257\",\r\n        \"218\",\r\n        \"248\",\r\n        \"358\",\r\n        \"158\",\r\n        \"258\"\r\n      ],\r\n      [\r\n        \"896\",\r\n        \"997\",\r\n        \"995\",\r\n        \"906\",\r\n        \"986\",\r\n        \"091\",\r\n        \"896\",\r\n        \"996\"\r\n      ],\r\n      [\r\n        \"774\",\r\n        \"875\",\r\n        \"873\",\r\n        \"884\",\r\n        \"814\",\r\n        \"974\",\r\n        \"774\",\r\n        \"874\"\r\n      ],\r\n      [\r\n        \"520\",\r\n        \"121\",\r\n        \"129\",\r\n        \"130\",\r\n        \"110\",\r\n        \"720\",\r\n        \"520\",\r\n        \"120\"\r\n      ],\r\n      [\r\n        \"749\",\r\n        \"840\",\r\n        \"848\",\r\n        \"059\",\r\n        \"839\",\r\n        \"449\",\r\n        \"749\",\r\n        \"849\"\r\n      ],\r\n      [\r\n        \"113\",\r\n        \"214\",\r\n        \"212\",\r\n        \"223\",\r\n        \"203\",\r\n        \"313\",\r\n        \"113\",\r\n        \"213\"\r\n      ]\r\n    ]\r\n  },\r\n  \"footerLines\": [\r\n    \"تصرف الجوائز من الاتحاد العام للجمعيات الخيرية - جبل اللويبدة - مقابل مدرسة الاميرة عالية - بناية رقم (20) - هاتف 4634001 - 4634009\",\r\n    \"يوم 2026/2/20 وتنشر النتائج في صحيفة الأنباء وعلى صفحة الفيس بوك @lottery.jor وعند نقاط البيع\",\r\n    \"اشتري بطاقات اليانصيب الخيري قد يحالفك الحظ بالفوز باحدى الجوائز الكبرى والمتعددة\"\r\n  ],\r\n  \"paperSize\": \"A4\",\r\n  \"orientation\": \"Portrait\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/lottery-pdf/generate-from-db",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "lottery-pdf",
+            "generate-from-db"
+          ]
+        },
+        "description": "Generated from cURL: curl -X 'POST' \\\r\n  'http://localhost:8080/api/lottery-pdf/generate-from-db' \\\r\n  -H 'accept: */*' \\\r\n  -H 'Content-Type: application/json' \\\r\n  -d '{\r\n  \"editionNumber\": \"4 / 2026\",\r\n  \"editionType\": \"الاصدار العادي رقم\",\r\n  \"subtitle\": null,\r\n  \"drawDate\": \"10 / 2 / 2026\",\r\n  \"organizationName\": \"الاتحاد العام للجمعيات الخيرية - الأردن\",\r\n  \"prizeResults\": [\r\n    {\r\n      \"level\": 46,\r\n      \"autoGenrate\": true,\r\n      \"winningNumber\": \"35341\",\r\n      \"consolationNumbers\": []\r\n    },\r\n    {\r\n      \"level\": 47,\r\n      \"autoGenrate\": true,\r\n      \"winningNumber\": \"40596\",\r\n      \"consolationNumbers\": []\r\n    },\r\n    {\r\n      \"level\": 48,\r\n      \"autoGenrate\": true,\r\n      \"winningNumber\": \"89983\",\r\n      \"consolationNumbers\": []\r\n    },\r\n    {\r\n      \"level\": 49,\r\n      \"autoGenrate\": true,\r\n      \"winningNumber\": \"01144\",\r\n      \"consolationNumbers\": []\r\n    },\r\n    {\r\n      \"level\": 50,\r\n      \"autoGenrate\": true,\r\n      \"winningNumber\": \"19817\",\r\n      \"consolationNumbers\": []\r\n    },\r\n    {\r\n      \"level\": 51,\r\n      \"autoGenrate\": true,\r\n      \"winningNumber\": \"12373\",\r\n      \"consolationNumbers\": []\r\n    },\r\n    {\r\n      \"level\": 52,\r\n      \"autoGenrate\": false,\r\n      \"winningNumber\": \"19366\",\r\n      \"consolationNumbers\": [\r\n        \"03823\",\r\n        \"01417\",\r\n        \"90331\",\r\n        \"04317\"\r\n      ]\r\n    },\r\n    {\r\n      \"level\": 53,\r\n      \"autoGenrate\": false,\r\n      \"winningNumber\": \"04317\",\r\n      \"consolationNumbers\": [\r\n        \"03823\",\r\n        \"01417\",\r\n        \"90331\",\r\n        \"04317\",\r\n        \"38451\",\r\n        \"30300\"\r\n      ]\r\n    },\r\n    {\r\n      \"level\": 54,\r\n      \"autoGenrate\": false,\r\n      \"winningNumber\": \"38451\",\r\n      \"consolationNumbers\": [\r\n        \"30300\",\r\n        \"43365\",\r\n        \"51307\",\r\n        \"19840\"\r\n      ]\r\n    },\r\n    {\r\n      \"level\": 55,\r\n      \"autoGenrate\": false,\r\n      \"winningNumber\": \"20134\",\r\n      \"consolationNumbers\": [\r\n        \"32535\",\r\n        \"18880\",\r\n        \"31106\",\r\n        \"20034\",\r\n        \"20234\"\r\n      ]\r\n    },\r\n    {\r\n      \"level\": 56,\r\n      \"autoGenrate\": false,\r\n      \"winningNumber\": \"95986\",\r\n      \"consolationNumbers\": [\r\n        \"44176\",\r\n        \"62430\",\r\n        \"34635\",\r\n        \"43409\"\r\n      ]\r\n    },\r\n    {\r\n      \"level\": 57,\r\n      \"autoGenrate\": false,\r\n      \"winningNumber\": \"5521\",\r\n      \"consolationNumbers\": [\r\n        \"17419\",\r\n        \"27133\",\r\n        \"85054\"\r\n      ]\r\n    },\r\n    {\r\n      \"level\": 58,\r\n      \"autoGenrate\": false,\r\n      \"winningNumber\": \"9889\",\r\n      \"consolationNumbers\": [\r\n        \"9819\",\r\n        \"0765\",\r\n        \"3019\",\r\n        \"3786\"\r\n      ]\r\n    },\r\n    {\r\n      \"level\": 59,\r\n      \"autoGenrate\": false,\r\n      \"winningNumber\": \"البطاقات التي تنتهي بالرقم ( 93 )\",\r\n      \"consolationNumbers\": [\r\n        \"1950\",\r\n        \"7343\",\r\n        \"6165\"\r\n      ]\r\n    },\r\n    {\r\n      \"level\": 60,\r\n      \"autoGenrate\": false,\r\n      \"winningNumber\": \"البطاقات التي تنتهي بالرقم ( 790 )\",\r\n      \"consolationNumbers\": []\r\n    },\r\n    {\r\n      \"level\": 61,\r\n      \"autoGenrate\": false,\r\n      \"winningNumber\": \"البطاقات التي تنتهي بالرقم ( 95 )\",\r\n      \"consolationNumbers\": []\r\n    },\r\n    {\r\n      \"level\": 62,\r\n      \"autoGenrate\": false,\r\n      \"winningNumber\": \"البطاقات التي تنتهي بالرقم ( 9 )\",\r\n      \"consolationNumbers\": []\r\n    }\r\n  ],\r\n  \"envelopePrizes\": {\r\n    \"title\": \"جوائز الغلاف\",\r\n    \"countText\": \"عددها ( 490 ) جائزة كل جائزة\",\r\n    \"prizeValue\": \"10 دنانير\",\r\n    \"wheelCount\": \"3 دواليب\",\r\n    \"numberGrid\": [\r\n      [\r\n        \"361\",\r\n        \"312\",\r\n        \"360\",\r\n        \"371\",\r\n        \"351\",\r\n        \"411\",\r\n        \"361\",\r\n        \"311\"\r\n      ],\r\n      [\r\n        \"158\",\r\n        \"259\",\r\n        \"257\",\r\n        \"218\",\r\n        \"248\",\r\n        \"358\",\r\n        \"158\",\r\n        \"258\"\r\n      ],\r\n      [\r\n        \"896\",\r\n        \"997\",\r\n        \"995\",\r\n        \"906\",\r\n        \"986\",\r\n        \"091\",\r\n        \"896\",\r\n        \"996\"\r\n      ],\r\n      [\r\n        \"774\",\r\n        \"875\",\r\n        \"873\",\r\n        \"884\",\r\n        \"814\",\r\n        \"974\",\r\n        \"774\",\r\n        \"874\"\r\n      ],\r\n      [\r\n        \"520\",\r\n        \"121\",\r\n        \"129\",\r\n        \"130\",\r\n        \"110\",\r\n        \"720\",\r\n        \"520\",\r\n        \"120\"\r\n      ],\r\n      [\r\n        \"749\",\r\n        \"840\",\r\n        \"848\",\r\n        \"059\",\r\n        \"839\",\r\n        \"449\",\r\n        \"749\",\r\n        \"849\"\r\n      ],\r\n      [\r\n        \"113\",\r\n        \"214\",\r\n        \"212\",\r\n        \"223\",\r\n        \"203\",\r\n        \"313\",\r\n        \"113\",\r\n        \"213\"\r\n      ]\r\n    ]\r\n  },\r\n  \"footerLines\": [\r\n    \"تصرف الجوائز من الاتحاد العام للجمعيات الخيرية - جبل اللويبدة - مقابل مدرسة الاميرة عالية - بناية رقم (20) - هاتف 4634001 - 4634009\",\r\n    \"يوم 2026/2/20 وتنشر النتائج في صحيفة الأنباء وعلى صفحة الفيس بوك @lottery.jor وعند نقاط البيع\",\r\n    \"اشتري بطاقات اليانصيب الخيري قد يحالفك الحظ بالفوز باحدى الجوائز الكبرى والمتعددة\"\r\n  ],\r\n  \"paperSize\": \"A4\",\r\n  \"orientation\": \"Portrait\"\r\n}'"
+      },
+      "response": []
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{Token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ]
+}

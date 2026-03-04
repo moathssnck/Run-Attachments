@@ -7,12 +7,12 @@ import {
   Trophy,
   Plus,
   Pencil,
+  Trash2,
   ToggleLeft,
   ToggleRight,
   Search,
   BookCopy,
 } from "lucide-react";
-import type { Prize, SystemDefinition } from "@shared/schema";
 import { AdminLayout } from "@/components/admin-layout";
 import { PageHeader } from "@/components/page-header";
 import { useLanguage } from "@/lib/language-context";
@@ -36,6 +36,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -55,7 +65,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Tooltip,
@@ -64,113 +73,159 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-interface PrizeFormData {
-  definitionId: string;
-  nameAr: string;
-  nameEn: string;
-  descriptionAr: string;
-  descriptionEn: string;
-  level: number;
-  value: string;
-  category: string;
-  sortOrder: number;
-  isActive: boolean;
+// ─── API type helpers ─────────────────────────────────────────────────────────
+
+type RawApiPrize = Record<string, unknown>;
+
+type NormalizedPrize = {
+  id: number;
+  prizeNameId: number;
+  prizeName: string;
+  amount: number;
+  active: boolean;
+  prizeLevel: number;
+  description: string;
+};
+
+function asStr(value: unknown, fallback = ""): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  return fallback;
 }
 
-const DEFAULT_FORM_DATA: PrizeFormData = {
-  definitionId: "",
-  nameAr: "",
-  nameEn: "",
-  descriptionAr: "",
-  descriptionEn: "",
-  level: 1,
-  value: "0",
-  category: "default",
-  sortOrder: 0,
-  isActive: true,
+function asNum(value: unknown, fallback = 0): number {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "") {
+    const p = Number(value);
+    if (Number.isFinite(p)) return p;
+  }
+  return fallback;
+}
+
+function asBool(value: unknown, fallback = true): boolean {
+  if (typeof value === "boolean") return value;
+  if (value === 1 || value === "true" || value === "1") return true;
+  if (value === 0 || value === "false" || value === "0") return false;
+  return fallback;
+}
+
+function normalizePrize(raw: RawApiPrize, index: number): NormalizedPrize {
+  return {
+    id: asNum(raw.prizeId ?? raw.id, index + 1),
+    prizeNameId: asNum(raw.prizeNameId ?? raw.PrizeNameId ?? raw.prizeFkCategoryId),
+    prizeName: asStr(
+      raw.prizeName ?? raw.prizeNameAr ?? raw.prizeNameEn ?? raw.nameAr ?? raw.name
+    ),
+    amount: asNum(raw.amount ?? raw.value),
+    active: asBool(raw.active ?? raw.isActive),
+    prizeLevel: asNum(raw.prizeLevel ?? raw.PrizeLevel ?? raw.level, 1),
+    description: asStr(raw.description ?? raw.Description ?? raw.descriptionAr),
+  };
+}
+
+function extractPrizes(payload: unknown): NormalizedPrize[] {
+  let raw: RawApiPrize[] = [];
+  if (Array.isArray(payload)) {
+    raw = payload as RawApiPrize[];
+  } else if (payload && typeof payload === "object") {
+    const obj = payload as Record<string, unknown>;
+    if (Array.isArray(obj.data)) raw = obj.data as RawApiPrize[];
+    else if (Array.isArray(obj.prizes)) raw = obj.prizes as RawApiPrize[];
+    else if (Array.isArray(obj.items)) raw = obj.items as RawApiPrize[];
+    else if (obj.data && typeof obj.data === "object") {
+      const d = obj.data as Record<string, unknown>;
+      if (Array.isArray(d.prizes)) raw = d.prizes as RawApiPrize[];
+      else if (Array.isArray(d.items)) raw = d.items as RawApiPrize[];
+      else if (Array.isArray(d.data)) raw = d.data as RawApiPrize[];
+    }
+  }
+  return raw.map(normalizePrize);
+}
+
+// ─── Form ─────────────────────────────────────────────────────────────────────
+
+interface PrizeFormData {
+  prizeNameId: number;
+  amount: number;
+  active: boolean;
+  prizeLevel: number;
+  description: string;
+}
+
+const DEFAULT_FORM: PrizeFormData = {
+  prizeNameId: 0,
+  amount: 0,
+  active: true,
+  prizeLevel: 1,
+  description: "",
 };
 
 const PRESET_LEVELS = [1, 2, 3, 4, 5];
 
+// ─── Main Component ───────────────────────────────────────────────────────────
+
 export default function PrizesPage() {
-  const { t, dir, language } = useLanguage();
+  const { t, dir } = useLanguage();
   const isRTL = dir === "rtl";
   const { toast } = useToast();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [levelFilter, setLevelFilter] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<"create" | "edit">("create");
-  const [selectedPrize, setSelectedPrize] = useState<Prize | null>(null);
-  const [formData, setFormData] = useState<PrizeFormData>(DEFAULT_FORM_DATA);
+  const [selectedPrize, setSelectedPrize] = useState<NormalizedPrize | null>(null);
+  const [formData, setFormData] = useState<PrizeFormData>(DEFAULT_FORM);
 
-  const { data: prizesResponse, isLoading } = useQuery<{
-    success: boolean;
-    data: Prize[];
-  }>({
+  // ── Query ──────────────────────────────────────────────────────────────────
+
+  const { data: prizes = [], isLoading } = useQuery<NormalizedPrize[]>({
     queryKey: [API_CONFIG.prizes.base],
+    queryFn: async () => {
+      const res = await apiRequest("GET", API_CONFIG.prizes.base);
+      const payload = await res.json();
+      return extractPrizes(payload);
+    },
   });
 
-  const { data: definitionsResponse } = useQuery<{
-    success: boolean;
-    data: SystemDefinition[];
-  }>({
-    queryKey: ["/api/admin/system-definitions"],
-  });
-
-  const prizes = prizesResponse?.data || [];
-  const definitions = definitionsResponse?.data || [];
-  const activeDefinitions = definitions.filter((definition) => definition.isActive);
+  // ── Derived data ───────────────────────────────────────────────────────────
 
   const levelOptions = useMemo(() => {
     const dynamicLevels = prizes
-      .map((prize) => prize.level)
-      .filter((level): level is number => typeof level === "number")
-      .filter((level, index, values) => values.indexOf(level) === index);
+      .map((p) => p.prizeLevel)
+      .filter((l): l is number => typeof l === "number");
     return Array.from(new Set([...PRESET_LEVELS, ...dynamicLevels])).sort(
-      (a, b) => a - b,
+      (a, b) => a - b
     );
   }, [prizes]);
 
   const filteredPrizes = useMemo(() => {
     let result = prizes;
-
     if (levelFilter !== "all") {
-      result = result.filter((prize) => prize.level === Number(levelFilter));
+      result = result.filter((p) => p.prizeLevel === Number(levelFilter));
     }
-
-    const normalizedQuery = searchQuery.trim().toLowerCase();
-    if (normalizedQuery) {
-      result = result.filter((prize) => {
-        return [
-          prize.nameAr,
-          prize.nameEn,
-          prize.descriptionAr || "",
-          prize.descriptionEn || "",
-          prize.category || "",
-          prize.value,
-        ]
+    const q = searchQuery.trim().toLowerCase();
+    if (q) {
+      result = result.filter((p) =>
+        [p.prizeName, p.description, String(p.prizeNameId), String(p.amount)]
           .join(" ")
           .toLowerCase()
-          .includes(normalizedQuery);
-      });
+          .includes(q)
+      );
     }
-
     return result;
   }, [prizes, levelFilter, searchQuery]);
+
+  // ── Mutations ─────────────────────────────────────────────────────────────
 
   const createMutation = useMutation({
     mutationFn: (data: PrizeFormData) =>
       apiRequest("POST", API_CONFIG.prizes.base, {
-        nameAr: data.nameAr.trim(),
-        nameEn: data.nameEn.trim(),
-        descriptionAr: data.descriptionAr.trim() || null,
-        descriptionEn: data.descriptionEn.trim() || null,
-        level: data.level,
-        isActive: data.isActive,
-        value: data.value.trim() || "0",
-        category: data.category.trim() || "default",
-        sortOrder: data.sortOrder,
+        PrizeNameId: data.prizeNameId,
+        amount: data.amount,
+        active: data.active,
+        PrizeLevel: data.prizeLevel,
+        Description: data.description,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [API_CONFIG.prizes.base] });
@@ -190,17 +245,13 @@ export default function PrizesPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: PrizeFormData }) =>
-      apiRequest("PUT", API_CONFIG.prizes.byId(id), {
-        nameAr: data.nameAr.trim(),
-        nameEn: data.nameEn.trim(),
-        descriptionAr: data.descriptionAr.trim() || null,
-        descriptionEn: data.descriptionEn.trim() || null,
-        level: data.level,
-        isActive: data.isActive,
-        value: data.value.trim() || "0",
-        category: data.category.trim() || "default",
-        sortOrder: data.sortOrder,
+    mutationFn: ({ prize, data }: { prize: NormalizedPrize; data: PrizeFormData }) =>
+      apiRequest("PUT", API_CONFIG.prizes.byId(prize.id), {
+        prizeId: prize.id,
+        prizeNameId: data.prizeNameId,
+        amount: data.amount,
+        active: data.active,
+        prizeLevel: data.prizeLevel,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [API_CONFIG.prizes.base] });
@@ -220,18 +271,19 @@ export default function PrizesPage() {
   });
 
   const toggleMutation = useMutation({
-    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
-      apiRequest("PUT", API_CONFIG.prizes.byId(id), {
-        isActive: !isActive,
-        active: !isActive,
+    mutationFn: (prize: NormalizedPrize) =>
+      apiRequest("PUT", API_CONFIG.prizes.byId(prize.id), {
+        prizeId: prize.id,
+        prizeNameId: prize.prizeNameId,
+        amount: prize.amount,
+        active: !prize.active,
+        prizeLevel: prize.prizeLevel,
       }),
-    onSuccess: (_response, variables) => {
+    onSuccess: (_res, prize) => {
       queryClient.invalidateQueries({ queryKey: [API_CONFIG.prizes.base] });
       toast({
-        title: variables.isActive
-          ? t("prizes.prizeDisabled")
-          : t("prizes.prizeEnabled"),
-        description: variables.isActive
+        title: prize.active ? t("prizes.prizeDisabled") : t("prizes.prizeEnabled"),
+        description: prize.active
           ? t("prizes.prizeDisabledDesc")
           : t("prizes.prizeEnabledDesc"),
       });
@@ -245,85 +297,66 @@ export default function PrizesPage() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) =>
+      apiRequest("DELETE", API_CONFIG.prizes.byId(id)),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [API_CONFIG.prizes.base] });
+      setIsDeleteDialogOpen(false);
+      setSelectedPrize(null);
+      toast({
+        title: isRTL ? "تم الحذف" : "Deleted",
+        description: isRTL ? "تم حذف الجائزة" : "Prize has been deleted",
+      });
+    },
+    onError: () => {
+      toast({
+        title: t("common.error"),
+        description: isRTL ? "فشل في حذف الجائزة" : "Failed to delete prize",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // ── Handlers ──────────────────────────────────────────────────────────────
+
   const closeDialog = () => {
     setIsDialogOpen(false);
     setSelectedPrize(null);
-    setFormData(DEFAULT_FORM_DATA);
+    setFormData(DEFAULT_FORM);
   };
 
   const openCreateDialog = () => {
     setDialogMode("create");
     setSelectedPrize(null);
-    setFormData(DEFAULT_FORM_DATA);
+    setFormData(DEFAULT_FORM);
     setIsDialogOpen(true);
   };
 
-  const openEditDialog = (prize: Prize) => {
-    const matchingDefinition = definitions.find(
-      (definition) =>
-        definition.nameAr === prize.nameAr && definition.nameEn === prize.nameEn,
-    );
+  const openEditDialog = (prize: NormalizedPrize) => {
     setDialogMode("edit");
     setSelectedPrize(prize);
     setFormData({
-      definitionId: matchingDefinition?.id || "",
-      nameAr: prize.nameAr,
-      nameEn: prize.nameEn,
-      descriptionAr: prize.descriptionAr || "",
-      descriptionEn: prize.descriptionEn || "",
-      level: prize.level || 1,
-      value: prize.value || "0",
-      category: prize.category || "default",
-      sortOrder: prize.sortOrder || 0,
-      isActive: prize.isActive,
+      prizeNameId: prize.prizeNameId,
+      amount: prize.amount,
+      active: prize.active,
+      prizeLevel: prize.prizeLevel,
+      description: prize.description,
     });
     setIsDialogOpen(true);
   };
 
-  const handleDefinitionSelect = (definitionId: string) => {
-    const selectedDefinition = definitions.find(
-      (definition) => definition.id === definitionId,
-    );
-    if (!selectedDefinition) return;
-
-    setFormData((current) => ({
-      ...current,
-      definitionId,
-      nameAr: selectedDefinition.nameAr,
-      nameEn: selectedDefinition.nameEn,
-      descriptionAr: selectedDefinition.descriptionAr || "",
-      descriptionEn: selectedDefinition.descriptionEn || "",
-    }));
-  };
-
-  const parseNumericInput = (value: string, fallbackValue: number) => {
-    const parsedValue = Number.parseInt(value, 10);
-    return Number.isFinite(parsedValue) ? parsedValue : fallbackValue;
-  };
-
-  const handleDialogSubmit = () => {
-    if (!formData.nameAr.trim() || !formData.nameEn.trim()) {
-      toast({
-        title: t("common.error"),
-        description: t("prizes.fillRequiredFields"),
-        variant: "destructive",
-      });
-      return;
-    }
-
+  const handleSubmit = () => {
     if (dialogMode === "create") {
       createMutation.mutate(formData);
-      return;
-    }
-
-    if (selectedPrize) {
-      updateMutation.mutate({ id: selectedPrize.id, data: formData });
+    } else if (selectedPrize) {
+      updateMutation.mutate({ prize: selectedPrize, data: formData });
     }
   };
 
-  const isDialogSubmitting =
-    createMutation.isPending || updateMutation.isPending;
-  const hasAnyDefinitions = activeDefinitions.length > 0;
+  const isSubmitting = createMutation.isPending || updateMutation.isPending;
+
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <AdminLayout>
@@ -343,6 +376,7 @@ export default function PrizesPage() {
             }
           />
 
+          {/* Stats */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Card>
               <CardHeader className="pb-3">
@@ -354,7 +388,7 @@ export default function PrizesPage() {
               <CardHeader className="pb-3">
                 <CardDescription>{t("common.active")}</CardDescription>
                 <CardTitle className="text-2xl">
-                  {prizes.filter((prize) => prize.isActive).length}
+                  {prizes.filter((p) => p.active).length}
                 </CardTitle>
               </CardHeader>
             </Card>
@@ -362,12 +396,13 @@ export default function PrizesPage() {
               <CardHeader className="pb-3">
                 <CardDescription>{t("common.inactive")}</CardDescription>
                 <CardTitle className="text-2xl">
-                  {prizes.filter((prize) => !prize.isActive).length}
+                  {prizes.filter((p) => !p.active).length}
                 </CardTitle>
               </CardHeader>
             </Card>
           </div>
 
+          {/* Table Card */}
           <Card className="overflow-hidden">
             <CardHeader className="flex flex-col gap-4 border-b bg-gradient-to-l from-primary/5 to-transparent md:flex-row md:items-center md:justify-between">
               <div className="space-y-1">
@@ -383,17 +418,13 @@ export default function PrizesPage() {
                   />
                   <Input
                     value={searchQuery}
-                    onChange={(event) => setSearchQuery(event.target.value)}
+                    onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder={t("common.search")}
                     className={`w-56 ${isRTL ? "pr-9" : "pl-9"}`}
                     data-testid="input-search-prizes"
                   />
                 </div>
-                <Select
-                  value={levelFilter}
-                  onValueChange={setLevelFilter}
-                  dir={dir}
-                >
+                <Select value={levelFilter} onValueChange={setLevelFilter} dir={dir}>
                   <SelectTrigger className="w-40" data-testid="select-level-filter">
                     <SelectValue placeholder={t("prizes.filterByLevel")} />
                   </SelectTrigger>
@@ -415,8 +446,8 @@ export default function PrizesPage() {
             <CardContent className="pt-6">
               {isLoading ? (
                 <div className="space-y-3">
-                  {[1, 2, 3, 4].map((index) => (
-                    <Skeleton key={index} className="h-14 w-full" />
+                  {[1, 2, 3, 4].map((i) => (
+                    <Skeleton key={i} className="h-14 w-full" />
                   ))}
                 </div>
               ) : filteredPrizes.length === 0 ? (
@@ -427,7 +458,7 @@ export default function PrizesPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>{t("prizes.prizeName")}</TableHead>
+                      <TableHead>{isRTL ? "اسم الجائزة" : "Prize Name"}</TableHead>
                       <TableHead>{t("prizes.prizeDescription")}</TableHead>
                       <TableHead>{t("prizes.level")}</TableHead>
                       <TableHead>{t("prizes.value")}</TableHead>
@@ -438,28 +469,30 @@ export default function PrizesPage() {
                   <TableBody>
                     {filteredPrizes.map((prize) => (
                       <TableRow key={prize.id} data-testid={`row-prize-${prize.id}`}>
-                        <TableCell className="space-y-1">
-                          <p className="font-semibold leading-none">{prize.nameAr}</p>
-                          <p className="text-xs text-muted-foreground">{prize.nameEn}</p>
-                        </TableCell>
-                        <TableCell className="space-y-1 align-top">
-                          <p className="text-xs text-muted-foreground">
-                            {prize.descriptionAr || t("common.dash")}
+                        <TableCell>
+                          <p className="font-semibold">
+                            {prize.prizeName || `#${prize.prizeNameId}`}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {prize.descriptionEn || t("common.dash")}
+                            ID: {prize.prizeNameId}
+                          </p>
+                        </TableCell>
+                        <TableCell className="max-w-xs">
+                          <p className="text-sm text-muted-foreground truncate">
+                            {prize.description || t("common.dash")}
                           </p>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="secondary">{`${t("prizes.level")} ${prize.level}`}</Badge>
+                          <Badge variant="secondary">
+                            {`${t("prizes.level")} ${prize.prizeLevel}`}
+                          </Badge>
                         </TableCell>
                         <TableCell>
-                          <p className="font-medium">{prize.value}</p>
-                          <p className="text-xs text-muted-foreground">{prize.category}</p>
+                          <p className="font-medium">{prize.amount}</p>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={prize.isActive ? "success" : "danger"}>
-                            {prize.isActive ? t("common.active") : t("common.inactive")}
+                          <Badge variant={prize.active ? "success" : "danger"}>
+                            {prize.active ? t("common.active") : t("common.inactive")}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -470,15 +503,11 @@ export default function PrizesPage() {
                                   variant="ghost"
                                   size="icon"
                                   className="h-9 w-9 rounded-lg"
-                                  onClick={() =>
-                                    toggleMutation.mutate({
-                                      id: prize.id,
-                                      isActive: prize.isActive,
-                                    })
-                                  }
+                                  onClick={() => toggleMutation.mutate(prize)}
+                                  disabled={toggleMutation.isPending}
                                   data-testid={`button-toggle-prize-${prize.id}`}
                                 >
-                                  {prize.isActive ? (
+                                  {prize.active ? (
                                     <ToggleRight className="h-4.5 w-4.5 text-emerald-600" />
                                   ) : (
                                     <ToggleLeft className="h-4.5 w-4.5 text-muted-foreground" />
@@ -486,7 +515,7 @@ export default function PrizesPage() {
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>
-                                {prize.isActive ? t("common.disable") : t("common.enable")}
+                                {prize.active ? t("common.disable") : t("common.enable")}
                               </TooltipContent>
                             </Tooltip>
                             <Tooltip>
@@ -503,6 +532,23 @@ export default function PrizesPage() {
                               </TooltipTrigger>
                               <TooltipContent>{t("common.edit")}</TooltipContent>
                             </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-9 w-9 rounded-lg"
+                                  onClick={() => {
+                                    setSelectedPrize(prize);
+                                    setIsDeleteDialogOpen(true);
+                                  }}
+                                  data-testid={`button-delete-prize-${prize.id}`}
+                                >
+                                  <Trash2 className="h-4.5 w-4.5 text-red-600" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>{t("common.delete")}</TooltipContent>
+                            </Tooltip>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -513,11 +559,9 @@ export default function PrizesPage() {
             </CardContent>
           </Card>
 
-          <Dialog
-            open={isDialogOpen}
-            onOpenChange={(open) => (open ? setIsDialogOpen(true) : closeDialog())}
-          >
-            <DialogContent dir={dir} className="max-h-[90vh] max-w-3xl overflow-y-auto">
+          {/* Create / Edit Dialog */}
+          <Dialog open={isDialogOpen} onOpenChange={(open) => (!open ? closeDialog() : null)}>
+            <DialogContent dir={dir} className="max-h-[90vh] max-w-lg overflow-y-auto">
               <DialogHeader className="text-start">
                 <DialogTitle>
                   {dialogMode === "create" ? t("prizes.addPrize") : t("prizes.editPrize")}
@@ -529,46 +573,55 @@ export default function PrizesPage() {
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="space-y-5">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>{t("prizes.selectDefinition")}</Label>
-                    <Select
-                      value={formData.definitionId}
-                      onValueChange={handleDefinitionSelect}
-                      dir={dir}
-                    >
-                      <SelectTrigger data-testid="select-definition">
-                        <SelectValue placeholder={t("prizes.selectDefinition")} />
-                      </SelectTrigger>
-                      <SelectContent dir={dir}>
-                        {activeDefinitions.map((definition) => (
-                          <SelectItem key={definition.id} value={definition.id}>
-                            {language === "ar" ? definition.nameAr : definition.nameEn}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {!hasAnyDefinitions && (
-                      <p className="text-xs text-muted-foreground">
-                        {t("prizes.selectFromDefinitions")}
-                      </p>
-                    )}
-                  </div>
+              <div className="space-y-4">
+                {/* Prize Name ID */}
+                <div className="space-y-2">
+                  <Label htmlFor="prize-name-id">
+                    {isRTL ? "رقم تعريف اسم الجائزة" : "Prize Name ID"}
+                  </Label>
+                  <Input
+                    id="prize-name-id"
+                    type="number"
+                    value={formData.prizeNameId}
+                    onChange={(e) =>
+                      setFormData((f) => ({
+                        ...f,
+                        prizeNameId: Number(e.target.value) || 0,
+                      }))
+                    }
+                    data-testid="input-prize-name-id"
+                  />
+                </div>
+
+                {/* Description */}
+                <div className="space-y-2">
+                  <Label htmlFor="prize-description">
+                    {t("prizes.prizeDescription")}
+                  </Label>
+                  <Textarea
+                    id="prize-description"
+                    rows={3}
+                    value={formData.description}
+                    onChange={(e) =>
+                      setFormData((f) => ({ ...f, description: e.target.value }))
+                    }
+                    data-testid="input-prize-description"
+                  />
+                </div>
+
+                <div className="grid gap-4 grid-cols-2">
+                  {/* Level */}
                   <div className="space-y-2">
                     <Label>{t("prizes.level")}</Label>
                     <Select
-                      value={String(formData.level)}
-                      onValueChange={(value) =>
-                        setFormData((current) => ({
-                          ...current,
-                          level: parseNumericInput(value, current.level),
-                        }))
+                      value={String(formData.prizeLevel)}
+                      onValueChange={(v) =>
+                        setFormData((f) => ({ ...f, prizeLevel: Number(v) || 1 }))
                       }
                       dir={dir}
                     >
                       <SelectTrigger data-testid="select-prize-level">
-                        <SelectValue placeholder={t("prizes.selectLevel")} />
+                        <SelectValue />
                       </SelectTrigger>
                       <SelectContent dir={dir}>
                         {levelOptions.map((level) => (
@@ -579,148 +632,37 @@ export default function PrizesPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
 
-                <Card className="border-dashed">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base">
-                      {t("prizes.translationPanelTitle")}
-                    </CardTitle>
-                    <CardDescription>{t("prizes.translationPanelDesc")}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Tabs defaultValue={language === "ar" ? "ar" : "en"} dir={dir}>
-                      <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="ar">العربية</TabsTrigger>
-                        <TabsTrigger value="en">English</TabsTrigger>
-                      </TabsList>
-                      <TabsContent value="ar" className="space-y-3">
-                        <div className="space-y-2">
-                          <Label htmlFor="prize-name-ar">{t("prizes.nameAr")}</Label>
-                          <Input
-                            id="prize-name-ar"
-                            dir="rtl"
-                            value={formData.nameAr}
-                            onChange={(event) =>
-                              setFormData((current) => ({
-                                ...current,
-                                nameAr: event.target.value,
-                              }))
-                            }
-                            data-testid="input-prize-name-ar"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="prize-desc-ar">{t("prizes.descriptionAr")}</Label>
-                          <Textarea
-                            id="prize-desc-ar"
-                            dir="rtl"
-                            rows={3}
-                            value={formData.descriptionAr}
-                            onChange={(event) =>
-                              setFormData((current) => ({
-                                ...current,
-                                descriptionAr: event.target.value,
-                              }))
-                            }
-                            data-testid="input-prize-desc-ar"
-                          />
-                        </div>
-                      </TabsContent>
-                      <TabsContent value="en" className="space-y-3">
-                        <div className="space-y-2">
-                          <Label htmlFor="prize-name-en">{t("prizes.nameEn")}</Label>
-                          <Input
-                            id="prize-name-en"
-                            dir="ltr"
-                            value={formData.nameEn}
-                            onChange={(event) =>
-                              setFormData((current) => ({
-                                ...current,
-                                nameEn: event.target.value,
-                              }))
-                            }
-                            data-testid="input-prize-name-en"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="prize-desc-en">{t("prizes.descriptionEn")}</Label>
-                          <Textarea
-                            id="prize-desc-en"
-                            dir="ltr"
-                            rows={3}
-                            value={formData.descriptionEn}
-                            onChange={(event) =>
-                              setFormData((current) => ({
-                                ...current,
-                                descriptionEn: event.target.value,
-                              }))
-                            }
-                            data-testid="input-prize-desc-en"
-                          />
-                        </div>
-                      </TabsContent>
-                    </Tabs>
-                  </CardContent>
-                </Card>
-
-                <div className="grid gap-4 md:grid-cols-3">
+                  {/* Amount */}
                   <div className="space-y-2">
-                    <Label htmlFor="prize-value">{t("prizes.value")}</Label>
+                    <Label htmlFor="prize-amount">{t("prizes.value")}</Label>
                     <Input
-                      id="prize-value"
-                      value={formData.value}
-                      onChange={(event) =>
-                        setFormData((current) => ({
-                          ...current,
-                          value: event.target.value,
-                        }))
-                      }
-                      data-testid="input-prize-value"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="prize-category">{t("prizes.category")}</Label>
-                    <Input
-                      id="prize-category"
-                      value={formData.category}
-                      onChange={(event) =>
-                        setFormData((current) => ({
-                          ...current,
-                          category: event.target.value,
-                        }))
-                      }
-                      data-testid="input-prize-category"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="prize-sort-order">{t("prizes.sortOrder")}</Label>
-                    <Input
-                      id="prize-sort-order"
+                      id="prize-amount"
                       type="number"
-                      value={formData.sortOrder}
-                      onChange={(event) =>
-                        setFormData((current) => ({
-                          ...current,
-                          sortOrder: parseNumericInput(event.target.value, 0),
+                      value={formData.amount}
+                      onChange={(e) =>
+                        setFormData((f) => ({
+                          ...f,
+                          amount: Number(e.target.value) || 0,
                         }))
                       }
-                      data-testid="input-prize-sort-order"
+                      data-testid="input-prize-amount"
                     />
                   </div>
                 </div>
 
+                {/* Active */}
                 <div className="flex items-center justify-between rounded-lg border bg-muted/20 px-4 py-3">
                   <div>
                     <p className="text-sm font-medium">{t("common.status")}</p>
                     <p className="text-xs text-muted-foreground">
-                      {formData.isActive ? t("common.active") : t("common.inactive")}
+                      {formData.active ? t("common.active") : t("common.inactive")}
                     </p>
                   </div>
                   <Switch
-                    checked={formData.isActive}
+                    checked={formData.active}
                     onCheckedChange={(checked) =>
-                      setFormData((current) => ({ ...current, isActive: checked }))
+                      setFormData((f) => ({ ...f, active: checked }))
                     }
                     data-testid="switch-prize-active"
                   />
@@ -732,23 +674,52 @@ export default function PrizesPage() {
                   {t("common.cancel")}
                 </Button>
                 <Button
-                  onClick={handleDialogSubmit}
-                  disabled={
-                    isDialogSubmitting ||
-                    !formData.nameAr.trim() ||
-                    !formData.nameEn.trim()
-                  }
+                  onClick={handleSubmit}
+                  disabled={isSubmitting || formData.prizeNameId === 0}
                   data-testid="button-submit-prize"
                 >
-                  {isDialogSubmitting
+                  {isSubmitting
                     ? t("common.loading")
                     : dialogMode === "create"
-                      ? t("common.add")
-                      : t("common.save")}
+                    ? t("common.add")
+                    : t("common.save")}
                 </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
+
+          {/* Delete Confirmation */}
+          <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-destructive/10 mb-3">
+                  <Trash2 className="h-6 w-6 text-destructive" />
+                </div>
+                <AlertDialogTitle>
+                  {isRTL ? "تأكيد الحذف" : "Confirm Delete"}
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  {isRTL
+                    ? `هل أنت متأكد من حذف الجائزة "${selectedPrize?.prizeName || selectedPrize?.id}"؟`
+                    : `Are you sure you want to delete prize "${selectedPrize?.prizeName || selectedPrize?.id}"?`}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel data-testid="button-cancel-delete">
+                  {t("common.cancel")}
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() =>
+                    selectedPrize && deleteMutation.mutate(selectedPrize.id)
+                  }
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  data-testid="button-confirm-delete"
+                >
+                  {t("common.delete") || (isRTL ? "حذف" : "Delete")}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </TooltipProvider>
     </AdminLayout>
