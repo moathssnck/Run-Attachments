@@ -1,0 +1,200 @@
+{
+  "info": {
+    "_postman_id": "7cb0dc3a-578e-430f-bdb6-2fa23d7038f0",
+    "name": "LookupCategory",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "51925085",
+    "_collection_link": "https://go.postman.co/collection/29386686-7cb0dc3a-578e-430f-bdb6-2fa23d7038f0?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "LookupCategory",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "accept",
+            "value": "*/*"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"lookupCategoryAr\": \"تقسيم البطاقة\",\r\n  \"lookupCategoryEn\": \"Card spilt\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{URL}}/api/LookupCategory",
+          "host": [
+            "{{URL}}"
+          ],
+          "path": [
+            "api",
+            "LookupCategory"
+          ]
+        },
+        "description": "Generated from cURL: curl -X 'POST' \\\r\n  'http://localhost:8080/api/LookupCategory' \\\r\n  -H 'accept: */*' \\\r\n  -H 'Content-Type: application/json' \\\r\n  -d '{\r\n  \"lookupCategoryAr\": \"string\",\r\n  \"lookupCategoryEn\": \"string\"\r\n}'"
+      },
+      "response": []
+    },
+    {
+      "name": "Get All LookupCategory",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "accept",
+            "value": "*/*"
+          }
+        ],
+        "url": {
+          "raw": "{{URL}}/api/LookupCategory?includeDeleted=false",
+          "host": [
+            "{{URL}}"
+          ],
+          "path": [
+            "api",
+            "LookupCategory"
+          ],
+          "query": [
+            {
+              "key": "includeDeleted",
+              "value": "false"
+            }
+          ]
+        },
+        "description": "Generated from cURL: curl -X 'GET' \\\r\n  'http://localhost:8080/api/LookupCategory?includeDeleted=false' \\\r\n  -H 'accept: */*'"
+      },
+      "response": []
+    },
+    {
+      "name": "Upated LookupCategory",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "accept",
+            "value": "*/*"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"id\":1,\r\n  \"lookupCategoryAr\": \"string\",\r\n  \"lookupCategoryEn\": \"string\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{URL}}/api/LookupCategory/1",
+          "host": [
+            "{{URL}}"
+          ],
+          "path": [
+            "api",
+            "LookupCategory",
+            "1"
+          ]
+        },
+        "description": "Generated from cURL: curl -X 'PUT' \\\r\n  'http://localhost:8080/api/LookupCategory/1' \\\r\n  -H 'accept: */*' \\\r\n  -H 'Content-Type: application/json' \\\r\n  -d '{\r\n  \"id\":1,\r\n  \"lookupCategoryAr\": \"string\",\r\n  \"lookupCategoryEn\": \"string\"\r\n}'"
+      },
+      "response": []
+    },
+    {
+      "name": "Delete LookupCategory",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "accept",
+            "value": "*/*"
+          }
+        ],
+        "url": {
+          "raw": "{{URL}}/api/LookupCategory/1",
+          "host": [
+            "{{URL}}"
+          ],
+          "path": [
+            "api",
+            "LookupCategory",
+            "1"
+          ]
+        },
+        "description": "Generated from cURL: curl -X 'DELETE' \\\r\n  'http://localhost:8080/api/LookupCategory/1' \\\r\n  -H 'accept: */*'"
+      },
+      "response": []
+    },
+    {
+      "name": "Get LookupCategory By Id",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "accept",
+            "value": "*/*"
+          }
+        ],
+        "url": {
+          "raw": "{{URL}}/api/LookupCategory/1",
+          "host": [
+            "{{URL}}"
+          ],
+          "path": [
+            "api",
+            "LookupCategory",
+            "1"
+          ]
+        },
+        "description": "Generated from cURL: curl -X 'GET' \\\r\n  'http://localhost:8080/api/LookupCategory/1' \\\r\n  -H 'accept: */*'"
+      },
+      "response": []
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{Token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ]
+}

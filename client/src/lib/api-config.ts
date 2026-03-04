@@ -45,4 +45,9 @@ export const API_CONFIG = {
     byCategory: (id: ApiEntityId) => `/api/Prize/category/${id}`,
     byLevel: (level: ApiEntityId) => `/api/Prize/level/${level}`,
   },
+  lookupCategory: {
+    list: "/api/LookupCategory?includeDeleted=false",
+    base: "/api/LookupCategory",
+    byId: (id: ApiEntityId) => `/api/LookupCategory/${id}`,
+  },
 } as const;

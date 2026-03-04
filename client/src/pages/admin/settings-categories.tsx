@@ -1,13 +1,20 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Plus, Pencil, FolderTree, ToggleLeft, ToggleRight, BookOpen, Search } from "lucide-react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  FolderTree,
+  BookOpen,
+  Search,
+  Loader2,
+} from "lucide-react";
 import { AdminLayout } from "@/components/admin-layout";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -26,10 +33,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -37,35 +49,86 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/lib/language-context";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { SystemCategory, SystemDefinition } from "@shared/schema";
+import { API_CONFIG } from "@/lib/api-config";
+import type { SystemDefinition } from "@shared/schema";
+
+// ─── API type helpers ─────────────────────────────────────────────────────────
+
+type RawApiCategory = Record<string, unknown>;
+
+type NormalizedLookupCategory = {
+  id: number;
+  lookupCategoryAr: string;
+  lookupCategoryEn: string;
+};
+
+function asStr(value: unknown, fallback = ""): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  return fallback;
+}
+
+function asNum(value: unknown, fallback = 0): number {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "") {
+    const p = Number(value);
+    if (Number.isFinite(p)) return p;
+  }
+  return fallback;
+}
+
+function normalizeCategory(raw: RawApiCategory, index: number): NormalizedLookupCategory {
+  return {
+    id: asNum(raw.id ?? raw.lookupCategoryId, index + 1),
+    lookupCategoryAr: asStr(raw.lookupCategoryAr ?? raw.nameAr ?? raw.name),
+    lookupCategoryEn: asStr(raw.lookupCategoryEn ?? raw.nameEn ?? raw.name),
+  };
+}
+
+function extractCategories(payload: unknown): NormalizedLookupCategory[] {
+  let raw: RawApiCategory[] = [];
+  if (Array.isArray(payload)) {
+    raw = payload as RawApiCategory[];
+  } else if (payload && typeof payload === "object") {
+    const obj = payload as Record<string, unknown>;
+    if (Array.isArray(obj.data)) raw = obj.data as RawApiCategory[];
+    else if (Array.isArray(obj.categories)) raw = obj.categories as RawApiCategory[];
+    else if (Array.isArray(obj.items)) raw = obj.items as RawApiCategory[];
+    else if (obj.data && typeof obj.data === "object") {
+      const d = obj.data as Record<string, unknown>;
+      if (Array.isArray(d.data)) raw = d.data as RawApiCategory[];
+    }
+  }
+  return raw.map(normalizeCategory);
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function SettingsCategoriesPage() {
   const { t, language, dir } = useLanguage();
   const isRTL = dir === "rtl";
   const { toast } = useToast();
 
+  // ── Category dialog state ─────────────────────────────────────────────────
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<SystemCategory | null>(null);
-
-  const [isAddDefDialogOpen, setIsAddDefDialogOpen] = useState(false);
-  const [isEditDefDialogOpen, setIsEditDefDialogOpen] = useState(false);
-  const [selectedDefinition, setSelectedDefinition] = useState<SystemDefinition | null>(null);
-
-  const [categorySearch, setCategorySearch] = useState("");
-  const [definitionCategoryFilter, setDefinitionCategoryFilter] = useState("all");
-
-  const [formData, setFormData] = useState({
-    nameAr: "",
-    nameEn: "",
-    description: "",
-    isActive: true,
-    sortOrder: 0,
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] =
+    useState<NormalizedLookupCategory | null>(null);
+  const [categoryForm, setCategoryForm] = useState({
+    lookupCategoryAr: "",
+    lookupCategoryEn: "",
   });
 
+  // ── Definition dialog state ───────────────────────────────────────────────
+  const [isAddDefDialogOpen, setIsAddDefDialogOpen] = useState(false);
+  const [isEditDefDialogOpen, setIsEditDefDialogOpen] = useState(false);
+  const [selectedDefinition, setSelectedDefinition] =
+    useState<SystemDefinition | null>(null);
   const [defFormData, setDefFormData] = useState({
     nameAr: "",
     nameEn: "",
@@ -74,44 +137,59 @@ export default function SettingsCategoriesPage() {
     isActive: true,
   });
 
-  const { data: categoriesResponse, isLoading } = useQuery<{ success: boolean; data: SystemCategory[] }>({
-    queryKey: ["/api/admin/system-categories"],
+  // ── Search / filter ───────────────────────────────────────────────────────
+  const [categorySearch, setCategorySearch] = useState("");
+  const [definitionCategoryFilter, setDefinitionCategoryFilter] = useState("all");
+
+  // ── Queries ───────────────────────────────────────────────────────────────
+
+  const { data: categories = [], isLoading } = useQuery<NormalizedLookupCategory[]>({
+    queryKey: [API_CONFIG.lookupCategory.list],
+    queryFn: async () => {
+      const res = await apiRequest("GET", API_CONFIG.lookupCategory.list);
+      const payload = await res.json();
+      return extractCategories(payload);
+    },
   });
 
-  const { data: definitionsResponse, isLoading: isLoadingDefs } = useQuery<{ success: boolean; data: SystemDefinition[] }>({
+  const { data: definitionsResponse, isLoading: isLoadingDefs } = useQuery<{
+    success: boolean;
+    data: SystemDefinition[];
+  }>({
     queryKey: ["/api/admin/system-definitions"],
   });
 
-  const categories = categoriesResponse?.data || [];
   const definitions = definitionsResponse?.data || [];
+
+  // ── Derived ───────────────────────────────────────────────────────────────
 
   const filteredCategories = useMemo(() => {
     if (!categorySearch.trim()) return categories;
-    const search = categorySearch.toLowerCase();
-    return categories.filter(cat => 
-      cat.nameAr.toLowerCase().includes(search) || 
-      cat.nameEn.toLowerCase().includes(search)
+    const q = categorySearch.toLowerCase();
+    return categories.filter(
+      (c) =>
+        c.lookupCategoryAr.toLowerCase().includes(q) ||
+        c.lookupCategoryEn.toLowerCase().includes(q)
     );
   }, [categories, categorySearch]);
 
   const filteredDefinitions = useMemo(() => {
     if (definitionCategoryFilter === "all") return definitions;
-    return definitions.filter(def => def.category === definitionCategoryFilter);
+    return definitions.filter((d) => d.category === definitionCategoryFilter);
   }, [definitions, definitionCategoryFilter]);
 
-  const isCategoryActive = (categoryCode: string) => {
-    const cat = categories.find(c => c.nameEn === categoryCode);
-    return cat?.isActive ?? true;
-  };
+  // ── Category mutations ────────────────────────────────────────────────────
 
   const createMutation = useMutation({
-    mutationFn: async (data: typeof formData) => {
-      return apiRequest("POST", "/api/admin/system-categories", data);
-    },
+    mutationFn: () =>
+      apiRequest("POST", API_CONFIG.lookupCategory.base, {
+        lookupCategoryAr: categoryForm.lookupCategoryAr,
+        lookupCategoryEn: categoryForm.lookupCategoryEn,
+      }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/system-categories"] });
+      queryClient.invalidateQueries({ queryKey: [API_CONFIG.lookupCategory.list] });
       setIsAddDialogOpen(false);
-      resetForm();
+      setCategoryForm({ lookupCategoryAr: "", lookupCategoryEn: "" });
       toast({
         title: t("systemCategories.categoryCreated"),
         description: t("systemCategories.categoryCreatedDesc"),
@@ -127,14 +205,23 @@ export default function SettingsCategoriesPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: typeof formData }) => {
-      return apiRequest("PATCH", `/api/admin/system-categories/${id}`, data);
+    mutationFn: () => {
+      if (!selectedCategory) throw new Error("No category selected");
+      return apiRequest(
+        "PUT",
+        API_CONFIG.lookupCategory.byId(selectedCategory.id),
+        {
+          id: selectedCategory.id,
+          lookupCategoryAr: categoryForm.lookupCategoryAr,
+          lookupCategoryEn: categoryForm.lookupCategoryEn,
+        }
+      );
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/system-categories"] });
+      queryClient.invalidateQueries({ queryKey: [API_CONFIG.lookupCategory.list] });
       setIsEditDialogOpen(false);
       setSelectedCategory(null);
-      resetForm();
+      setCategoryForm({ lookupCategoryAr: "", lookupCategoryEn: "" });
       toast({
         title: t("systemCategories.categoryUpdated"),
         description: t("systemCategories.categoryUpdatedDesc"),
@@ -149,31 +236,32 @@ export default function SettingsCategoriesPage() {
     },
   });
 
-  const toggleMutation = useMutation({
-    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
-      return apiRequest("PATCH", `/api/admin/system-categories/${id}`, { isActive: !isActive });
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/system-categories"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/system-definitions"] });
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) =>
+      apiRequest("DELETE", API_CONFIG.lookupCategory.byId(id)),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [API_CONFIG.lookupCategory.list] });
+      setIsDeleteDialogOpen(false);
+      setSelectedCategory(null);
       toast({
-        title: variables.isActive ? t("systemCategories.categoryDisabled") : t("systemCategories.categoryEnabled"),
-        description: variables.isActive ? t("systemCategories.categoryDisabledDesc") : t("systemCategories.categoryEnabledDesc"),
+        title: isRTL ? "تم الحذف" : "Deleted",
+        description: isRTL ? "تم حذف الفئة بنجاح" : "Category deleted successfully",
       });
     },
     onError: () => {
       toast({
         title: t("common.error"),
-        description: t("systemCategories.toggleError"),
+        description: isRTL ? "فشل في حذف الفئة" : "Failed to delete category",
         variant: "destructive",
       });
     },
   });
 
+  // ── Definition mutations ──────────────────────────────────────────────────
+
   const createDefMutation = useMutation({
-    mutationFn: async (data: typeof defFormData) => {
-      return apiRequest("POST", "/api/admin/system-definitions", data);
-    },
+    mutationFn: () =>
+      apiRequest("POST", "/api/admin/system-definitions", defFormData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/system-definitions"] });
       setIsAddDefDialogOpen(false);
@@ -193,8 +281,13 @@ export default function SettingsCategoriesPage() {
   });
 
   const updateDefMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: typeof defFormData }) => {
-      return apiRequest("PATCH", `/api/admin/system-definitions/${id}`, data);
+    mutationFn: () => {
+      if (!selectedDefinition) throw new Error("No definition selected");
+      return apiRequest(
+        "PATCH",
+        `/api/admin/system-definitions/${selectedDefinition.id}`,
+        defFormData
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/system-definitions"] });
@@ -215,107 +308,43 @@ export default function SettingsCategoriesPage() {
     },
   });
 
-  const toggleDefMutation = useMutation({
-    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
-      return apiRequest("PATCH", `/api/admin/system-definitions/${id}`, { isActive: !isActive });
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/system-definitions"] });
-      toast({
-        title: variables.isActive ? t("definitions.definitionDisabled") : t("definitions.definitionEnabled"),
-        description: variables.isActive ? t("definitions.definitionDisabledDesc") : t("definitions.definitionEnabledDesc"),
-      });
-    },
-    onError: () => {
-      toast({
-        title: t("common.error"),
-        description: t("definitions.toggleError"),
-        variant: "destructive",
-      });
-    },
-  });
+  // ── Helpers ───────────────────────────────────────────────────────────────
 
-  const resetForm = () => {
-    setFormData({
-      nameAr: "",
-      nameEn: "",
-      description: "",
-      isActive: true,
-      sortOrder: 0,
-    });
-  };
+  const resetDefForm = () =>
+    setDefFormData({ nameAr: "", nameEn: "", category: "", code: "", isActive: true });
 
-  const resetDefForm = () => {
-    setDefFormData({
-      nameAr: "",
-      nameEn: "",
-      category: "",
-      code: "",
-      isActive: true,
-    });
-  };
-
-  const handleAdd = () => {
-    resetForm();
-    setIsAddDialogOpen(true);
-  };
-
-  const handleEdit = (category: SystemCategory) => {
-    setSelectedCategory(category);
-    setFormData({
-      nameAr: category.nameAr,
-      nameEn: category.nameEn,
-      description: category.description || "",
-      isActive: category.isActive,
-      sortOrder: category.sortOrder,
+  const handleEditCategory = (cat: NormalizedLookupCategory) => {
+    setSelectedCategory(cat);
+    setCategoryForm({
+      lookupCategoryAr: cat.lookupCategoryAr,
+      lookupCategoryEn: cat.lookupCategoryEn,
     });
     setIsEditDialogOpen(true);
   };
 
-  const handleSubmitCreate = () => {
-    createMutation.mutate(formData);
-  };
-
-  const handleSubmitUpdate = () => {
-    if (selectedCategory) {
-      updateMutation.mutate({ id: selectedCategory.id, data: formData });
-    }
-  };
-
-  const handleAddDef = () => {
-    resetDefForm();
-    setIsAddDefDialogOpen(true);
-  };
-
-  const handleEditDef = (definition: SystemDefinition) => {
-    setSelectedDefinition(definition);
+  const handleEditDef = (def: SystemDefinition) => {
+    setSelectedDefinition(def);
     setDefFormData({
-      nameAr: definition.nameAr,
-      nameEn: definition.nameEn,
-      category: definition.category,
-      code: definition.code,
-      isActive: definition.isActive,
+      nameAr: def.nameAr,
+      nameEn: def.nameEn,
+      category: def.category,
+      code: def.code,
+      isActive: def.isActive,
     });
     setIsEditDefDialogOpen(true);
   };
 
-  const handleSubmitCreateDef = () => {
-    createDefMutation.mutate(defFormData);
-  };
-
-  const handleSubmitUpdateDef = () => {
-    if (selectedDefinition) {
-      updateDefMutation.mutate({ id: selectedDefinition.id, data: defFormData });
-    }
-  };
-
   const getCategoryName = (categoryCode: string) => {
-    const cat = categories.find(c => c.nameEn === categoryCode || c.nameAr === categoryCode);
-    if (cat) {
-      return language === "ar" ? cat.nameAr : cat.nameEn;
-    }
+    const cat = categories.find(
+      (c) =>
+        c.lookupCategoryEn === categoryCode || c.lookupCategoryAr === categoryCode
+    );
+    if (cat)
+      return language === "ar" ? cat.lookupCategoryAr : cat.lookupCategoryEn;
     return categoryCode;
   };
+
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <AdminLayout>
@@ -326,22 +355,29 @@ export default function SettingsCategoriesPage() {
           icon={<FolderTree className="h-5 w-5" />}
         />
 
+        {/* ── Categories Card ──────────────────────────────────────────── */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-4">
             <CardTitle>{t("systemCategories.categoriesList")}</CardTitle>
             <div className="flex items-center gap-2">
               <div className="relative">
-                <Search className={`absolute top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground start-3`} />
+                <Search className="absolute top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground start-3" />
                 <Input
                   placeholder={t("common.search")}
                   value={categorySearch}
                   onChange={(e) => setCategorySearch(e.target.value)}
-                  className={`w-48 ps-9`}
+                  className="w-48 ps-9"
                   dir={dir}
                   data-testid="input-search-categories"
                 />
               </div>
-              <Button onClick={handleAdd} data-testid="button-add-category">
+              <Button
+                onClick={() => {
+                  setCategoryForm({ lookupCategoryAr: "", lookupCategoryEn: "" });
+                  setIsAddDialogOpen(true);
+                }}
+                data-testid="button-add-category"
+              >
                 <Plus className="me-2 h-4 w-4" />
                 {t("systemCategories.addCategory")}
               </Button>
@@ -349,8 +385,8 @@ export default function SettingsCategoriesPage() {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="text-center py-8 text-muted-foreground">
-                {t("common.loading")}
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             ) : filteredCategories.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
@@ -362,56 +398,42 @@ export default function SettingsCategoriesPage() {
                   <TableRow>
                     <TableHead>{t("systemCategories.nameAr")}</TableHead>
                     <TableHead>{t("systemCategories.nameEn")}</TableHead>
-                    <TableHead>{t("common.status")}</TableHead>
                     <TableHead className="text-center">{t("common.actions")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredCategories.map((category) => (
-                    <TableRow key={category.id} data-testid={`row-category-${category.id}`}>
-                      <TableCell className="font-medium">{category.nameAr}</TableCell>
-                      <TableCell>{category.nameEn}</TableCell>
-                      <TableCell>
-                        <Badge variant={category.isActive ? "default" : "secondary"}>
-                          {category.isActive ? t("common.active") : t("common.inactive")}
-                        </Badge>
+                  {filteredCategories.map((cat) => (
+                    <TableRow
+                      key={cat.id}
+                      data-testid={`row-category-${cat.id}`}
+                    >
+                      <TableCell className="font-medium">
+                        {cat.lookupCategoryAr}
                       </TableCell>
+                      <TableCell>{cat.lookupCategoryEn}</TableCell>
                       <TableCell>
                         <div className="flex items-center justify-center gap-1">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => toggleMutation.mutate({ id: category.id, isActive: category.isActive })}
-                                data-testid={`button-toggle-category-${category.id}`}
-                              >
-                                {category.isActive ? (
-                                  <ToggleRight className="h-4 w-4 text-emerald-600" />
-                                ) : (
-                                  <ToggleLeft className="h-4 w-4 text-muted-foreground" />
-                                )}
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>{category.isActive ? t("common.disable") : t("common.enable")}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleEdit(category)}
-                                data-testid={`button-edit-category-${category.id}`}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>{t("common.edit")}</p>
-                            </TooltipContent>
-                          </Tooltip>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEditCategory(cat)}
+                            data-testid={`button-edit-category-${cat.id}`}
+                            className="h-8 w-8 text-amber-600 hover:bg-amber-50 hover:text-amber-700"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setSelectedCategory(cat);
+                              setIsDeleteDialogOpen(true);
+                            }}
+                            data-testid={`button-delete-category-${cat.id}`}
+                            className="h-8 w-8 text-red-600 hover:bg-red-50 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -422,27 +444,38 @@ export default function SettingsCategoriesPage() {
           </CardContent>
         </Card>
 
+        {/* ── Definitions Card ─────────────────────────────────────────── */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-4">
             <CardTitle className="flex items-center gap-2">
               <BookOpen className="h-5 w-5" />
               {t("definitions.title")}
             </CardTitle>
-            <div className="flex items-center gap-2 ">
-              <Select value={definitionCategoryFilter} onValueChange={setDefinitionCategoryFilter} dir={dir}>
+            <div className="flex items-center gap-2">
+              <Select
+                value={definitionCategoryFilter}
+                onValueChange={setDefinitionCategoryFilter}
+                dir={dir}
+              >
                 <SelectTrigger className="w-48" data-testid="select-filter-category">
                   <SelectValue placeholder={t("definitions.filterByCategory")} />
                 </SelectTrigger>
                 <SelectContent dir={dir}>
                   <SelectItem value="all">{t("common.all")}</SelectItem>
                   {categories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.nameEn}>
-                      {language === "ar" ? cat.nameAr : cat.nameEn}
+                    <SelectItem key={cat.id} value={cat.lookupCategoryEn}>
+                      {language === "ar" ? cat.lookupCategoryAr : cat.lookupCategoryEn}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <Button onClick={handleAddDef} data-testid="button-add-definition">
+              <Button
+                onClick={() => {
+                  resetDefForm();
+                  setIsAddDefDialogOpen(true);
+                }}
+                data-testid="button-add-definition"
+              >
                 <Plus className="me-2 h-4 w-4" />
                 {t("definitions.addDefinition")}
               </Button>
@@ -450,8 +483,8 @@ export default function SettingsCategoriesPage() {
           </CardHeader>
           <CardContent>
             {isLoadingDefs ? (
-              <div className="text-center py-8 text-muted-foreground">
-                {t("common.loading")}
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             ) : filteredDefinitions.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
@@ -469,84 +502,42 @@ export default function SettingsCategoriesPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredDefinitions.map((definition) => {
-                    const categoryActive = isCategoryActive(definition.category);
-                    const effectivelyActive = definition.isActive && categoryActive;
-                    
-                    return (
-                      <TableRow 
-                        key={definition.id} 
-                        data-testid={`row-definition-${definition.id}`}
-                        className={!categoryActive ? "opacity-60" : ""}
-                      >
-                        <TableCell className="font-medium">{definition.nameAr}</TableCell>
-                        <TableCell>{definition.nameEn}</TableCell>
-                        <TableCell>
-                          <Badge variant={categoryActive ? "outline" : "secondary"}>
-                            {getCategoryName(definition.category)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={effectivelyActive ? "default" : "secondary"}>
-                            {effectivelyActive ? t("common.active") : t("common.inactive")}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center justify-center gap-1">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => toggleDefMutation.mutate({ id: definition.id, isActive: definition.isActive })}
-                                  disabled={!categoryActive}
-                                  data-testid={`button-toggle-definition-${definition.id}`}
-                                >
-                                  {definition.isActive ? (
-                                    <ToggleRight className={`h-4 w-4 ${categoryActive ? 'text-emerald-600' : 'text-muted-foreground'}`} />
-                                  ) : (
-                                    <ToggleLeft className="h-4 w-4 text-muted-foreground" />
-                                  )}
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>
-                                  {!categoryActive 
-                                    ? t("definitions.categoryDisabled")
-                                    : definition.isActive 
-                                      ? t("common.disable") 
-                                      : t("common.enable")
-                                  }
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleEditDef(definition)}
-                                  disabled={!categoryActive}
-                                  data-testid={`button-edit-definition-${definition.id}`}
-                                >
-                                  <Pencil className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>{t("common.edit")}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                  {filteredDefinitions.map((def) => (
+                    <TableRow key={def.id} data-testid={`row-definition-${def.id}`}>
+                      <TableCell className="font-medium">{def.nameAr}</TableCell>
+                      <TableCell>{def.nameEn}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {getCategoryName(def.category)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={def.isActive ? "default" : "secondary"}>
+                          {def.isActive ? t("common.active") : t("common.inactive")}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEditDef(def)}
+                            data-testid={`button-edit-definition-${def.id}`}
+                            className="h-8 w-8 text-amber-600 hover:bg-amber-50 hover:text-amber-700"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             )}
           </CardContent>
         </Card>
 
+        {/* ── Add Category Dialog ──────────────────────────────────────── */}
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogContent dir={dir}>
             <DialogHeader>
@@ -557,32 +548,27 @@ export default function SettingsCategoriesPage() {
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="nameAr">{t("systemCategories.nameAr")}</Label>
+                <Label htmlFor="cat-name-ar">{t("systemCategories.nameAr")}</Label>
                 <Input
-                  id="nameAr"
-                  value={formData.nameAr}
-                  onChange={(e) => setFormData({ ...formData, nameAr: e.target.value })}
+                  id="cat-name-ar"
+                  value={categoryForm.lookupCategoryAr}
+                  onChange={(e) =>
+                    setCategoryForm({ ...categoryForm, lookupCategoryAr: e.target.value })
+                  }
                   dir="rtl"
                   data-testid="input-category-name-ar"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="nameEn">{t("systemCategories.nameEn")}</Label>
+                <Label htmlFor="cat-name-en">{t("systemCategories.nameEn")}</Label>
                 <Input
-                  id="nameEn"
-                  value={formData.nameEn}
-                  onChange={(e) => setFormData({ ...formData, nameEn: e.target.value })}
+                  id="cat-name-en"
+                  value={categoryForm.lookupCategoryEn}
+                  onChange={(e) =>
+                    setCategoryForm({ ...categoryForm, lookupCategoryEn: e.target.value })
+                  }
                   dir="ltr"
                   data-testid="input-category-name-en"
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="isActive">{t("common.active")}</Label>
-                <Switch
-                  id="isActive"
-                  checked={formData.isActive}
-                  onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
-                  data-testid="switch-category-active"
                 />
               </div>
             </div>
@@ -590,17 +576,25 @@ export default function SettingsCategoriesPage() {
               <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                 {t("common.cancel")}
               </Button>
-              <Button 
-                onClick={handleSubmitCreate} 
-                disabled={createMutation.isPending || !formData.nameAr || !formData.nameEn}
+              <Button
+                onClick={() => createMutation.mutate()}
+                disabled={
+                  createMutation.isPending ||
+                  !categoryForm.lookupCategoryAr ||
+                  !categoryForm.lookupCategoryEn
+                }
                 data-testid="button-submit-create-category"
               >
-                {createMutation.isPending ? t("common.loading") : t("common.add")}
+                {createMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 me-2 animate-spin" />
+                ) : null}
+                {t("common.add")}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
+        {/* ── Edit Category Dialog ─────────────────────────────────────── */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent dir={dir}>
             <DialogHeader>
@@ -611,32 +605,27 @@ export default function SettingsCategoriesPage() {
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="editNameAr">{t("systemCategories.nameAr")}</Label>
+                <Label htmlFor="edit-cat-name-ar">{t("systemCategories.nameAr")}</Label>
                 <Input
-                  id="editNameAr"
-                  value={formData.nameAr}
-                  onChange={(e) => setFormData({ ...formData, nameAr: e.target.value })}
+                  id="edit-cat-name-ar"
+                  value={categoryForm.lookupCategoryAr}
+                  onChange={(e) =>
+                    setCategoryForm({ ...categoryForm, lookupCategoryAr: e.target.value })
+                  }
                   dir="rtl"
                   data-testid="input-edit-category-name-ar"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="editNameEn">{t("systemCategories.nameEn")}</Label>
+                <Label htmlFor="edit-cat-name-en">{t("systemCategories.nameEn")}</Label>
                 <Input
-                  id="editNameEn"
-                  value={formData.nameEn}
-                  onChange={(e) => setFormData({ ...formData, nameEn: e.target.value })}
+                  id="edit-cat-name-en"
+                  value={categoryForm.lookupCategoryEn}
+                  onChange={(e) =>
+                    setCategoryForm({ ...categoryForm, lookupCategoryEn: e.target.value })
+                  }
                   dir="ltr"
                   data-testid="input-edit-category-name-en"
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="editIsActive">{t("common.active")}</Label>
-                <Switch
-                  id="editIsActive"
-                  checked={formData.isActive}
-                  onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
-                  data-testid="switch-edit-category-active"
                 />
               </div>
             </div>
@@ -644,17 +633,58 @@ export default function SettingsCategoriesPage() {
               <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
                 {t("common.cancel")}
               </Button>
-              <Button 
-                onClick={handleSubmitUpdate} 
-                disabled={updateMutation.isPending || !formData.nameAr || !formData.nameEn}
+              <Button
+                onClick={() => updateMutation.mutate()}
+                disabled={
+                  updateMutation.isPending ||
+                  !categoryForm.lookupCategoryAr ||
+                  !categoryForm.lookupCategoryEn
+                }
                 data-testid="button-submit-update-category"
               >
-                {updateMutation.isPending ? t("common.loading") : t("common.save")}
+                {updateMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 me-2 animate-spin" />
+                ) : null}
+                {t("common.save")}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
+        {/* ── Delete Category Confirmation ─────────────────────────────── */}
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-destructive/10 mb-3">
+                <Trash2 className="h-6 w-6 text-destructive" />
+              </div>
+              <AlertDialogTitle>
+                {isRTL ? "تأكيد الحذف" : "Confirm Delete"}
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                {isRTL
+                  ? `هل أنت متأكد من حذف الفئة "${selectedCategory?.lookupCategoryAr}"؟`
+                  : `Are you sure you want to delete category "${selectedCategory?.lookupCategoryEn}"?`}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel data-testid="button-cancel-delete">
+                {t("common.cancel")}
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() =>
+                  selectedCategory && deleteMutation.mutate(selectedCategory.id)
+                }
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                data-testid="button-confirm-delete"
+              >
+                {isRTL ? "حذف" : "Delete"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* ── Add Definition Dialog ────────────────────────────────────── */}
         <Dialog open={isAddDefDialogOpen} onOpenChange={setIsAddDefDialogOpen}>
           <DialogContent dir={dir}>
             <DialogHeader>
@@ -669,7 +699,9 @@ export default function SettingsCategoriesPage() {
                 <Input
                   id="defNameAr"
                   value={defFormData.nameAr}
-                  onChange={(e) => setDefFormData({ ...defFormData, nameAr: e.target.value })}
+                  onChange={(e) =>
+                    setDefFormData({ ...defFormData, nameAr: e.target.value })
+                  }
                   dir="rtl"
                   data-testid="input-definition-name-ar"
                 />
@@ -679,7 +711,9 @@ export default function SettingsCategoriesPage() {
                 <Input
                   id="defNameEn"
                   value={defFormData.nameEn}
-                  onChange={(e) => setDefFormData({ ...defFormData, nameEn: e.target.value })}
+                  onChange={(e) =>
+                    setDefFormData({ ...defFormData, nameEn: e.target.value })
+                  }
                   dir="ltr"
                   data-testid="input-definition-name-en"
                 />
@@ -688,16 +722,18 @@ export default function SettingsCategoriesPage() {
                 <Label htmlFor="defCategory">{t("definitions.category")}</Label>
                 <Select
                   value={defFormData.category}
-                  onValueChange={(value) => setDefFormData({ ...defFormData, category: value })}
+                  onValueChange={(value) =>
+                    setDefFormData({ ...defFormData, category: value })
+                  }
                   dir={dir}
                 >
                   <SelectTrigger data-testid="select-definition-category">
                     <SelectValue placeholder={t("definitions.selectCategory")} />
                   </SelectTrigger>
                   <SelectContent dir={dir}>
-                    {categories.filter(c => c.isActive).map((cat) => (
-                      <SelectItem key={cat.id} value={cat.nameEn}>
-                        {language === "ar" ? cat.nameAr : cat.nameEn}
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.lookupCategoryEn}>
+                        {language === "ar" ? cat.lookupCategoryAr : cat.lookupCategoryEn}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -708,7 +744,9 @@ export default function SettingsCategoriesPage() {
                 <Input
                   id="defCode"
                   value={defFormData.code}
-                  onChange={(e) => setDefFormData({ ...defFormData, code: e.target.value })}
+                  onChange={(e) =>
+                    setDefFormData({ ...defFormData, code: e.target.value })
+                  }
                   dir="ltr"
                   data-testid="input-definition-code"
                 />
@@ -718,7 +756,9 @@ export default function SettingsCategoriesPage() {
                 <Switch
                   id="defIsActive"
                   checked={defFormData.isActive}
-                  onCheckedChange={(checked) => setDefFormData({ ...defFormData, isActive: checked })}
+                  onCheckedChange={(checked) =>
+                    setDefFormData({ ...defFormData, isActive: checked })
+                  }
                   data-testid="switch-definition-active"
                 />
               </div>
@@ -727,17 +767,26 @@ export default function SettingsCategoriesPage() {
               <Button variant="outline" onClick={() => setIsAddDefDialogOpen(false)}>
                 {t("common.cancel")}
               </Button>
-              <Button 
-                onClick={handleSubmitCreateDef} 
-                disabled={createDefMutation.isPending || !defFormData.nameAr || !defFormData.nameEn || !defFormData.category}
+              <Button
+                onClick={() => createDefMutation.mutate()}
+                disabled={
+                  createDefMutation.isPending ||
+                  !defFormData.nameAr ||
+                  !defFormData.nameEn ||
+                  !defFormData.category
+                }
                 data-testid="button-submit-create-definition"
               >
-                {createDefMutation.isPending ? t("common.loading") : t("common.add")}
+                {createDefMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 me-2 animate-spin" />
+                ) : null}
+                {t("common.add")}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
+        {/* ── Edit Definition Dialog ───────────────────────────────────── */}
         <Dialog open={isEditDefDialogOpen} onOpenChange={setIsEditDefDialogOpen}>
           <DialogContent dir={dir}>
             <DialogHeader>
@@ -752,7 +801,9 @@ export default function SettingsCategoriesPage() {
                 <Input
                   id="editDefNameAr"
                   value={defFormData.nameAr}
-                  onChange={(e) => setDefFormData({ ...defFormData, nameAr: e.target.value })}
+                  onChange={(e) =>
+                    setDefFormData({ ...defFormData, nameAr: e.target.value })
+                  }
                   dir="rtl"
                   data-testid="input-edit-definition-name-ar"
                 />
@@ -762,7 +813,9 @@ export default function SettingsCategoriesPage() {
                 <Input
                   id="editDefNameEn"
                   value={defFormData.nameEn}
-                  onChange={(e) => setDefFormData({ ...defFormData, nameEn: e.target.value })}
+                  onChange={(e) =>
+                    setDefFormData({ ...defFormData, nameEn: e.target.value })
+                  }
                   dir="ltr"
                   data-testid="input-edit-definition-name-en"
                 />
@@ -771,16 +824,18 @@ export default function SettingsCategoriesPage() {
                 <Label htmlFor="editDefCategory">{t("definitions.category")}</Label>
                 <Select
                   value={defFormData.category}
-                  onValueChange={(value) => setDefFormData({ ...defFormData, category: value })}
+                  onValueChange={(value) =>
+                    setDefFormData({ ...defFormData, category: value })
+                  }
                   dir={dir}
                 >
                   <SelectTrigger data-testid="select-edit-definition-category">
                     <SelectValue placeholder={t("definitions.selectCategory")} />
                   </SelectTrigger>
                   <SelectContent dir={dir}>
-                    {categories.filter(c => c.isActive).map((cat) => (
-                      <SelectItem key={cat.id} value={cat.nameEn}>
-                        {language === "ar" ? cat.nameAr : cat.nameEn}
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.lookupCategoryEn}>
+                        {language === "ar" ? cat.lookupCategoryAr : cat.lookupCategoryEn}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -791,7 +846,9 @@ export default function SettingsCategoriesPage() {
                 <Input
                   id="editDefCode"
                   value={defFormData.code}
-                  onChange={(e) => setDefFormData({ ...defFormData, code: e.target.value })}
+                  onChange={(e) =>
+                    setDefFormData({ ...defFormData, code: e.target.value })
+                  }
                   dir="ltr"
                   data-testid="input-edit-definition-code"
                 />
@@ -801,7 +858,9 @@ export default function SettingsCategoriesPage() {
                 <Switch
                   id="editDefIsActive"
                   checked={defFormData.isActive}
-                  onCheckedChange={(checked) => setDefFormData({ ...defFormData, isActive: checked })}
+                  onCheckedChange={(checked) =>
+                    setDefFormData({ ...defFormData, isActive: checked })
+                  }
                   data-testid="switch-edit-definition-active"
                 />
               </div>
@@ -810,12 +869,20 @@ export default function SettingsCategoriesPage() {
               <Button variant="outline" onClick={() => setIsEditDefDialogOpen(false)}>
                 {t("common.cancel")}
               </Button>
-              <Button 
-                onClick={handleSubmitUpdateDef} 
-                disabled={updateDefMutation.isPending || !defFormData.nameAr || !defFormData.nameEn || !defFormData.category}
+              <Button
+                onClick={() => updateDefMutation.mutate()}
+                disabled={
+                  updateDefMutation.isPending ||
+                  !defFormData.nameAr ||
+                  !defFormData.nameEn ||
+                  !defFormData.category
+                }
                 data-testid="button-submit-update-definition"
               >
-                {updateDefMutation.isPending ? t("common.loading") : t("common.save")}
+                {updateDefMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 me-2 animate-spin" />
+                ) : null}
+                {t("common.save")}
               </Button>
             </DialogFooter>
           </DialogContent>
