@@ -1,6 +1,19 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
+function clearAuthAndRedirect() {
+  localStorage.removeItem("lottery_user");
+  localStorage.removeItem("lottery_token");
+  localStorage.removeItem("lottery_refresh_token");
+  if (!window.location.pathname.startsWith("/login")) {
+    window.location.href = "/login";
+  }
+}
+
 async function throwIfResNotOk(res: Response) {
+  if (res.status === 401) {
+    clearAuthAndRedirect();
+    throw new Error("401: Session expired. Please log in again.");
+  }
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
     throw new Error(`${res.status}: ${text}`);
@@ -13,7 +26,7 @@ export async function apiRequest(
   data?: unknown | undefined,
 ): Promise<Response> {
   const headers: Record<string, string> = {};
-  if (data) {
+  if (data !== undefined) {
     headers["Content-Type"] = "application/json";
   }
   const token = localStorage.getItem("lottery_token");
@@ -23,9 +36,14 @@ export async function apiRequest(
   const res = await fetch(url, {
     method,
     headers,
-    body: data ? JSON.stringify(data) : undefined,
+    body: data !== undefined ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
+
+  if (res.status === 401) {
+    clearAuthAndRedirect();
+    throw new Error("401: Session expired. Please log in again.");
+  }
 
   await throwIfResNotOk(res);
   return res;
@@ -47,8 +65,12 @@ export const getQueryFn: <T>(options: {
       headers,
     });
 
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      return null;
+    if (res.status === 401) {
+      if (unauthorizedBehavior === "returnNull") {
+        return null;
+      }
+      clearAuthAndRedirect();
+      throw new Error("401: Session expired. Please log in again.");
     }
 
     await throwIfResNotOk(res);
@@ -58,7 +80,7 @@ export const getQueryFn: <T>(options: {
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      queryFn: getQueryFn({ on401: "throw" }),
+      queryFn: getQueryFn({ on401: "returnNull" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
       staleTime: Infinity,
