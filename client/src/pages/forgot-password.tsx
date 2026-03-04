@@ -2,46 +2,48 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useLocation } from "wouter";
-import { ArrowLeft, Loader2, Mail, KeyRound, Check, Eye, EyeOff, Lock } from "lucide-react";
+import { ArrowLeft, Loader2, Mail, Check, Eye, EyeOff, Lock, Phone, KeyRound } from "lucide-react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/lib/language-context";
 import { AuthLayout } from "@/components/auth-layout";
 import { apiRequest } from "@/lib/queryClient";
 
 const requestSchema = z.object({
-  email: z.string().email("عنوان بريد إلكتروني غير صالح"),
-  phoneNumber: z.string().optional(),
+  email: z.string().email("Invalid email address"),
+  phoneNumber: z.string().min(7, "Phone number must be at least 7 digits"),
 });
 
-const newPasswordSchema = z.object({
-  newPassword: z.string()
-    .min(8, "كلمة المرور يجب أن تكون 8 أحرف على الأقل")
-    .regex(/[A-Z]/, "يجب أن تحتوي على حرف كبير واحد على الأقل")
-    .regex(/[a-z]/, "يجب أن تحتوي على حرف صغير واحد على الأقل")
-    .regex(/[0-9]/, "يجب أن تحتوي على رقم واحد على الأقل"),
+const resetSchema = z.object({
+  resetToken: z.string().min(1, "Reset token is required"),
+  newPassword: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[A-Z]/, "Must contain at least one uppercase letter")
+    .regex(/[a-z]/, "Must contain at least one lowercase letter")
+    .regex(/[0-9]/, "Must contain at least one number"),
   confirmPassword: z.string(),
 }).refine((data) => data.newPassword === data.confirmPassword, {
-  message: "كلمات المرور غير متطابقة",
+  message: "Passwords do not match",
   path: ["confirmPassword"],
 });
 
 type RequestData = z.infer<typeof requestSchema>;
-type PasswordData = z.infer<typeof newPasswordSchema>;
+type ResetData = z.infer<typeof resetSchema>;
 
-type Step = "request" | "verify" | "reset" | "success";
+type Step = "request" | "reset" | "success";
 
 export default function ForgotPasswordPage() {
   const [step, setStep] = useState<Step>("request");
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
-  const [otpValue, setOtpValue] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { t, language } = useLanguage();
@@ -52,27 +54,49 @@ export default function ForgotPasswordPage() {
     defaultValues: { email: "", phoneNumber: "" },
   });
 
-  const passwordForm = useForm<PasswordData>({
-    resolver: zodResolver(newPasswordSchema),
-    defaultValues: { newPassword: "", confirmPassword: "" },
+  const resetForm = useForm<ResetData>({
+    resolver: zodResolver(resetSchema),
+    defaultValues: { resetToken: "", newPassword: "", confirmPassword: "" },
   });
 
   const handleRequestSubmit = async (data: RequestData) => {
     setIsLoading(true);
     try {
-      const response = await apiRequest("POST", "/api/Auth/forgot-password", {
-        email: data.email,
-        phoneNumber: data.phoneNumber || undefined,
+      const response = await fetch("/api/Auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: data.email, phoneNumber: data.phoneNumber }),
       });
-      const result = await response.json();
-      
-      setEmail(data.email);
-      setStep("verify");
-      toast({
-        title: isRTL ? "تم إرسال رمز التحقق" : "Verification code sent",
-        description: isRTL ? "يرجى التحقق من بريدك الإلكتروني للحصول على رمز OTP." : "Please check your email for the OTP code.",
-      });
-    } catch (error) {
+      let result: any = {};
+      try { result = await response.json(); } catch {}
+
+      const ok =
+        response.ok ||
+        result.success === true ||
+        result.isSucceeded === true ||
+        result.succeeded === true;
+
+      if (ok || response.status === 200) {
+        setEmail(data.email);
+        setPhoneNumber(data.phoneNumber);
+        setStep("reset");
+        toast({
+          title: isRTL ? "تم إرسال رابط إعادة التعيين" : "Reset link sent",
+          description: isRTL
+            ? "يرجى التحقق من بريدك الإلكتروني للحصول على رمز إعادة التعيين."
+            : "Please check your email for the reset token.",
+        });
+      } else {
+        toast({
+          title: isRTL ? "فشل الطلب" : "Request failed",
+          description:
+            result.message ||
+            result.error ||
+            (isRTL ? "حدث خطأ. يرجى المحاولة مرة أخرى." : "An error occurred. Please try again."),
+          variant: "destructive",
+        });
+      }
+    } catch {
       toast({
         title: isRTL ? "فشل الطلب" : "Request failed",
         description: isRTL ? "حدث خطأ. يرجى المحاولة مرة أخرى." : "An error occurred. Please try again.",
@@ -83,62 +107,48 @@ export default function ForgotPasswordPage() {
     }
   };
 
-  const handleVerifyOTP = async () => {
-    if (otpValue.length !== 6) {
-      toast({
-        title: isRTL ? "خطأ" : "Error",
-        description: isRTL ? "يرجى إدخال رمز التحقق المكون من 6 أرقام" : "Please enter the 6-digit verification code",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  const handleResetSubmit = async (data: ResetData) => {
     setIsLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      if (otpValue === "123456" || otpValue.length === 6) {
-        setStep("reset");
-        toast({
-          title: isRTL ? "تم التحقق بنجاح" : "Verified successfully",
-          description: isRTL ? "يمكنك الآن إنشاء كلمة مرور جديدة." : "You can now create a new password.",
-        });
-      } else {
-        toast({
-          title: isRTL ? "رمز غير صحيح" : "Invalid code",
-          description: isRTL ? "يرجى التحقق من الرمز والمحاولة مرة أخرى." : "Please check the code and try again.",
-          variant: "destructive",
-        });
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handlePasswordSubmit = async (data: PasswordData) => {
-    setIsLoading(true);
-    try {
-      const response = await apiRequest("POST", "/api/Auth/reset-password", {
-        email,
-        resetToken: otpValue,
-        newPassword: data.newPassword,
-        confirmPassword: data.confirmPassword,
+      const response = await fetch("/api/Auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          phoneNumber,
+          resetToken: data.resetToken,
+          newPassword: data.newPassword,
+          confirmPassword: data.confirmPassword,
+        }),
       });
-      const result = await response.json();
-      
-      if (result.success) {
+      let result: any = {};
+      try { result = await response.json(); } catch {}
+
+      const ok =
+        response.ok ||
+        result.success === true ||
+        result.isSucceeded === true ||
+        result.succeeded === true;
+
+      if (ok) {
         setStep("success");
         toast({
           title: isRTL ? "تم تغيير كلمة المرور" : "Password changed",
-          description: isRTL ? "يمكنك الآن تسجيل الدخول بكلمة المرور الجديدة." : "You can now log in with your new password.",
+          description: isRTL
+            ? "يمكنك الآن تسجيل الدخول بكلمة المرور الجديدة."
+            : "You can now log in with your new password.",
         });
       } else {
         toast({
           title: isRTL ? "فشل التغيير" : "Change failed",
-          description: result.error || (isRTL ? "حدث خطأ. يرجى المحاولة مرة أخرى." : "An error occurred. Please try again."),
+          description:
+            result.message ||
+            result.error ||
+            (isRTL ? "رمز إعادة التعيين غير صالح أو منتهي الصلاحية." : "Invalid or expired reset token."),
           variant: "destructive",
         });
       }
-    } catch (error) {
+    } catch {
       toast({
         title: isRTL ? "فشل التغيير" : "Change failed",
         description: isRTL ? "حدث خطأ. يرجى المحاولة مرة أخرى." : "An error occurred. Please try again.",
@@ -149,16 +159,15 @@ export default function ForgotPasswordPage() {
     }
   };
 
-  const inputClasses = "h-11 bg-muted/50 border-muted-foreground/20 focus:bg-background transition-colors rounded-lg";
+  const inputClasses =
+    "h-11 bg-muted/50 border-muted-foreground/20 focus:bg-background transition-colors rounded-lg";
 
   const getStepIndicator = () => {
     const steps = [
       { key: "request", label: isRTL ? "طلب" : "Request" },
-      { key: "verify", label: isRTL ? "تحقق" : "Verify" },
       { key: "reset", label: isRTL ? "تغيير" : "Reset" },
     ];
-    const currentIndex = steps.findIndex(s => s.key === step);
-
+    const currentIndex = steps.findIndex((s) => s.key === step);
     return (
       <div className="flex items-center justify-center gap-2 mb-6">
         {steps.map((s, index) => (
@@ -173,7 +182,9 @@ export default function ForgotPasswordPage() {
               {index < currentIndex ? <Check className="h-4 w-4" /> : index + 1}
             </div>
             {index < steps.length - 1 && (
-              <div className={`w-8 h-0.5 mx-1 ${index < currentIndex ? "bg-primary" : "bg-muted"}`} />
+              <div
+                className={`w-8 h-0.5 mx-1 ${index < currentIndex ? "bg-primary" : "bg-muted"}`}
+              />
             )}
           </div>
         ))}
@@ -188,21 +199,30 @@ export default function ForgotPasswordPage() {
           {step !== "success" && getStepIndicator()}
           <CardTitle className="text-2xl font-semibold text-center">
             {step === "request" && (isRTL ? "نسيت كلمة المرور؟" : "Forgot your password?")}
-            {step === "verify" && (isRTL ? "التحقق من الهوية" : "Identity verification")}
             {step === "reset" && (isRTL ? "إنشاء كلمة مرور جديدة" : "Create new password")}
             {step === "success" && (isRTL ? "تم بنجاح!" : "Success!")}
           </CardTitle>
           <CardDescription className="text-center">
-            {step === "request" && (isRTL ? "أدخل بريدك الإلكتروني ورقم هاتفك لإعادة تعيين كلمة المرور" : "Enter your email and phone number to reset your password")}
-            {step === "verify" && (isRTL ? `أدخل رمز OTP المرسل إلى ${email}` : `Enter the OTP sent to ${email}`)}
-            {step === "reset" && (isRTL ? "أنشئ كلمة مرور قوية وآمنة" : "Create a strong, secure password")}
-            {step === "success" && (isRTL ? "تم تغيير كلمة المرور بنجاح" : "Password changed successfully")}
+            {step === "request" &&
+              (isRTL
+                ? "أدخل بريدك الإلكتروني ورقم هاتفك لإعادة تعيين كلمة المرور"
+                : "Enter your email and phone number to reset your password")}
+            {step === "reset" &&
+              (isRTL
+                ? `أدخل رمز إعادة التعيين المرسل إلى ${email} وكلمة المرور الجديدة`
+                : `Enter the reset token sent to ${email} and your new password`)}
+            {step === "success" &&
+              (isRTL ? "تم تغيير كلمة المرور بنجاح" : "Password changed successfully")}
           </CardDescription>
         </CardHeader>
+
         <CardContent>
           {step === "request" && (
             <Form {...requestForm}>
-              <form onSubmit={requestForm.handleSubmit(handleRequestSubmit)} className="space-y-4">
+              <form
+                onSubmit={requestForm.handleSubmit(handleRequestSubmit)}
+                className="space-y-4"
+              >
                 <FormField
                   control={requestForm.control}
                   name="email"
@@ -233,14 +253,17 @@ export default function ForgotPasswordPage() {
                     <FormItem>
                       <FormLabel>{isRTL ? "رقم الهاتف" : "Phone number"}</FormLabel>
                       <FormControl>
-                        <Input
-                          type="tel"
-                          placeholder="+962 7X XXX XXXX"
-                          className={inputClasses}
-                          dir="ltr"
-                          data-testid="input-mobile"
-                          {...field}
-                        />
+                        <div className="relative">
+                          <Phone className="absolute ltr:right-3 rtl:left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            type="tel"
+                            placeholder="+962 7X XXX XXXX"
+                            className={`${inputClasses} ltr:pr-10 rtl:pl-10`}
+                            dir="ltr"
+                            data-testid="input-mobile"
+                            {...field}
+                          />
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -258,84 +281,53 @@ export default function ForgotPasswordPage() {
                       <Loader2 className="ltr:mr-2 rtl:ml-2 h-4 w-4 animate-spin" />
                       {isRTL ? "جارٍ الإرسال..." : "Sending..."}
                     </>
+                  ) : isRTL ? (
+                    "إرسال رابط إعادة التعيين"
                   ) : (
-                    isRTL ? "إرسال رمز التحقق" : "Send verification code"
+                    "Send reset link"
                   )}
                 </Button>
               </form>
             </Form>
           )}
 
-          {step === "verify" && (
-            <div className="space-y-6">
-              <div className="flex justify-center">
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center animate-pulse-glow">
-                  <KeyRound className="h-8 w-8 text-primary" />
-                </div>
-              </div>
-
-              <div className="flex justify-center">
-                <InputOTP
-                  maxLength={6}
-                  value={otpValue}
-                  onChange={setOtpValue}
-                  data-testid="input-otp"
-                >
-                  <InputOTPGroup className="gap-2">
-                    {[0, 1, 2, 3, 4, 5].map((index) => (
-                      <InputOTPSlot
-                        key={index}
-                        index={index}
-                        className="w-12 h-14 text-xl font-semibold rounded-lg border-2"
-                      />
-                    ))}
-                  </InputOTPGroup>
-                </InputOTP>
-              </div>
-
-              <p className="text-center text-sm text-muted-foreground">
-                {isRTL ? "للتجربة: استخدم أي رمز مكون من 6 أرقام" : "For testing: use any 6-digit code"}
-              </p>
-
-              <Button
-                onClick={handleVerifyOTP}
-                className="w-full h-11 font-semibold shadow-lg shadow-primary/25 btn-premium"
-                disabled={isLoading || otpValue.length !== 6}
-                data-testid="button-verify"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="ltr:mr-2 rtl:ml-2 h-4 w-4 animate-spin" />
-                    {isRTL ? "جارٍ التحقق..." : "Verifying..."}
-                  </>
-                ) : (
-                  isRTL ? "تحقق من الرمز" : "Verify code"
-                )}
-              </Button>
-
-              <Button
-                variant="ghost"
-                className="w-full"
-                onClick={() => { setStep("request"); setOtpValue(""); }}
-                data-testid="button-back"
-              >
-                <ArrowLeft className="h-4 w-4 ltr:mr-2 rtl:ml-2" />
-                {isRTL ? "جرب بريد إلكتروني مختلف" : "Try a different email"}
-              </Button>
-            </div>
-          )}
-
           {step === "reset" && (
-            <Form {...passwordForm}>
-              <form onSubmit={passwordForm.handleSubmit(handlePasswordSubmit)} className="space-y-4">
-                <div className="flex justify-center mb-4">
-                  <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Lock className="h-8 w-8 text-primary" />
+            <Form {...resetForm}>
+              <form
+                onSubmit={resetForm.handleSubmit(handleResetSubmit)}
+                className="space-y-4"
+              >
+                <div className="flex justify-center mb-2">
+                  <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
+                    <KeyRound className="h-7 w-7 text-primary" />
                   </div>
                 </div>
 
                 <FormField
-                  control={passwordForm.control}
+                  control={resetForm.control}
+                  name="resetToken"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        {isRTL ? "رمز إعادة التعيين (من البريد الإلكتروني)" : "Reset token (from email)"}
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="text"
+                          placeholder={isRTL ? "الصق رمز إعادة التعيين هنا" : "Paste your reset token here"}
+                          className={inputClasses}
+                          dir="ltr"
+                          data-testid="input-reset-token"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={resetForm.control}
                   name="newPassword"
                   render={({ field }) => (
                     <FormItem>
@@ -364,19 +356,28 @@ export default function ForgotPasswordPage() {
                 />
 
                 <FormField
-                  control={passwordForm.control}
+                  control={resetForm.control}
                   name="confirmPassword"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>{isRTL ? "تأكيد كلمة المرور" : "Confirm password"}</FormLabel>
                       <FormControl>
-                        <Input
-                          type={showPassword ? "text" : "password"}
-                          placeholder={isRTL ? "أعد إدخال كلمة المرور" : "Re-enter password"}
-                          className={inputClasses}
-                          data-testid="input-confirm-password"
-                          {...field}
-                        />
+                        <div className="relative">
+                          <Input
+                            type={showConfirm ? "text" : "password"}
+                            placeholder={isRTL ? "أعد إدخال كلمة المرور" : "Re-enter password"}
+                            className={`${inputClasses} ltr:pr-12 rtl:pl-12`}
+                            data-testid="input-confirm-password"
+                            {...field}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowConfirm(!showConfirm)}
+                            className="absolute ltr:right-3 rtl:left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition"
+                          >
+                            {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -384,7 +385,9 @@ export default function ForgotPasswordPage() {
                 />
 
                 <div className="text-xs text-muted-foreground space-y-1 p-3 bg-muted/50 rounded-lg">
-                  <p className="font-medium mb-2">{isRTL ? "متطلبات كلمة المرور:" : "Password requirements:"}</p>
+                  <p className="font-medium mb-2">
+                    {isRTL ? "متطلبات كلمة المرور:" : "Password requirements:"}
+                  </p>
                   <p>• {isRTL ? "8 أحرف على الأقل" : "At least 8 characters"}</p>
                   <p>• {isRTL ? "حرف كبير واحد على الأقل" : "At least one uppercase letter"}</p>
                   <p>• {isRTL ? "حرف صغير واحد على الأقل" : "At least one lowercase letter"}</p>
@@ -402,9 +405,22 @@ export default function ForgotPasswordPage() {
                       <Loader2 className="ltr:mr-2 rtl:ml-2 h-4 w-4 animate-spin" />
                       {isRTL ? "جارٍ الحفظ..." : "Saving..."}
                     </>
+                  ) : isRTL ? (
+                    "حفظ كلمة المرور الجديدة"
                   ) : (
-                    isRTL ? "حفظ كلمة المرور الجديدة" : "Save new password"
+                    "Save new password"
                   )}
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full"
+                  onClick={() => { setStep("request"); resetForm.reset(); }}
+                  data-testid="button-back"
+                >
+                  <ArrowLeft className="h-4 w-4 ltr:mr-2 rtl:ml-2" />
+                  {isRTL ? "جرب بريد إلكتروني مختلف" : "Try a different email"}
                 </Button>
               </form>
             </Form>

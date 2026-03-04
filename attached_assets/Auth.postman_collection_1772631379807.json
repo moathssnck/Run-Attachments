@@ -1,0 +1,438 @@
+{
+  "info": {
+    "_postman_id": "4d38481b-cff5-402b-9852-c74026127de0",
+    "name": "Auth",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "51925085",
+    "_collection_link": "https://go.postman.co/collection/29386686-4d38481b-cff5-402b-9852-c74026127de0?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Register",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "accept",
+            "value": "*/*"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept-Language",
+            "value": "ar",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n \"email\": \"mut12345621@example.com\",\r\n  \"phoneNumber\": \"07824957631\",\r\n  \"codePhoneNumberId\": 1,\r\n  \"password\": \"P@ssw0rd111\",\r\n  \"confirmPassword\": \"P@ssw0rd111\",\r\n  \"firstName\": \"Mustafa\",\r\n  \"lastName\": \"Ghnaim\",\r\n  \"Birthday\" : \"2026-02-05T11:10:57.467Z\",\r\n  \"gender\": 1,\r\n  \"countryId\": 1,\r\n  \"city\" : \"Amman\",\r\n  \"area\": \"aljebha\",\r\n  \"Address\": \"Jordan street\",\r\n  \"documentOrPassportNumber\": \"GR0LYXDI7ZBZS4MQSAT7\",\r\n  \"profileImage\": \"jo.png\",//url in config https://flagcdn.com/w320/\r\n  \"acceptTerms\": true\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{URL}}/api/Auth/register",
+          "host": [
+            "{{URL}}"
+          ],
+          "path": [
+            "api",
+            "Auth",
+            "register"
+          ]
+        },
+        "description": "Generated from cURL: curl -X 'POST' \\\r\n  'http://localhost:8080/api/Auth/register' \\\r\n  -H 'accept: */*' \\\r\n  -H 'Content-Type: application/json' \\\r\n  -d '{\r\n  \"email\": \"user@example.com\",\r\n  \"phoneNumber\": \"string\",\r\n  \"codePhoneNumberId\": 0,\r\n  \"password\": \"stringst\",\r\n  \"confirmPassword\": \"string\",\r\n  \"firstName\": \"string\",\r\n  \"lastName\": \"string\",\r\n  \"gender\": 1,\r\n  \"countryId\": 2147483647,\r\n  \"documentOrPassportNumber\": \"GR0LYXDI7ZBZS4MQSAT7\",\r\n  \"profileImage\": \"string\",\r\n  \"acceptTerms\": true\r\n}'"
+      },
+      "response": []
+    },
+    {
+      "name": "Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept-Language",
+            "value": "ar",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n      \"email\": \"mut12345621@EXAMPLE.COM\",//add phone\r\n  \"phoneNumber\": \"07824957631\",\r\n  \"password\": \"P@ssw0rd111\",\r\n  \"rememberMe\": true,\r\n // \"Language\" : \"ar\"\r\n    \"Language\" : \"en\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{URL}}/api/Auth/login",
+          "host": [
+            "{{URL}}"
+          ],
+          "path": [
+            "api",
+            "Auth",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Refresh",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "accept",
+            "value": "*/*"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept-Language",
+            "value": "ar",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"refreshToken\": \"PKzj+S0IV4NrovUDG36hZzWAURMXCnJmwrDoy51mI13FDK2rEUs1REWm8zq7FBVVRVmq5t7m+XZQo3S4TNWMXw==\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{URL}}/api/Auth/refresh",
+          "host": [
+            "{{URL}}"
+          ],
+          "path": [
+            "api",
+            "Auth",
+            "refresh"
+          ]
+        },
+        "description": "Generated from cURL: curl -X 'POST' \\\r\n  'http://localhost:8080/api/Auth/refresh' \\\r\n  -H 'accept: */*' \\\r\n  -H 'Content-Type: application/json' \\\r\n  -d '{\r\n  \"refreshToken\": \"kVurfR+GIWJdDyo2LSILfrEIx6sngu/DMGbks6tco92mA45Yk1OD8VTRrrcyxyxXwj//XGHPbSu8ObtFEkrl1Q==\"\r\n}'"
+      },
+      "response": []
+    },
+    {
+      "name": "Change Password",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "accept",
+            "value": "*/*"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"userId\": 10012,\r\n  \"currentPassword\": \"P@ssw0rd111\",\r\n  \"newPassword\": \"P@ssw0rd111\",\r\n  \"confirmPassword\": \"P@ssw0rd111\"\r\n}\r\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{URL}}/api/Auth/change-password",
+          "host": [
+            "{{URL}}"
+          ],
+          "path": [
+            "api",
+            "Auth",
+            "change-password"
+          ]
+        },
+        "description": "Generated from cURL: curl -X 'POST' \\\r\n  'http://localhost:8080/api/Auth/reset-password' \\\r\n  -H 'accept: */*' \\\r\n  -H 'Content-Type: application/json' \\\r\n  -d '{\r\n  \"email\": \"user@example.com\",\r\n  \"phoneNumber\": \"string\",\r\n  \"resetToken\": \"string\",\r\n  \"newPassword\": \"string\",\r\n  \"confirmPassword\": \"string\"\r\n}'"
+      },
+      "response": []
+    },
+    {
+      "name": "Forgot Password",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "accept",
+            "value": "*/*"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept-Language",
+            "value": "ar",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"email\": \"MUT123456@EXAMPLE.COM\",\r\n  \"phoneNumber\": \"0782495766\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{URL}}/api/Auth/forgot-password",
+          "host": [
+            "{{URL}}"
+          ],
+          "path": [
+            "api",
+            "Auth",
+            "forgot-password"
+          ]
+        },
+        "description": "Generated from cURL: curl -X 'POST' \\\r\n  'https://localhost:44345/api/Auth/forgot-password' \\\r\n  -H 'accept: */*' \\\r\n  -H 'Content-Type: application/json' \\\r\n  -d '{\r\n  \"email\": \"MUT1234@example.com\",\r\n  \"phoneNumber\": \"string\"\r\n}'l\"\r\n}"
+      },
+      "response": []
+    },
+    {
+      "name": "Reset-password",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "accept",
+            "value": "*/*"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"email\": \"MUT123456@example.com\",\r\n  \"phoneNumber\": \"0782495766\",\r\n  \"resetToken\": \"Q2ZESjhBdkxjRU1YV1FWTWlVZDNjWFFwMWRYQTcwSnRVYVZJN2VLc1Q2NnpIMm1OWGZBRnlvaCtqZGpjWFVGQlExdzJKTHVLVFo1SUNTM0FFUkdnUnVxMzlGWkJTRmw4WXF6Z0ZHK1RjblJkYkErTVlqa1ppWTlhWSs3Z09aOHBFV00xUXJENXU1Wjd2OHdkVmkzN1F5bmRkSmxHWFhwak9mY1dycEVaaysrY0tWSUR6aEdleHBkTWdycDAvVVVnSmh5azFnPT0=\",\r\n  \"newPassword\": \"P@ssw0rd111\",\r\n  \"confirmPassword\": \"P@ssw0rd111\"\r\n}\r\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{URL}}/api/Auth/reset-password",
+          "host": [
+            "{{URL}}"
+          ],
+          "path": [
+            "api",
+            "Auth",
+            "reset-password"
+          ]
+        },
+        "description": "Generated from cURL: curl -X 'POST' \\\r\n  'http://localhost:8080/api/Auth/reset-password' \\\r\n  -H 'accept: */*' \\\r\n  -H 'Content-Type: application/json' \\\r\n  -d '{\r\n  \"email\": \"user@example.com\",\r\n  \"phoneNumber\": \"string\",\r\n  \"resetToken\": \"string\",\r\n  \"newPassword\": \"string\",\r\n  \"confirmPassword\": \"string\"\r\n}'"
+      },
+      "response": []
+    },
+    {
+      "name": "Revoke (Logout)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "accept",
+            "value": "*/*"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept-Language",
+            "value": "ar",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"refreshToken\": \"0MU5DZPUPINrtnwYkaicbbS39Tr1bdZT5fyTMQGM+l32/lz9skoZ324kDpCDQv+JW0GCLy7Z5/3eaDludlrWhg==\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{URL}}/api/Auth/revoke",
+          "host": [
+            "{{URL}}"
+          ],
+          "path": [
+            "api",
+            "Auth",
+            "revoke"
+          ]
+        },
+        "description": "Generated from cURL: curl -X 'POST' \\\r\n  'http://localhost:8080/api/Auth/revoke' \\\r\n  -H 'accept: */*' \\\r\n  -H 'Content-Type: application/json' \\\r\n  -d '{\r\n  \"refreshToken\": \"string\"\r\n}'"
+      },
+      "response": []
+    },
+    {
+      "name": "Google-signin",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEwMDE0IiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvZW1haWxhZGRyZXNzIjoibXVzdGFmYWdobmFpbTQ0QGdtYWlsLmNvbSIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL25hbWUiOiJtdXN0YWZhZ2huYWltNDRAZ21haWwuY29tIiwianRpIjoiMTZhNzI2OWMtZDg3Mi00ZGQ0LWJjOTQtMDhlNjZiYjc5MjAyIiwiZXhwIjoxNzcxMjUzNjg0LCJpc3MiOiJJVGhpbmsiLCJhdWQiOiJJVGhpbmsifQ.1XtvWkyovyGjnSL_Rv7upmxOSnm4qjvBxOCcsqFiuBM"
+          },
+          {
+            "key": "Accept-Language",
+            "value": "en",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"idToken\": \"eyJhbGciOiJSUzI1NiIsImtpZCI6ImM4MTZkMzM3YjgzNjVhMDZhODUxYWQ4MDAxNmMxNzEwOTk0OTI2MDkiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiI0NzU0MjY2NDgwMzktNnA2NzdqMml1N2hiOW45cmtpbTFkaGJnZW84cmlkcHYuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiI0NzU0MjY2NDgwMzktNnA2NzdqMml1N2hiOW45cmtpbTFkaGJnZW84cmlkcHYuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMDYyNzA5MDQyNDIzOTQyMDM0MzMiLCJlbWFpbCI6Im11c3RhZmFnaG5haW00NEBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmJmIjoxNzcxMjUxNTgzLCJuYW1lIjoiTXVzdGFmYSBHaG5haW0iLCJwaWN0dXJlIjoiaHR0cHM6Ly9saDMuZ29vZ2xldXNlcmNvbnRlbnQuY29tL2EvQUNnOG9jSVlNa3RqQmdhZFBRTWg4RHBkaWRNcnlrLUNVUi1TdlczYmI1dl9jdVNVc2kta2l3PXM5Ni1jIiwiZ2l2ZW5fbmFtZSI6Ik11c3RhZmEiLCJmYW1pbHlfbmFtZSI6IkdobmFpbSIsImlhdCI6MTc3MTI1MTg4MywiZXhwIjoxNzcxMjU1NDgzLCJqdGkiOiJiMzE1ZDUyMGUzYzA5NjEyNGU0ODEyMmU2MjkwZTYzYzAyMzcwZWI5In0.n61Q0O9pke8OZD44E2-lNmeijXhGDdj4nqwbEykrsv7ELJO-_LkCmNAgidOC_Hqm2RvGcxz0lirqD-xTXhOe4Wb6toQyrTGs4RVE8lHVbzeIc6G2ji6mFlr9tuc66paZ_DPUcuBuW5dTvDfH3FZLXRZA0t1abc8EBGY35Bc0xqHrxolyuvadxkZe9Ebl0Pi7LR9Po5z6hxRQpMeYha9qjvcyr6ixIqQc1mGmG63L0EncjxELaE5o9Q5mEdcD_LisUaEGygYcEdHFjSfuGcBz8xMCyw6NSTy657u2DDoqxmka4kDXEMVChk0lOC7QeqRR7IG-wtQyf8DBUhVYZ1q_Pg\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/Auth/google-signin",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "Auth",
+            "google-signin"
+          ]
+        },
+        "description": "Generated from cURL: curl -X POST 'http://localhost:8080/api/Auth/google-signin' \\\r\n  -H 'Content-Type: application/json' \\\r\n  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEwMDE0IiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvZW1haWxhZGRyZXNzIjoibXVzdGFmYWdobmFpbTQ0QGdtYWlsLmNvbSIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL25hbWUiOiJtdXN0YWZhZ2huYWltNDRAZ21haWwuY29tIiwianRpIjoiMTZhNzI2OWMtZDg3Mi00ZGQ0LWJjOTQtMDhlNjZiYjc5MjAyIiwiZXhwIjoxNzcxMjUzNjg0LCJpc3MiOiJJVGhpbmsiLCJhdWQiOiJJVGhpbmsifQ.1XtvWkyovyGjnSL_Rv7upmxOSnm4qjvBxOCcsqFiuBM' \\\r\n  -d '{\r\n  \"idToken\": \"eyJhbGciOiJSUzI1NiIsImtpZCI6ImM4MTZkMzM3YjgzNjVhMDZhODUxYWQ4MDAxNmMxNzEwOTk0OTI2MDkiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiI0NzU0MjY2NDgwMzktNnA2NzdqMml1N2hiOW45cmtpbTFkaGJnZW84cmlkcHYuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiI0NzU0MjY2NDgwMzktNnA2NzdqMml1N2hiOW45cmtpbTFkaGJnZW84cmlkcHYuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMDYyNzA5MDQyNDIzOTQyMDM0MzMiLCJlbWFpbCI6Im11c3RhZmFnaG5haW00NEBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmJmIjoxNzcxMjUxNTgzLCJuYW1lIjoiTXVzdGFmYSBHaG5haW0iLCJwaWN0dXJlIjoiaHR0cHM6Ly9saDMuZ29vZ2xldXNlcmNvbnRlbnQuY29tL2EvQUNnOG9jSVlNa3RqQmdhZFBRTWg4RHBkaWRNcnlrLUNVUi1TdlczYmI1dl9jdVNVc2kta2l3PXM5Ni1jIiwiZ2l2ZW5fbmFtZSI6Ik11c3RhZmEiLCJmYW1pbHlfbmFtZSI6IkdobmFpbSIsImlhdCI6MTc3MTI1MTg4MywiZXhwIjoxNzcxMjU1NDgzLCJqdGkiOiJiMzE1ZDUyMGUzYzA5NjEyNGU0ODEyMmU2MjkwZTYzYzAyMzcwZWI5In0.n61Q0O9pke8OZD44E2-lNmeijXhGDdj4nqwbEykrsv7ELJO-_LkCmNAgidOC_Hqm2RvGcxz0lirqD-xTXhOe4Wb6toQyrTGs4RVE8lHVbzeIc6G2ji6mFlr9tuc66paZ_DPUcuBuW5dTvDfH3FZLXRZA0t1abc8EBGY35Bc0xqHrxolyuvadxkZe9Ebl0Pi7LR9Po5z6hxRQpMeYha9qjvcyr6ixIqQc1mGmG63L0EncjxELaE5o9Q5mEdcD_LisUaEGygYcEdHFjSfuGcBz8xMCyw6NSTy657u2DDoqxmka4kDXEMVChk0lOC7QeqRR7IG-wtQyf8DBUhVYZ1q_Pg\"\r\n}'"
+      },
+      "response": []
+    },
+    {
+      "name": "CustomToken",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"uid\": \"test-user-001\"\r\n}\r\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:5216/api/dev/custom-token",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5216",
+          "path": [
+            "api",
+            "dev",
+            "custom-token"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Exchange Custom Token (Firebase ID Token)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"token\": \"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOiJ0ZXN0LXVzZXItMDAxIiwiY2xhaW1zIjp7InJvbGUiOiJ0ZXN0ZXIifSwiaXNzIjoiZmlyZWJhc2UtYWRtaW5zZGstZmJzdmNAb3RwLWF1dGgtcHJvZC5pYW0uZ3NlcnZpY2VhY2NvdW50LmNvbSIsInN1YiI6ImZpcmViYXNlLWFkbWluc2RrLWZic3ZjQG90cC1hdXRoLXByb2QuaWFtLmdzZXJ2aWNlYWNjb3VudC5jb20iLCJhdWQiOiJodHRwczovL2lkZW50aXR5dG9vbGtpdC5nb29nbGVhcGlzLmNvbS9nb29nbGUuaWRlbnRpdHkuaWRlbnRpdHl0b29sa2l0LnYxLklkZW50aXR5VG9vbGtpdCIsImV4cCI6MTc3MDcwOTc1NSwiaWF0IjoxNzcwNzA2MTU1fQ.CsVXEus66KbZP4rizPmFk84HZ0o-0eusowH0pCM8RaY8KgngVlyVrjirfcBdCJne3cpLXnQ9DKjZrpnW9ILCbTKXEOt-EIAufHSghadCtaBzzEHShkjoj0i67PIGUvBrFbm9LCo89n5Y7kGih6jG8QHPWXvNzb-NmYCq7NrLgN7YKd-FxpwGHSvLJQQz9O4ppzW2LbMOe3VI4-xAgrI_MDIn-tu82j_jAd8wo1uL_djlZ0RIeG4_GwyXKnteZhElRStgBUOBAQv-Tb4LEo3IRrnCJ6WnD8a7JX_vJ45dWA4xoAmhmLOL6F53WS-EB5u9i9lZMHhxawxUNZgJuljMJQ\",\r\n  \"returnSecureToken\": true\r\n}\r\n   \r\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=AIzaSyB0jyA_nVv1mPsM_rAY-q3N7-jWD59Arrc",
+          "protocol": "https",
+          "host": [
+            "identitytoolkit",
+            "googleapis",
+            "com"
+          ],
+          "path": [
+            "v1",
+            "accounts:signInWithCustomToken"
+          ],
+          "query": [
+            {
+              "key": "key",
+              "value": "AIzaSyB0jyA_nVv1mPsM_rAY-q3N7-jWD59Arrc"
+            }
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{Token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ]
+}

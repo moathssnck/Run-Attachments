@@ -1,5 +1,33 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
+async function tryRefreshToken(): Promise<boolean> {
+  const storedRefresh = localStorage.getItem("lottery_refresh_token");
+  if (!storedRefresh) return false;
+  try {
+    const res = await fetch("/api/Auth/refresh", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken: storedRefresh }),
+    });
+    if (!res.ok) return false;
+    const result = await res.json();
+    const newToken =
+      result.token ||
+      result.accessToken ||
+      result.data?.token ||
+      result.data?.accessToken;
+    const newRefresh =
+      result.refreshToken ||
+      result.data?.refreshToken;
+    if (!newToken) return false;
+    localStorage.setItem("lottery_token", newToken);
+    if (newRefresh) localStorage.setItem("lottery_refresh_token", newRefresh);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function clearAuthAndRedirect() {
   localStorage.removeItem("lottery_user");
   localStorage.removeItem("lottery_token");
@@ -9,9 +37,17 @@ function clearAuthAndRedirect() {
   }
 }
 
+async function handle401(): Promise<boolean> {
+  const refreshed = await tryRefreshToken();
+  if (!refreshed) {
+    clearAuthAndRedirect();
+  }
+  return refreshed;
+}
+
 async function throwIfResNotOk(res: Response) {
   if (res.status === 401) {
-    clearAuthAndRedirect();
+    await handle401();
     throw new Error("401: Session expired. Please log in again.");
   }
   if (!res.ok) {
@@ -41,7 +77,19 @@ export async function apiRequest(
   });
 
   if (res.status === 401) {
-    clearAuthAndRedirect();
+    const refreshed = await handle401();
+    if (refreshed) {
+      const newToken = localStorage.getItem("lottery_token");
+      if (newToken) headers["Authorization"] = `Bearer ${newToken}`;
+      const retried = await fetch(url, {
+        method,
+        headers,
+        body: data !== undefined ? JSON.stringify(data) : undefined,
+        credentials: "include",
+      });
+      await throwIfResNotOk(retried);
+      return retried;
+    }
     throw new Error("401: Session expired. Please log in again.");
   }
 
@@ -60,16 +108,32 @@ export const getQueryFn: <T>(options: {
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
     }
-    const res = await fetch(queryKey.join("/") as string, {
+    const url = queryKey.join("/") as string;
+    const res = await fetch(url, {
       credentials: "include",
       headers,
     });
 
     if (res.status === 401) {
       if (unauthorizedBehavior === "returnNull") {
+        const refreshed = await tryRefreshToken();
+        if (refreshed) {
+          const newToken = localStorage.getItem("lottery_token");
+          const retryHeaders: Record<string, string> = {};
+          if (newToken) retryHeaders["Authorization"] = `Bearer ${newToken}`;
+          const retried = await fetch(url, { credentials: "include", headers: retryHeaders });
+          if (retried.ok) return await retried.json();
+        }
         return null;
       }
-      clearAuthAndRedirect();
+      const refreshed = await handle401();
+      if (refreshed) {
+        const newToken = localStorage.getItem("lottery_token");
+        const retryHeaders: Record<string, string> = {};
+        if (newToken) retryHeaders["Authorization"] = `Bearer ${newToken}`;
+        const retried = await fetch(url, { credentials: "include", headers: retryHeaders });
+        if (retried.ok) return await retried.json();
+      }
       throw new Error("401: Session expired. Please log in again.");
     }
 

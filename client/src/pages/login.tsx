@@ -292,6 +292,7 @@ export default function LoginPage() {
             email: data.email,
             password: data.password,
             rememberMe: true,
+            Language: language,
           }),
         });
 
