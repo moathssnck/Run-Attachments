@@ -30,6 +30,17 @@ app.use(
     secure: true,
     pathFilter: (pathname) => shouldProxyToExternalApi(pathname),
     on: {
+      proxyReq: (proxyReq, req) => {
+        const clientAuth = (req as any).headers?.authorization;
+        if (clientAuth) {
+          proxyReq.setHeader("Authorization", clientAuth);
+        } else {
+          const fallbackToken = process.env.DEFAULT_API_TOKEN;
+          if (fallbackToken) {
+            proxyReq.setHeader("Authorization", `Bearer ${fallbackToken}`);
+          }
+        }
+      },
       error: (err, _req, res) => {
         const formattedTime = new Date().toLocaleTimeString("en-US", {
           hour: "numeric",
