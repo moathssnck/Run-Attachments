@@ -259,13 +259,13 @@ function isAdminRole(role: string): boolean {
   return ["admin", "system_admin", "finance_admin", "auditor"].includes(role);
 }
 
-const QUICK_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEwMDEyIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvZW1haWxhZGRyZXNzIjoibXV0MTIzNDU2MjFAZXhhbXBsZS5jb20iLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoibXV0MTIzNDU2MjFAZXhhbXBsZS5jb20iLCJqdGkiOiIwY2Y2Y2M0OS1jNWMxLTRiZTktOTE3NC0yNDE2NjNiZjlkMjEiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJVU0VSIiwiZXhwIjoxNzc1MjE3MTA0LCJpc3MiOiJJVGhpbmsiLCJhdWQiOiJJVGhpbmsifQ.sfcipLOVCbf7NpY2TpfyThocanrg3ueub5MtGIe0XTE";
+const QUICK_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEwMDEyIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvZW1haWxhZGRyZXNzIjoibXV0MTIzNDU2MjFAZXhhbXBsZS5jb20iLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoibXV0MTIzNDU2MjFAZXhhbXBsZS5jb20iLCJqdGkiOiIwOWE0MWE0MS05NmVmLTQwY2EtOTNkNy05YWFiZGI3N2E1YzIiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJVU0VSIiwiZXhwIjoxNzc1Mjk2MDMzLCJpc3MiOiJJVGhpbmsiLCJhdWQiOiJJVGhpbmsifQ.sT_7ahMSyb1bGM4cyOfiWj8OTEfbgolESyF_GGan_dQ";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [tokenPanelOpen, setTokenPanelOpen] = useState(false);
-  const [pastedToken, setPastedToken] = useState("");
+  const [pastedToken, setPastedToken] = useState(QUICK_TOKEN);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const { login } = useAuth();
   const { toast } = useToast();
