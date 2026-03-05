@@ -149,13 +149,18 @@ export default function CustomSettingsPage() {
 
   // ── Query ──────────────────────────────────────────────────────────────────
 
-  const { data: settings = [], isLoading } = useQuery<NormalizedCustomSetting[]>({
+  const { data: settings = [], isLoading, isError, error } = useQuery<NormalizedCustomSetting[]>({
     queryKey: [API_CONFIG.customSettingSystem.list],
     queryFn: async () => {
       const res = await apiRequest("GET", API_CONFIG.customSettingSystem.list);
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(`${res.status}${text ? ": " + text : ""}`);
+      }
       const payload = await res.json();
       return extractSettings(payload);
     },
+    retry: 1,
   });
 
   // ── Filtered list ─────────────────────────────────────────────────────────
@@ -353,6 +358,18 @@ export default function CustomSettingsPage() {
           <Card>
             <CardContent className="py-12 flex justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </CardContent>
+          </Card>
+        ) : isError ? (
+          <Card>
+            <CardContent className="py-12 text-center space-y-2">
+              <Settings className="h-12 w-12 mx-auto text-destructive mb-4" />
+              <p className="font-semibold text-destructive">
+                {isRTL ? "غير مصرح / خطأ في التحميل" : "Unauthorized / Failed to load"}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {(error as Error)?.message || (isRTL ? "تحقق من صلاحية الرمز المميز" : "Check that your token is valid and not expired")}
+              </p>
             </CardContent>
           </Card>
         ) : filteredSettings.length === 0 ? (
