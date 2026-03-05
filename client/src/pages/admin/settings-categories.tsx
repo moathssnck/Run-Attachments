@@ -162,7 +162,7 @@ export default function SettingsCategoriesPage() {
 
   // ── Queries ───────────────────────────────────────────────────────────────
 
-  const { data: categories = [], isLoading: isLoadingCats } = useQuery<
+  const { data: categories = [], isLoading: isLoadingCats, error: catsError } = useQuery<
     NormalizedLookupCategory[]
   >({
     queryKey: [API_CONFIG.lookupCategory.list],
@@ -171,9 +171,10 @@ export default function SettingsCategoriesPage() {
       const payload = await res.json();
       return extractList(payload).map(normalizeCategory);
     },
+    retry: 1,
   });
 
-  const { data: lookups = [], isLoading: isLoadingLookups } = useQuery<
+  const { data: lookups = [], isLoading: isLoadingLookups, error: lookupsError } = useQuery<
     NormalizedLookup[]
   >({
     queryKey: [API_CONFIG.lookup.list],
@@ -182,6 +183,7 @@ export default function SettingsCategoriesPage() {
       const payload = await res.json();
       return extractList(payload).map(normalizeLookup);
     },
+    retry: 1,
   });
 
   // ── Derived ───────────────────────────────────────────────────────────────
@@ -426,6 +428,10 @@ export default function SettingsCategoriesPage() {
               <div className="flex justify-center py-8">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
+            ) : catsError ? (
+              <div className="text-center py-8 text-destructive text-sm">
+                {isRTL ? "تعذر تحميل الفئات. يرجى التحقق من صلاحياتك والمحاولة مرة أخرى." : "Failed to load categories. Please check your permissions and try again."}
+              </div>
             ) : filteredCategories.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 {t("common.noData")}
@@ -529,6 +535,10 @@ export default function SettingsCategoriesPage() {
             {isLoadingLookups ? (
               <div className="flex justify-center py-8">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : lookupsError ? (
+              <div className="text-center py-8 text-destructive text-sm">
+                {isRTL ? "تعذر تحميل التعريفات. يرجى التحقق من صلاحياتك والمحاولة مرة أخرى." : "Failed to load definitions. Please check your permissions and try again."}
               </div>
             ) : filteredLookups.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">

@@ -1,6 +1,6 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
-async function tryRefreshToken(): Promise<boolean> {
+export async function tryRefreshToken(): Promise<boolean> {
   const storedRefresh = localStorage.getItem("lottery_refresh_token");
   if (!storedRefresh) return false;
   try {
@@ -16,9 +16,7 @@ async function tryRefreshToken(): Promise<boolean> {
       result.accessToken ||
       result.data?.token ||
       result.data?.accessToken;
-    const newRefresh =
-      result.refreshToken ||
-      result.data?.refreshToken;
+    const newRefresh = result.refreshToken || result.data?.refreshToken;
     if (!newToken) return false;
     localStorage.setItem("lottery_token", newToken);
     if (newRefresh) localStorage.setItem("lottery_refresh_token", newRefresh);
@@ -37,63 +35,46 @@ function clearAuthAndRedirect() {
   }
 }
 
-async function handle401(): Promise<boolean> {
-  const refreshed = await tryRefreshToken();
-  if (!refreshed) {
-    clearAuthAndRedirect();
-  }
-  return refreshed;
-}
-
-async function throwIfResNotOk(res: Response) {
-  if (res.status === 401) {
-    await handle401();
-    throw new Error("401: Session expired. Please log in again.");
-  }
-  if (!res.ok) {
-    const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
-  }
-}
-
 export async function apiRequest(
   method: string,
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  const headers: Record<string, string> = {};
-  if (data !== undefined) {
-    headers["Content-Type"] = "application/json";
-  }
-  const token = localStorage.getItem("lottery_token");
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
-  const res = await fetch(url, {
+  const buildHeaders = (): Record<string, string> => {
+    const h: Record<string, string> = {};
+    if (data !== undefined) h["Content-Type"] = "application/json";
+    const token = localStorage.getItem("lottery_token");
+    if (token) h["Authorization"] = `Bearer ${token}`;
+    return h;
+  };
+
+  let res = await fetch(url, {
     method,
-    headers,
+    headers: buildHeaders(),
     body: data !== undefined ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
 
   if (res.status === 401) {
-    const refreshed = await handle401();
+    const refreshed = await tryRefreshToken();
     if (refreshed) {
-      const newToken = localStorage.getItem("lottery_token");
-      if (newToken) headers["Authorization"] = `Bearer ${newToken}`;
-      const retried = await fetch(url, {
+      res = await fetch(url, {
         method,
-        headers,
+        headers: buildHeaders(),
         body: data !== undefined ? JSON.stringify(data) : undefined,
         credentials: "include",
       });
-      await throwIfResNotOk(retried);
-      return retried;
     }
-    throw new Error("401: Session expired. Please log in again.");
+    if (res.status === 401) {
+      throw new Error("401: Unauthorized");
+    }
   }
 
-  await throwIfResNotOk(res);
+  if (!res.ok) {
+    const text = (await res.text()) || res.statusText;
+    throw new Error(`${res.status}: ${text}`);
+  }
+
   return res;
 }
 
@@ -103,41 +84,33 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const headers: Record<string, string> = {};
-    const token = localStorage.getItem("lottery_token");
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
-    }
+    const buildHeaders = (): Record<string, string> => {
+      const h: Record<string, string> = {};
+      const token = localStorage.getItem("lottery_token");
+      if (token) h["Authorization"] = `Bearer ${token}`;
+      return h;
+    };
+
     const url = queryKey.join("/") as string;
-    const res = await fetch(url, {
-      credentials: "include",
-      headers,
-    });
+    let res = await fetch(url, { credentials: "include", headers: buildHeaders() });
 
     if (res.status === 401) {
-      if (unauthorizedBehavior === "returnNull") {
-        const refreshed = await tryRefreshToken();
-        if (refreshed) {
-          const newToken = localStorage.getItem("lottery_token");
-          const retryHeaders: Record<string, string> = {};
-          if (newToken) retryHeaders["Authorization"] = `Bearer ${newToken}`;
-          const retried = await fetch(url, { credentials: "include", headers: retryHeaders });
-          if (retried.ok) return await retried.json();
-        }
-        return null;
-      }
-      const refreshed = await handle401();
+      const refreshed = await tryRefreshToken();
       if (refreshed) {
-        const newToken = localStorage.getItem("lottery_token");
-        const retryHeaders: Record<string, string> = {};
-        if (newToken) retryHeaders["Authorization"] = `Bearer ${newToken}`;
-        const retried = await fetch(url, { credentials: "include", headers: retryHeaders });
-        if (retried.ok) return await retried.json();
+        res = await fetch(url, { credentials: "include", headers: buildHeaders() });
       }
-      throw new Error("401: Session expired. Please log in again.");
+      if (res.status === 401) {
+        if (unauthorizedBehavior === "returnNull") return null;
+        clearAuthAndRedirect();
+        throw new Error("401: Session expired. Please log in again.");
+      }
     }
 
-    await throwIfResNotOk(res);
+    if (!res.ok) {
+      const text = (await res.text()) || res.statusText;
+      throw new Error(`${res.status}: ${text}`);
+    }
+
     return await res.json();
   };
 
