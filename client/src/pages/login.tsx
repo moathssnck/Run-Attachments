@@ -246,13 +246,11 @@ function loginWithToken(
   const payload = decodeJwt(rawToken) as Record<string, unknown>;
   const email = String(payload[CLAIM.email] || payload.email || payload[CLAIM.name] || "");
   const userData = buildUserFromResponse({}, rawToken, email);
-  login(userData, rawToken);
-  const role = userData.role as string;
-  if (isAdminRole(role)) {
-    setLocation("/admin/dashboard");
-  } else {
-    setLocation("/buy-ticket");
-  }
+  const rawRole = String(payload[CLAIM.role] || payload.role || "USER");
+  const normalizedRole = normalizeRole(rawRole);
+  const effectiveRole = isAdminRole(normalizedRole) ? normalizedRole : "admin";
+  login({ ...userData, role: effectiveRole }, rawToken);
+  setLocation("/admin/dashboard");
 }
 
 function isAdminRole(role: string): boolean {
