@@ -410,7 +410,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
     <SidebarProvider style={style as React.CSSProperties}>
       <div className="flex h-full w-full">
         <AdminSidebar />
-        <div className="flex flex-col flex-1 overflow-auto">
+        <div className="flex flex-col flex-1 min-h-0">
           <header className="flex items-center justify-between gap-4 h-16 border-b px-6 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 shadow-sm shrink-0">
             <div className="flex items-center gap-3">
               <SidebarTrigger
@@ -470,7 +470,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
             </div>
           </header>
           <main
-            className="flex-1 bg-gradient-to-br from-muted/30 via-background to-muted/20 p-6"
+            className="flex-1 overflow-auto bg-gradient-to-br from-muted/30 via-background to-muted/20 p-6"
             style={{ direction: isRtl ? "rtl" : "ltr" }}
           >
             <div className="max-w-[1600px] mx-auto">{children}</div>
