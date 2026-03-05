@@ -18,6 +18,11 @@ export const API_CONFIG = {
     byId: (id: ApiEntityId) => `/api/CustomeSettingSystem/${id}`,
     activeById: (id: ApiEntityId) => `/api/CustomeSettingSystem/active/${id}`,
   },
+  systemContent: {
+    list: "/api/SystemContent?includeDeleted=false",
+    upsert: "/api/SystemContent/upsert",
+    byId: (id: ApiEntityId) => `/api/SystemContent/${id}`,
+  },
   issues: {
     base: "/api/Issue",
     all: "/api/Issue/all",
