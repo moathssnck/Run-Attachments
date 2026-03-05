@@ -40,6 +40,10 @@ app.use(
           proxyReq.setHeader("Authorization", existing);
         } else {
           proxyReq.setHeader("Authorization", `Bearer ${DEFAULT_BEARER_TOKEN}`);
+          const path = (req as any).url || "";
+          if (path.includes("Lookup") || path.includes("lookup")) {
+            console.log(`[proxy] injected default token for: ${path}`);
+          }
         }
       },
       error: (err, _req, res) => {
