@@ -108,9 +108,12 @@ function extractSettings(payload: unknown): NormalizedCustomSetting[] {
     raw = payload as RawApiSetting[];
   } else if (payload && typeof payload === "object") {
     const obj = payload as Record<string, unknown>;
-    if (Array.isArray(obj.data)) raw = obj.data as RawApiSetting[];
+    if (Array.isArray(obj.customeSettingSystem)) raw = obj.customeSettingSystem as RawApiSetting[];
+    else if (Array.isArray(obj.customSettings)) raw = obj.customSettings as RawApiSetting[];
     else if (Array.isArray(obj.settings)) raw = obj.settings as RawApiSetting[];
+    else if (Array.isArray(obj.data)) raw = obj.data as RawApiSetting[];
     else if (Array.isArray(obj.items)) raw = obj.items as RawApiSetting[];
+    else if (Array.isArray(obj.result)) raw = obj.result as RawApiSetting[];
     else if (obj.data && typeof obj.data === "object") {
       const d = obj.data as Record<string, unknown>;
       if (Array.isArray(d.data)) raw = d.data as RawApiSetting[];

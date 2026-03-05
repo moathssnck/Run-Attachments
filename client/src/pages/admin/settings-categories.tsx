@@ -100,11 +100,19 @@ function extractList(payload: unknown): RawApiRecord[] {
   if (Array.isArray(payload)) return payload as RawApiRecord[];
   if (payload && typeof payload === "object") {
     const obj = payload as Record<string, unknown>;
+    // API-specific wrapper keys
+    if (Array.isArray(obj.lookups)) return obj.lookups as RawApiRecord[];
+    if (Array.isArray(obj.lookupCategories)) return obj.lookupCategories as RawApiRecord[];
+    if (Array.isArray(obj.categories)) return obj.categories as RawApiRecord[];
+    // Generic wrapper keys
     if (Array.isArray(obj.data)) return obj.data as RawApiRecord[];
     if (Array.isArray(obj.items)) return obj.items as RawApiRecord[];
+    if (Array.isArray(obj.result)) return obj.result as RawApiRecord[];
     if (obj.data && typeof obj.data === "object") {
       const d = obj.data as Record<string, unknown>;
+      if (Array.isArray(d.lookups)) return d.lookups as RawApiRecord[];
       if (Array.isArray(d.data)) return d.data as RawApiRecord[];
+      if (Array.isArray(d.items)) return d.items as RawApiRecord[];
     }
   }
   return [];

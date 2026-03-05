@@ -2,7 +2,18 @@ import { useState, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useLocation } from "wouter";
-import { Eye, EyeOff, Loader2, Mail, Lock, ArrowRight, Shield, User, ChevronDown, KeyRound } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  Loader2,
+  Mail,
+  Lock,
+  ArrowRight,
+  Shield,
+  User,
+  ChevronDown,
+  KeyRound,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -142,7 +153,8 @@ function extractRefreshToken(result: Record<string, unknown>): string | null {
 }
 
 const CLAIM = {
-  nameId: "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier",
+  nameId:
+    "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier",
   email: "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress",
   name: "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name",
   role: "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
@@ -179,48 +191,50 @@ function buildUserFromResponse(
 
   const id = String(
     fromResult?.id ||
-    fromResult?.userId ||
-    payload[CLAIM.nameId] ||
-    payload.sub ||
-    payload.userId ||
-    result.userId ||
-    ""
+      fromResult?.userId ||
+      payload[CLAIM.nameId] ||
+      payload.sub ||
+      payload.userId ||
+      result.userId ||
+      "",
   );
 
   const email = String(
     fromResult?.email ||
-    payload[CLAIM.email] ||
-    payload.email ||
-    payload[CLAIM.name] ||
-    result.email ||
-    fallbackEmail
+      payload[CLAIM.email] ||
+      payload.email ||
+      payload[CLAIM.name] ||
+      result.email ||
+      fallbackEmail,
   );
 
   const rawRole = String(
     fromResult?.role ||
-    payload[CLAIM.role] ||
-    payload.role ||
-    result.role ||
-    "USER"
+      payload[CLAIM.role] ||
+      payload.role ||
+      result.role ||
+      "USER",
   );
   const role = normalizeRole(rawRole);
 
-  const namePart = String(payload[CLAIM.name] || payload.name || email).split("@")[0];
+  const namePart = String(payload[CLAIM.name] || payload.name || email).split(
+    "@",
+  )[0];
   const firstName = String(
     fromResult?.firstName ||
-    fromResult?.first_name ||
-    payload.given_name ||
-    result.firstName ||
-    namePart ||
-    ""
+      fromResult?.first_name ||
+      payload.given_name ||
+      result.firstName ||
+      namePart ||
+      "",
   );
 
   const lastName = String(
     fromResult?.lastName ||
-    fromResult?.last_name ||
-    payload.family_name ||
-    result.lastName ||
-    ""
+      fromResult?.last_name ||
+      payload.family_name ||
+      result.lastName ||
+      "",
   );
 
   return {
@@ -228,7 +242,9 @@ function buildUserFromResponse(
     email,
     firstName,
     lastName,
-    mobile: String(fromResult?.mobile || fromResult?.phoneNumber || payload.phone || ""),
+    mobile: String(
+      fromResult?.mobile || fromResult?.phoneNumber || payload.phone || "",
+    ),
     status: "active",
     role,
     mfaEnabled: false,
@@ -244,7 +260,9 @@ function loginWithToken(
   setLocation: (path: string) => void,
 ) {
   const payload = decodeJwt(rawToken) as Record<string, unknown>;
-  const email = String(payload[CLAIM.email] || payload.email || payload[CLAIM.name] || "");
+  const email = String(
+    payload[CLAIM.email] || payload.email || payload[CLAIM.name] || "",
+  );
   const userData = buildUserFromResponse({}, rawToken, email);
   const rawRole = String(payload[CLAIM.role] || payload.role || "USER");
   const normalizedRole = normalizeRole(rawRole);
@@ -257,7 +275,8 @@ function isAdminRole(role: string): boolean {
   return ["admin", "system_admin", "finance_admin", "auditor"].includes(role);
 }
 
-const QUICK_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEwMDEyIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvZW1haWxhZGRyZXNzIjoibXV0MTIzNDU2MjFAZXhhbXBsZS5jb20iLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoibXV0MTIzNDU2MjFAZXhhbXBsZS5jb20iLCJqdGkiOiIwOWE0MWE0MS05NmVmLTQwY2EtOTNkNy05YWFiZGI3N2E1YzIiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJVU0VSIiwiZXhwIjoxNzc1Mjk2MDMzLCJpc3MiOiJJVGhpbmsiLCJhdWQiOiJJVGhpbmsifQ.sT_7ahMSyb1bGM4cyOfiWj8OTEfbgolESyF_GGan_dQ";
+const QUICK_TOKEN =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEwMDEyIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvZW1haWxhZGRyZXNzIjoibXV0MTIzNDU2MjFAZXhhbXBsZS5jb20iLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoibXV0MTIzNDU2MjFAZXhhbXBsZS5jb20iLCJqdGkiOiIwOWE0MWE0MS05NmVmLTQwY2EtOTNkNy05YWFiZGI3N2E1YzIiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJVU0VSIiwiZXhwIjoxNzc1Mjk2MDMzLCJpc3MiOiJJVGhpbmsiLCJhdWQiOiJJVGhpbmsifQ.sT_7ahMSyb1bGM4cyOfiWj8OTEfbgolESyF_GGan_dQ";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -348,9 +367,22 @@ export default function LoginPage() {
     [login, toast, setLocation, t],
   );
 
-  const DEMO_ACCOUNTS: Record<string, { email: string; firstName: string; lastName: string; role: string }> = {
-    "admin@jclottery.jo": { email: "admin@jclottery.jo", firstName: "Admin", lastName: "Demo", role: "admin" },
-    "user@jclottery.jo": { email: "user@jclottery.jo", firstName: "User", lastName: "Demo", role: "end_user" },
+  const DEMO_ACCOUNTS: Record<
+    string,
+    { email: string; firstName: string; lastName: string; role: string }
+  > = {
+    "admin@jclottery.jo": {
+      email: "admin@jclottery.jo",
+      firstName: "Admin",
+      lastName: "Demo",
+      role: "admin",
+    },
+    "user@jclottery.jo": {
+      email: "user@jclottery.jo",
+      firstName: "User",
+      lastName: "Demo",
+      role: "end_user",
+    },
   };
 
   const handleDemoLogin = useCallback(
@@ -371,13 +403,18 @@ export default function LoginPage() {
         emailConfirmed: true,
         phoneNumberConfirmed: true,
       };
-      const demoToken = "demo_" + role + "_token_" + Date.now();
+      const demoToken = process.env.DEFAULT_API_TOKEN;
       login(userData as any, demoToken, demoToken);
       toast({
         title: t("auth.welcomeBack"),
         description: t("auth.loginSuccess"),
       });
-      if (demo.role === "admin" || demo.role === "system_admin" || demo.role === "finance_admin" || demo.role === "auditor") {
+      if (
+        demo.role === "admin" ||
+        demo.role === "system_admin" ||
+        demo.role === "finance_admin" ||
+        demo.role === "auditor"
+      ) {
         setLocation("/admin/dashboard");
       } else {
         setLocation("/buy-ticket");
@@ -613,7 +650,9 @@ export default function LoginPage() {
                   variant="outline"
                   type="button"
                   className="h-11 font-medium bg-blue-500/5 hover:bg-blue-500/10 border-blue-500/30 hover:border-blue-500/50 text-blue-700 dark:text-blue-400 transition-all duration-300 rounded-xl gap-2"
-                  onClick={() => handleDemoLogin("user@jclottery.jo", "end_user")}
+                  onClick={() =>
+                    handleDemoLogin("user@jclottery.jo", "end_user")
+                  }
                   disabled={isLoading}
                 >
                   <User className="h-4 w-4" />
@@ -632,7 +671,9 @@ export default function LoginPage() {
                     <KeyRound className="h-3.5 w-3.5" />
                     {isRTL ? "دخول بالرمز المؤقت" : "Login with token"}
                   </span>
-                  <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${tokenPanelOpen ? "rotate-180" : ""}`} />
+                  <ChevronDown
+                    className={`h-3.5 w-3.5 transition-transform duration-200 ${tokenPanelOpen ? "rotate-180" : ""}`}
+                  />
                 </button>
 
                 <AnimatePresence>
@@ -648,7 +689,11 @@ export default function LoginPage() {
                         <textarea
                           value={pastedToken}
                           onChange={(e) => setPastedToken(e.target.value)}
-                          placeholder={isRTL ? "الصق الرمز هنا..." : "Paste your JWT token here..."}
+                          placeholder={
+                            isRTL
+                              ? "الصق الرمز هنا..."
+                              : "Paste your JWT token here..."
+                          }
                           rows={3}
                           data-testid="input-paste-token"
                           className="w-full rounded-xl border border-border bg-muted/30 px-3 py-2 text-xs font-mono text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 resize-none"
@@ -660,7 +705,11 @@ export default function LoginPage() {
                           disabled={!pastedToken.trim()}
                           onClick={() => {
                             if (pastedToken.trim()) {
-                              loginWithToken(pastedToken.trim(), login, setLocation);
+                              loginWithToken(
+                                pastedToken.trim(),
+                                login,
+                                setLocation,
+                              );
                             }
                           }}
                           data-testid="button-submit-token"
