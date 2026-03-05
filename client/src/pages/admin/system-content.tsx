@@ -52,8 +52,7 @@ import { API_CONFIG } from "@/lib/api-config";
 
 type Raw = Record<string, unknown>;
 
-type LookupCategory = { id: number; nameAr: string; nameEn: string };
-type LookupItem     = { id: number; labelAr: string; labelEn: string };
+type LookupItem = { id: number; labelAr: string; labelEn: string };
 type ContentRecord  = { id: number; systemContentCategoryId: number; content: string };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -86,14 +85,6 @@ function unwrapArray(payload: unknown, ...keys: string[]): Raw[] {
 }
 
 // ─── Normalisers ──────────────────────────────────────────────────────────────
-
-function normCategory(r: Raw): LookupCategory {
-  return {
-    id:     asNum(r.id),
-    nameAr: asStr(r.lookupCategoryAr ?? r.nameAr ?? r.name),
-    nameEn: asStr(r.lookupCategoryEn ?? r.nameEn ?? r.name),
-  };
-}
 
 function normLookup(r: Raw): LookupItem {
   return {
@@ -200,40 +191,22 @@ export default function SystemContentPage() {
   const [selectedLookupId, setSelectedLookupId] = useState<string>("");
   const [editorContent, setEditorContent] = useState("");
 
-  // ── Step 1: fetch all LookupCategories and find "system content" ────────────
-  const { data: systemContentCategoryId } = useQuery<number | null>({
-    queryKey: [API_CONFIG.lookupCategory.list, "find-system-content"],
-    queryFn: async () => {
-      const res = await apiRequest("GET", API_CONFIG.lookupCategory.list);
-      if (!res.ok) throw new Error(`${res.status}`);
-      const payload = await res.json();
-      const rows = unwrapArray(payload, "lookupCategories", "categories", "data", "items", "result");
-      const cats = rows.map(normCategory);
-      const match = cats.find((c) => {
-        const en = c.nameEn.toLowerCase();
-        const ar = c.nameAr;
-        return en.includes("system") || en.includes("content") || ar.includes("نظام") || ar.includes("محتوى");
-      });
-      return match?.id ?? null;
-    },
-    retry: 1,
-  });
+  const SYSTEM_CONTENT_CATEGORY_ID = 12;
 
-  // ── Step 2: fetch Lookups by that category ID ───────────────────────────────
+  // ── Fetch Lookups for system content category (ID 12) ─────────────────────
   const {
     data: lookups = [],
     isLoading: isLookupsLoading,
     isError: isLookupsError,
   } = useQuery<LookupItem[]>({
-    queryKey: [API_CONFIG.lookup.byCategory(systemContentCategoryId ?? 0)],
+    queryKey: [API_CONFIG.lookup.byCategory(SYSTEM_CONTENT_CATEGORY_ID)],
     queryFn: async () => {
-      const res = await apiRequest("GET", API_CONFIG.lookup.byCategory(systemContentCategoryId!));
+      const res = await apiRequest("GET", API_CONFIG.lookup.byCategory(SYSTEM_CONTENT_CATEGORY_ID));
       if (!res.ok) throw new Error(`${res.status}`);
       const payload = await res.json();
       const rows = unwrapArray(payload, "lookups", "data", "items", "result");
       return rows.map(normLookup);
     },
-    enabled: !!systemContentCategoryId,
     retry: 1,
   });
 
