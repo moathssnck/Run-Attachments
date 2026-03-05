@@ -22,6 +22,7 @@ export const API_CONFIG = {
     list: "/api/SystemContent?includeDeleted=false",
     upsert: "/api/SystemContent/upsert",
     byId: (id: ApiEntityId) => `/api/SystemContent/${id}`,
+    byLookupId: (id: ApiEntityId) => `/api/SystemContent/lookup/${id}`,
   },
   issues: {
     base: "/api/Issue",

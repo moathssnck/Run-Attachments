@@ -210,15 +210,15 @@ export default function SystemContentPage() {
     retry: 1,
   });
 
-  // ── Step 3: fetch SystemContent by selected lookup ID ──────────────────────
+  // ── Fetch SystemContent by selected lookup ID ──────────────────────────────
   const {
     data: contentRecord,
     isLoading: isContentLoading,
     isError: isContentError,
   } = useQuery<ContentRecord | null>({
-    queryKey: [API_CONFIG.systemContent.byId(selectedLookupId)],
+    queryKey: [API_CONFIG.systemContent.byLookupId(selectedLookupId)],
     queryFn: async () => {
-      const res = await apiRequest("GET", API_CONFIG.systemContent.byId(selectedLookupId));
+      const res = await apiRequest("GET", API_CONFIG.systemContent.byLookupId(selectedLookupId));
       if (!res.ok) throw new Error(`${res.status}`);
       const payload = await res.json();
       return normContent(payload);
@@ -241,7 +241,7 @@ export default function SystemContentPage() {
     mutationFn: (body: { id: number; systemContentCategoryId: number; content: string }) =>
       apiRequest("POST", API_CONFIG.systemContent.upsert, body),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [API_CONFIG.systemContent.byId(selectedLookupId)] });
+      queryClient.invalidateQueries({ queryKey: [API_CONFIG.systemContent.byLookupId(selectedLookupId)] });
       toast({ title: isRTL ? "تم الحفظ بنجاح" : "Saved successfully" });
     },
     onError: () => {
