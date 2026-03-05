@@ -18,10 +18,6 @@ const fallbackExternalApiUrl = "https://ithink-71db.onrender.com/";
 const externalApiUrl =
   process.env.EXTERNAL_API_URL?.trim() || fallbackExternalApiUrl;
 
-const DEFAULT_BEARER_TOKEN =
-  process.env.DEFAULT_API_TOKEN ||
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEwMDEyIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvZW1haWxhZGRyZXNzIjoibXV0MTIzNDU2MjFAZXhhbXBsZS5jb20iLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoibXV0MTIzNDU2MjFAZXhhbXBsZS5jb20iLCJqdGkiOiIwOWE0MWE0MS05NmVmLTQwY2EtOTNkNy05YWFiZGI3N2E1YzIiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJVU0VSIiwiZXhwIjoxNzc1Mjk2MDMzLCJpc3MiOiJJVGhpbmsiLCJhdWQiOiJJVGhpbmsifQ.sT_7ahMSyb1bGM4cyOfiWj8OTEfbgolESyF_GGan_dQ";
-
 function shouldProxyToExternalApi(pathname: string): boolean {
   // Keep upload signing route local; proxy all other API calls.
   return pathname.startsWith("/api") && !pathname.startsWith("/api/uploads");
@@ -34,18 +30,6 @@ app.use(
     secure: true,
     pathFilter: (pathname) => shouldProxyToExternalApi(pathname),
     on: {
-      proxyReq: (proxyReq, req) => {
-        const existing = (req as any).headers?.authorization;
-        if (existing) {
-          proxyReq.setHeader("Authorization", existing);
-        } else {
-          proxyReq.setHeader("Authorization", `Bearer ${DEFAULT_BEARER_TOKEN}`);
-          const path = (req as any).url || "";
-          if (path.includes("Lookup") || path.includes("lookup")) {
-            console.log(`[proxy] injected default token for: ${path}`);
-          }
-        }
-      },
       error: (err, _req, res) => {
         const formattedTime = new Date().toLocaleTimeString("en-US", {
           hour: "numeric",

@@ -265,7 +265,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [tokenPanelOpen, setTokenPanelOpen] = useState(false);
-  const [pastedToken, setPastedToken] = useState(QUICK_TOKEN);
+  const [pastedToken, setPastedToken] = useState("");
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const { login } = useAuth();
   const { toast } = useToast();
