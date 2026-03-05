@@ -281,19 +281,46 @@ export default function SystemContentPage() {
     retry: 1,
   });
 
-  const selectedItem = items.find((item) => String(item.id) === selectedId);
+  const listItem = items.find((item) => String(item.id) === selectedId);
+
+  const {
+    data: detailItem,
+    isLoading: isDetailLoading,
+    isError: isDetailError,
+  } = useQuery<NormalizedSystemContent>({
+    queryKey: [API_CONFIG.systemContent.byId(selectedId)],
+    queryFn: async () => {
+      const res = await apiRequest("GET", API_CONFIG.systemContent.byId(selectedId));
+      if (!res.ok) throw new Error(`${res.status}`);
+      const payload = await res.json();
+      const normalized = extractItems(Array.isArray(payload) ? payload : [payload]);
+      if (normalized.length === 0) throw new Error("empty");
+      return normalized[0];
+    },
+    enabled: !!selectedId,
+    retry: 1,
+  });
+
+  const selectedItem = detailItem ?? listItem;
 
   useEffect(() => {
-    if (selectedItem) {
-      setContent(selectedItem.content);
+    if (detailItem) {
+      setContent(detailItem.content);
+    } else if (listItem) {
+      setContent(listItem.content);
     }
-  }, [selectedId, selectedItem?.id]);
+  }, [selectedId, detailItem?.id]);
 
   const upsertMutation = useMutation({
     mutationFn: (body: { id: number; systemContentCategoryId: number; content: string }) =>
       apiRequest("POST", API_CONFIG.systemContent.upsert, body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [API_CONFIG.systemContent.list] });
+      if (selectedId) {
+        queryClient.invalidateQueries({
+          queryKey: [API_CONFIG.systemContent.byId(selectedId)],
+        });
+      }
       toast({ title: isRTL ? "تم الحفظ بنجاح" : "Saved successfully" });
     },
     onError: () => {
@@ -366,7 +393,22 @@ export default function SystemContentPage() {
               </Select>
             </div>
 
-            {selectedItem && (
+            {selectedId && isDetailLoading && (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            )}
+
+            {selectedId && isDetailError && !detailItem && (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <FileText className="h-12 w-12 mb-4 text-destructive opacity-70" />
+                <p className="font-semibold text-destructive">
+                  {isRTL ? "فشل في تحميل المحتوى" : "Failed to load content"}
+                </p>
+              </div>
+            )}
+
+            {selectedItem && !isDetailLoading && (
               <>
                 <Separator />
 
@@ -402,7 +444,7 @@ export default function SystemContentPage() {
               </>
             )}
 
-            {!selectedItem && !isLoading && !isError && (
+            {!selectedId && !isLoading && !isError && (
               <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
                 <FileText className="h-12 w-12 mb-4 opacity-50" />
                 <p className="text-lg font-medium">
