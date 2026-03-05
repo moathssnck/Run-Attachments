@@ -181,6 +181,8 @@ function RichTextEditor({ content, onChange, editorKey }: { content: string; onC
   );
 }
 
+const SYSTEM_CONTENT_CATEGORY_ID = 12;
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function SystemContentPage() {
@@ -190,8 +192,6 @@ export default function SystemContentPage() {
 
   const [selectedLookupId, setSelectedLookupId] = useState<string>("");
   const [editorContent, setEditorContent] = useState("");
-
-  const SYSTEM_CONTENT_CATEGORY_ID = 12;
 
   // ── Fetch Lookups for system content category (ID 12) ─────────────────────
   const {
@@ -253,7 +253,7 @@ export default function SystemContentPage() {
     if (!selectedLookupId) return;
     upsertMutation.mutate({
       id:                      contentRecord?.id ?? Number(selectedLookupId),
-      systemContentCategoryId: contentRecord?.systemContentCategoryId ?? Number(selectedLookupId),
+      systemContentCategoryId: SYSTEM_CONTENT_CATEGORY_ID,
       content:                 editorContent,
     });
   };
