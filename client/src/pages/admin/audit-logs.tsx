@@ -53,18 +53,25 @@ import { ar } from "date-fns/locale";
 type RealAuditLog = {
   id: number | string;
   action: string;
+  actionAr?: string;
   entityName?: string;
   entityId?: string | number;
   userId?: number | string;
   userName?: string;
   userEmail?: string;
+  username?: string;
   performedBy?: string;
   ipAddress?: string;
   severity?: string;
+  severityAr?: string;
+  module?: string;
+  moduleAr?: string;
   isSuccess?: boolean;
   success?: boolean;
   errorMessage?: string;
   details?: string;
+  userAgent?: string;
+  duration?: number | null;
   oldValues?: unknown;
   newValues?: unknown;
   createdAt?: string;
@@ -78,16 +85,23 @@ type ViewMode = "all" | "today" | "failed" | "logins";
 
 // ─── Response normalizer ──────────────────────────────────────────────────────
 
+function parseTotalFromMessage(msg: unknown): number | null {
+  if (typeof msg !== "string") return null;
+  const m = msg.match(/Total:\s*(\d+)/i);
+  return m ? parseInt(m[1], 10) : null;
+}
+
 function extractLogs(payload: unknown): { logs: RealAuditLog[]; total: number } {
   if (!payload) return { logs: [], total: 0 };
   if (Array.isArray(payload)) return { logs: payload as RealAuditLog[], total: payload.length };
   if (typeof payload === "object") {
     const d = payload as Record<string, unknown>;
-    const candidates = ["data", "items", "auditLogs", "logs", "result", "records"];
+    const candidates = ["logs", "data", "items", "auditLogs", "result", "records"];
     for (const key of candidates) {
       if (Array.isArray(d[key])) {
         const arr = d[key] as RealAuditLog[];
         const total =
+          parseTotalFromMessage(d.message) ??
           (typeof d.totalCount === "number" ? d.totalCount : null) ??
           (typeof d.total === "number" ? d.total : null) ??
           arr.length;
@@ -109,7 +123,7 @@ function logDate(log: RealAuditLog): Date | null {
 }
 
 function logUser(log: RealAuditLog): string {
-  return log.userName ?? log.userEmail ?? log.performedBy ?? (log.userId ? `User #${log.userId}` : "");
+  return log.username ?? log.userName ?? log.userEmail ?? log.performedBy ?? (log.userId ? `#${log.userId}` : "");
 }
 
 function logSuccess(log: RealAuditLog): boolean | undefined {
@@ -138,16 +152,21 @@ function getActionColor(action: string): string {
   return "bg-muted text-muted-foreground border-muted";
 }
 
-function getSeverityBadge(severity: string | undefined) {
+function getSeverityBadge(severity: string | undefined, severityAr?: string, isRTL?: boolean) {
   if (!severity) return null;
+  const label = isRTL && severityAr ? severityAr : severity;
   const s = severity.toLowerCase();
+  if (s === "success")
+    return <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 border text-xs">{label}</Badge>;
   if (s === "critical")
-    return <Badge className="bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20 border text-xs">{severity}</Badge>;
+    return <Badge className="bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20 border text-xs">{label}</Badge>;
   if (s === "warning")
-    return <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 border text-xs">{severity}</Badge>;
+    return <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 border text-xs">{label}</Badge>;
   if (s === "security")
-    return <Badge className="bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20 border text-xs">{severity}</Badge>;
-  return <Badge variant="outline" className="text-xs">{severity}</Badge>;
+    return <Badge className="bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20 border text-xs">{label}</Badge>;
+  if (s === "error" || s === "failure" || s === "failed")
+    return <Badge className="bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20 border text-xs">{label}</Badge>;
+  return <Badge variant="outline" className="text-xs">{label}</Badge>;
 }
 
 function tryParseJson(v: unknown): unknown {
@@ -168,6 +187,10 @@ function AuditLogItem({ log, isRTL }: { log: RealAuditLog; isRTL: boolean }) {
   const success = logSuccess(log);
   const oldValues = tryParseJson(log.oldValues);
   const newValues = tryParseJson(log.newValues);
+  const details = tryParseJson(log.details);
+
+  const actionLabel = isRTL && log.actionAr ? log.actionAr : log.action;
+  const moduleLabel = isRTL && log.moduleAr ? log.moduleAr : (log.module ?? log.entityName);
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
@@ -180,11 +203,11 @@ function AuditLogItem({ log, isRTL }: { log: RealAuditLog; isRTL: boolean }) {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                  <span className="font-semibold text-sm">{log.action}</span>
-                  {log.entityName && (
-                    <Badge variant="outline" className="text-xs font-medium">{log.entityName}</Badge>
+                  <span className="font-semibold text-sm">{actionLabel}</span>
+                  {moduleLabel && (
+                    <Badge variant="outline" className="text-xs font-medium">{moduleLabel}</Badge>
                   )}
-                  {getSeverityBadge(log.severity)}
+                  {getSeverityBadge(log.severity, log.severityAr, isRTL)}
                   {success !== undefined && (
                     success
                       ? <CheckCircle className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
@@ -219,7 +242,7 @@ function AuditLogItem({ log, isRTL }: { log: RealAuditLog; isRTL: boolean }) {
         <CollapsibleContent>
           <div className="px-4 pb-4 pt-0 border-t mx-4 space-y-3">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 pt-3">
-              {log.entityId !== undefined && (
+              {log.entityId !== undefined && log.entityId !== null && (
                 <div className="p-3 rounded-lg bg-muted/50">
                   <p className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wide">Entity ID</p>
                   <p className="text-sm font-mono">{String(log.entityId)}</p>
@@ -232,9 +255,21 @@ function AuditLogItem({ log, isRTL }: { log: RealAuditLog; isRTL: boolean }) {
                 </div>
               )}
               {log.ipAddress && (
-                <div className="p-3 rounded-lg bg-muted/50 md:hidden">
+                <div className="p-3 rounded-lg bg-muted/50">
                   <p className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wide">IP Address</p>
                   <p className="text-sm font-mono">{log.ipAddress}</p>
+                </div>
+              )}
+              {log.duration !== undefined && log.duration !== null && (
+                <div className="p-3 rounded-lg bg-muted/50">
+                  <p className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wide">Duration</p>
+                  <p className="text-sm font-mono">{log.duration}ms</p>
+                </div>
+              )}
+              {log.userAgent && (
+                <div className="p-3 rounded-lg bg-muted/50 col-span-2">
+                  <p className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wide">User Agent</p>
+                  <p className="text-xs font-mono break-all">{log.userAgent}</p>
                 </div>
               )}
               {log.errorMessage && (
@@ -245,10 +280,16 @@ function AuditLogItem({ log, isRTL }: { log: RealAuditLog; isRTL: boolean }) {
                   <p className="text-sm text-red-700 dark:text-red-300">{log.errorMessage}</p>
                 </div>
               )}
-              {log.details && (
+              {details && (
                 <div className="p-3 rounded-lg bg-muted/50 col-span-2 md:col-span-3">
                   <p className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wide">Details</p>
-                  <p className="text-sm">{log.details as string}</p>
+                  {typeof details === "object" ? (
+                    <pre className="text-xs bg-background p-3 rounded-md overflow-auto max-h-40 border">
+                      {JSON.stringify(details, null, 2)}
+                    </pre>
+                  ) : (
+                    <p className="text-sm">{String(details)}</p>
+                  )}
                 </div>
               )}
             </div>
