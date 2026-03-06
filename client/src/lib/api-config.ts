@@ -51,6 +51,9 @@ export const API_CONFIG = {
     byCategory: (id: ApiEntityId) => `/api/Prize/category/${id}`,
     byLevel: (level: ApiEntityId) => `/api/Prize/level/${level}`,
   },
+  userManagement: {
+    all: "/api/UserManagement/get-all-users",
+  },
   lookupCategory: {
     list: "/api/LookupCategory?includeDeleted=false",
     base: "/api/LookupCategory",

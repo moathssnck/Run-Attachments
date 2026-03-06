@@ -34,6 +34,10 @@ import {
   Plus,
   X,
   LayoutDashboard,
+  BookOpen,
+  Activity,
+  CreditCard,
+  ListChecks,
 } from "lucide-react";
 import {
   AreaChart,
@@ -85,6 +89,49 @@ import { toWesternNumerals } from "@/lib/utils";
 import type { DashboardStats } from "@shared/schema";
 import { format } from "date-fns";
 import { arSA, enUS } from "date-fns/locale";
+import { API_CONFIG } from "@/lib/api-config";
+
+// ─── API response normalizers ─────────────────────────────────────────────────
+
+function extractCount(payload: unknown): number {
+  if (Array.isArray(payload)) return payload.length;
+  if (payload && typeof payload === "object") {
+    const d = payload as Record<string, unknown>;
+    for (const key of ["data", "items", "issues", "notebooks", "users", "result"]) {
+      if (Array.isArray(d[key])) return (d[key] as unknown[]).length;
+    }
+    for (const key of ["total", "totalCount", "count", "length"]) {
+      if (typeof d[key] === "number") return d[key] as number;
+    }
+  }
+  return 0;
+}
+
+function asN(v: unknown): number {
+  if (typeof v === "number" && isFinite(v)) return v;
+  if (typeof v === "string" && v.trim()) { const n = Number(v); if (isFinite(n)) return n; }
+  return 0;
+}
+
+type IssueStats = {
+  total: number;
+  active: number;
+  completed: number;
+  cancelled: number;
+};
+
+function extractIssueStats(payload: unknown): IssueStats {
+  const zero = { total: 0, active: 0, completed: 0, cancelled: 0 };
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return zero;
+  const d = payload as Record<string, unknown>;
+  const inner = (d.data ?? d.result ?? d.statistics ?? d) as Record<string, unknown>;
+  return {
+    total:     asN(inner.totalIssues     ?? inner.total     ?? inner.count ?? inner.issueCount),
+    active:    asN(inner.activeIssues    ?? inner.active    ?? inner.openIssues),
+    completed: asN(inner.completedIssues ?? inner.completed ?? inner.closedIssues),
+    cancelled: asN(inner.cancelledIssues ?? inner.cancelled ?? inner.voidedIssues),
+  };
+}
 
 function StatCard({
   title,
@@ -261,6 +308,26 @@ export default function AdminDashboard() {
   const { data: stats, isLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/admin/dashboard"],
   });
+
+  // ── Real API statistics ──────────────────────────────────────────────────
+  const { data: issueStatsRaw, isLoading: isIssueStatsLoading } = useQuery({
+    queryKey: [API_CONFIG.issues.statistics],
+  });
+  const { data: currentYearRaw, isLoading: isCurrentYearLoading } = useQuery({
+    queryKey: [API_CONFIG.issues.currentYear],
+  });
+  const { data: allUsersRaw, isLoading: isUsersLoading } = useQuery({
+    queryKey: [API_CONFIG.userManagement.all],
+  });
+  const { data: allNotebooksRaw, isLoading: isNotebooksLoading } = useQuery({
+    queryKey: [API_CONFIG.notebooks.all],
+  });
+
+  const issueStats       = extractIssueStats(issueStatsRaw);
+  const currentYearCount = extractCount(currentYearRaw);
+  const totalUsersCount  = extractCount(allUsersRaw);
+  const totalNotebooks   = extractCount(allNotebooksRaw);
+
   const { t, language, dir } = useLanguage();
   const {
     settings,
@@ -461,6 +528,92 @@ export default function AdminDashboard() {
             </div>
           }
         />
+
+        {/* ── Live API Statistics ─────────────────────────────────────── */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Activity className="h-4 w-4 text-primary" />
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+              {language === "ar" ? "إحصائيات مباشرة" : "Live Statistics"}
+            </h2>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Total Issues */}
+            <Card className="border-primary/15 bg-gradient-to-br from-primary/5 to-transparent transition-all duration-200 hover:shadow-md">
+              <CardContent className="pt-5 pb-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10 shrink-0">
+                    <BookOpen className="h-5 w-5 text-primary" />
+                  </div>
+                  {isIssueStatsLoading ? (
+                    <Skeleton className="h-8 w-16" />
+                  ) : (
+                    <span className="text-3xl font-bold tabular-nums">{issueStats.total.toLocaleString("en-US")}</span>
+                  )}
+                </div>
+                <p className="text-sm font-medium text-muted-foreground mt-3">{language === "ar" ? "إجمالي الإصدارات" : "Total Issues"}</p>
+                {!isIssueStatsLoading && (issueStats.active > 0 || issueStats.completed > 0) && (
+                  <div className="flex gap-3 mt-2 text-xs text-muted-foreground">
+                    {issueStats.active > 0 && <span className="text-emerald-600 dark:text-emerald-400 font-medium">{issueStats.active} {language === "ar" ? "نشط" : "active"}</span>}
+                    {issueStats.completed > 0 && <span className="text-sky-600 dark:text-sky-400 font-medium">{issueStats.completed} {language === "ar" ? "مكتمل" : "completed"}</span>}
+                    {issueStats.cancelled > 0 && <span className="text-rose-600 dark:text-rose-400 font-medium">{issueStats.cancelled} {language === "ar" ? "ملغي" : "cancelled"}</span>}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Current Year Issues */}
+            <Card className="border-sky-200 dark:border-sky-800/40 transition-all duration-200 hover:shadow-md">
+              <CardContent className="pt-5 pb-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-sky-500/10 shrink-0">
+                    <ListChecks className="h-5 w-5 text-sky-600 dark:text-sky-400" />
+                  </div>
+                  {isCurrentYearLoading ? (
+                    <Skeleton className="h-8 w-16" />
+                  ) : (
+                    <span className="text-3xl font-bold tabular-nums text-sky-600 dark:text-sky-400">{currentYearCount.toLocaleString("en-US")}</span>
+                  )}
+                </div>
+                <p className="text-sm font-medium text-muted-foreground mt-3">{language === "ar" ? "إصدارات هذا العام" : "This Year's Issues"}</p>
+              </CardContent>
+            </Card>
+
+            {/* Total Users */}
+            <Card className="border-violet-200 dark:border-violet-800/40 transition-all duration-200 hover:shadow-md">
+              <CardContent className="pt-5 pb-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-violet-500/10 shrink-0">
+                    <Users className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+                  </div>
+                  {isUsersLoading ? (
+                    <Skeleton className="h-8 w-16" />
+                  ) : (
+                    <span className="text-3xl font-bold tabular-nums text-violet-600 dark:text-violet-400">{totalUsersCount.toLocaleString("en-US")}</span>
+                  )}
+                </div>
+                <p className="text-sm font-medium text-muted-foreground mt-3">{language === "ar" ? "إجمالي المستخدمين" : "Total Users"}</p>
+              </CardContent>
+            </Card>
+
+            {/* Total Notebooks */}
+            <Card className="border-amber-200 dark:border-amber-800/40 transition-all duration-200 hover:shadow-md">
+              <CardContent className="pt-5 pb-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-amber-500/10 shrink-0">
+                    <CreditCard className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  {isNotebooksLoading ? (
+                    <Skeleton className="h-8 w-16" />
+                  ) : (
+                    <span className="text-3xl font-bold tabular-nums text-amber-600 dark:text-amber-400">{totalNotebooks.toLocaleString("en-US")}</span>
+                  )}
+                </div>
+                <p className="text-sm font-medium text-muted-foreground mt-3">{language === "ar" ? "إجمالي الدفاتر" : "Total Notebooks"}</p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
 
         <DndContext
           sensors={sensors}
