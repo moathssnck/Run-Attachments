@@ -217,7 +217,7 @@ function Router() {
       </Route>
 
       <Route path="/admin/audit-logs">
-        <ProtectedRoute allowedRoles={["system_admin", "auditor"]}>
+        <ProtectedRoute allowedRoles={["admin", "system_admin", "finance_admin", "auditor"]}>
           <AdminAuditLogs />
         </ProtectedRoute>
       </Route>
