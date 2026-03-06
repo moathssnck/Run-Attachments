@@ -43,7 +43,6 @@ import { AdminLayout } from "@/components/admin-layout";
 import { PageHeader } from "@/components/page-header";
 import { useLanguage } from "@/lib/language-context";
 import { API_CONFIG } from "@/lib/api-config";
-import { apiRequest } from "@/lib/queryClient";
 import { usePagination, paginate, TablePagination } from "@/components/ui/table-pagination";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -368,32 +367,32 @@ export default function AuditLogsPage() {
     return `${API_CONFIG.auditLog.list}?${params.toString()}`;
   }, [pageNumber, pageSize, actionFilter, entityFilter, severityFilter, userIdFilter, fromDate, toDate, successOnly, errorsOnly]);
 
+  const todayUrl   = API_CONFIG.auditLog.today;
+  const failedUrl  = `${API_CONFIG.auditLog.failed}?pageSize=${pageSize}`;
+  const loginsUrl  = `${API_CONFIG.auditLog.logins}?includeFailedAttempts=true`;
+
   // Today query
   const { data: todayRaw, isLoading: todayLoading, refetch: refetchToday } = useQuery({
-    queryKey: [API_CONFIG.auditLog.today],
+    queryKey: [todayUrl],
     enabled: viewMode === "today",
-    queryFn: () => apiRequest("GET", API_CONFIG.auditLog.today),
   });
 
   // Failed query
   const { data: failedRaw, isLoading: failedLoading, refetch: refetchFailed } = useQuery({
-    queryKey: [API_CONFIG.auditLog.failed],
+    queryKey: [failedUrl],
     enabled: viewMode === "failed",
-    queryFn: () => apiRequest("GET", `${API_CONFIG.auditLog.failed}?pageSize=${pageSize}`),
   });
 
   // Logins query
   const { data: loginsRaw, isLoading: loginsLoading, refetch: refetchLogins } = useQuery({
-    queryKey: [API_CONFIG.auditLog.logins],
+    queryKey: [loginsUrl],
     enabled: viewMode === "logins",
-    queryFn: () => apiRequest("GET", `${API_CONFIG.auditLog.logins}?includeFailedAttempts=true`),
   });
 
   // All logs query — server-side filtered + paginated
   const { data: allRaw, isLoading: allLoading, refetch: refetchAll } = useQuery({
     queryKey: [allQueryUrl],
     enabled: viewMode === "all",
-    queryFn: () => apiRequest("GET", allQueryUrl),
   });
 
   // Resolve active data
