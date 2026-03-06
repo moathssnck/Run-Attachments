@@ -54,6 +54,13 @@ export const API_CONFIG = {
   userManagement: {
     all: "/api/UserManagement/get-all-users",
   },
+  auditLog: {
+    list: "/api/AuditLog",
+    today: "/api/AuditLog/today",
+    failed: "/api/AuditLog/failed",
+    logins: "/api/AuditLog/logins",
+    byUser: (userId: ApiEntityId) => `/api/AuditLog/user/${userId}`,
+  },
   lookupCategory: {
     list: "/api/LookupCategory?includeDeleted=false",
     base: "/api/LookupCategory",
