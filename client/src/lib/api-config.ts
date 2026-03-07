@@ -51,6 +51,13 @@ export const API_CONFIG = {
     byCategory: (id: ApiEntityId) => `/api/Prize/category/${id}`,
     byLevel: (level: ApiEntityId) => `/api/Prize/level/${level}`,
   },
+  roles: {
+    list: "/api/Roles?includeDeleted=false",
+    base: "/api/Roles",
+    byId: (id: ApiEntityId) => `/api/Roles/${id}`,
+    permissions: (id: ApiEntityId) => `/api/Roles/${id}/permissions`,
+    users: (id: ApiEntityId) => `/api/Roles/${id}/users`,
+  },
   userManagement: {
     all: "/api/UserManagement/get-all-users",
   },

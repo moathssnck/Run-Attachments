@@ -1,0 +1,247 @@
+{
+  "info": {
+    "_postman_id": "2a6aa03c-f033-4432-91f4-e2fce576e89b",
+    "name": "Role",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "51925085",
+    "_collection_link": "https://go.postman.co/collection/29386686-2a6aa03c-f033-4432-91f4-e2fce576e89b?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Add Role",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "accept",
+            "value": "text/plain"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"roleNameEn\": \"SuperAdmin\",\r\n  \"roleNameAr\": \"مستخدم\",\r\n  \"description\": \"مستخدم\",\r\n  \"isSystem\": true,\r\n  \"status\": true\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{URL}}/api/Roles",
+          "host": [
+            "{{URL}}"
+          ],
+          "path": [
+            "api",
+            "Roles"
+          ]
+        },
+        "description": "Generated from cURL: curl -X 'POST' \\\r\n  'https://localhost:44345/api/Roles' \\\r\n  -H 'accept: text/plain' \\\r\n  -H 'Content-Type: application/json' \\\r\n  -d '{\r\n  \"roleNameEn\": \"USER\",\r\n  \"roleNameAr\": \"مستخدم\",\r\n  \"description\": \"مستخدم\",\r\n  \"isSystem\": true,\r\n  \"status\": true\r\n}'"
+      },
+      "response": []
+    },
+    {
+      "name": "Update Role",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "accept",
+            "value": "text/plain"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"roleId\": 1,\r\n  \"roleNameEn\": \"1\",\r\n  \"roleNameAr\": \"1\",\r\n  \"description\": \"1\",\r\n  \"status\": true\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{URL}}/api/Roles/1",
+          "host": [
+            "{{URL}}"
+          ],
+          "path": [
+            "api",
+            "Roles",
+            "1"
+          ]
+        },
+        "description": "Generated from cURL: curl -X 'PUT' \\\r\n  'https://localhost:44345/api/Roles/1' \\\r\n  -H 'accept: text/plain' \\\r\n  -H 'Content-Type: application/json' \\\r\n  -d '{\r\n  \"roleId\": 0,\r\n  \"roleNameEn\": \"1\",\r\n  \"roleNameAr\": \"1\",\r\n  \"description\": \"1\",\r\n  \"status\": true\r\n}'"
+      },
+      "response": []
+    },
+    {
+      "name": "GetRoleById",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "accept",
+            "value": "text/plain"
+          }
+        ],
+        "url": {
+          "raw": "{{URL}}/api/Roles/3",
+          "host": [
+            "{{URL}}"
+          ],
+          "path": [
+            "api",
+            "Roles",
+            "3"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Permissions Of Role",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "accept",
+            "value": "text/plain"
+          }
+        ],
+        "url": {
+          "raw": "{{URL}}/api/Roles/3/permissions",
+          "host": [
+            "{{URL}}"
+          ],
+          "path": [
+            "api",
+            "Roles",
+            "3",
+            "permissions"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Delete Roles",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "accept",
+            "value": "text/plain"
+          }
+        ],
+        "url": {
+          "raw": "{{URL}}/api/Roles/2",
+          "host": [
+            "{{URL}}"
+          ],
+          "path": [
+            "api",
+            "Roles",
+            "2"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get All Role",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "accept",
+            "value": "text/plain"
+          }
+        ],
+        "url": {
+          "raw": "{{URL}}/api/Roles?includeDeleted=false",
+          "host": [
+            "{{URL}}"
+          ],
+          "path": [
+            "api",
+            "Roles"
+          ],
+          "query": [
+            {
+              "key": "includeDeleted",
+              "value": "false"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get By Id Role USER",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "accept",
+            "value": "text/plain"
+          }
+        ],
+        "url": {
+          "raw": "{{URL}}/api/Roles/2/users",
+          "host": [
+            "{{URL}}"
+          ],
+          "path": [
+            "api",
+            "Roles",
+            "2",
+            "users"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{Token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ]
+}

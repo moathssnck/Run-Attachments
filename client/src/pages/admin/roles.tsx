@@ -112,7 +112,7 @@ const roleFormSchema = z.object({
 type RoleFormValues = z.infer<typeof roleFormSchema>;
 
 interface Role {
-  id: string;
+  id: number;
   nameEn: string;
   nameAr: string;
   descriptionEn: string;
@@ -123,140 +123,19 @@ interface Role {
   createdAt: string;
 }
 
-const initialRoles: Role[] = [
-  {
-    id: "1",
-    nameEn: "End User",
-    nameAr: "مستخدم",
-    descriptionEn: "Lottery participant",
-    descriptionAr: "مشارك في اليانصيب",
-    isSystem: false,
-    status: "active",
-    usersCount: 1250,
-    createdAt: "2024-01-15",
-  },
-  {
-    id: "2",
-    nameEn: "Admin",
-    nameAr: "مدير",
-    descriptionEn: "Operational management",
-    descriptionAr: "الإدارة التشغيلية",
-    isSystem: false,
-    status: "active",
-    usersCount: 8,
-    createdAt: "2024-01-15",
-  },
-  {
-    id: "3",
-    nameEn: "Finance Admin",
-    nameAr: "مدير مالي",
-    descriptionEn: "Payments and refunds",
-    descriptionAr: "المدفوعات والمبالغ المستردة",
-    isSystem: false,
-    status: "active",
-    usersCount: 3,
-    createdAt: "2024-01-15",
-  },
-  {
-    id: "4",
-    nameEn: "System Admin",
-    nameAr: "مدير النظام",
-    descriptionEn: "Full permissions",
-    descriptionAr: "صلاحيات كاملة",
-    isSystem: false,
-    status: "active",
-    usersCount: 2,
-    createdAt: "2024-01-15",
-  },
-  {
-    id: "5",
-    nameEn: "Auditor",
-    nameAr: "مدقق",
-    descriptionEn: "Read-only audit access",
-    descriptionAr: "صلاحية التدقيق للقراءة فقط",
-    isSystem: false,
-    status: "active",
-    usersCount: 4,
-    createdAt: "2024-01-15",
-  },
-  {
-    id: "6",
-    nameEn: "Marketing",
-    nameAr: "تسويق",
-    descriptionEn: "Marketing campaigns",
-    descriptionAr: "حملات التسويق",
-    isSystem: false,
-    status: "active",
-    usersCount: 5,
-    createdAt: "2024-02-20",
-  },
-  {
-    id: "7",
-    nameEn: "Support",
-    nameAr: "دعم",
-    descriptionEn: "Customer support",
-    descriptionAr: "دعم العملاء",
-    isSystem: false,
-    status: "active",
-    usersCount: 12,
-    createdAt: "2024-03-10",
-  },
-  {
-    id: "8",
-    nameEn: "Analyst",
-    nameAr: "محلل",
-    descriptionEn: "Data analysis",
-    descriptionAr: "تحليل البيانات",
-    isSystem: false,
-    status: "inactive",
-    usersCount: 2,
-    createdAt: "2024-04-05",
-  },
-  {
-    id: "9",
-    nameEn: "Content Manager",
-    nameAr: "مدير المحتوى",
-    descriptionEn: "Content management",
-    descriptionAr: "إدارة المحتوى",
-    isSystem: false,
-    status: "active",
-    usersCount: 3,
-    createdAt: "2024-05-12",
-  },
-  {
-    id: "10",
-    nameEn: "Partner",
-    nameAr: "شريك",
-    descriptionEn: "External partners",
-    descriptionAr: "شركاء خارجيون",
-    isSystem: false,
-    status: "active",
-    usersCount: 7,
-    createdAt: "2024-06-01",
-  },
-  {
-    id: "11",
-    nameEn: "Tester",
-    nameAr: "مختبر",
-    descriptionEn: "QA testing",
-    descriptionAr: "اختبار الجودة",
-    isSystem: false,
-    status: "inactive",
-    usersCount: 4,
-    createdAt: "2024-06-15",
-  },
-  {
-    id: "12",
-    nameEn: "Developer",
-    nameAr: "مطور",
-    descriptionEn: "Development access",
-    descriptionAr: "صلاحية التطوير",
-    isSystem: false,
-    status: "active",
-    usersCount: 6,
-    createdAt: "2024-07-01",
-  },
-];
+function mapApiRole(r: any): Role {
+  return {
+    id: r.roleId ?? r.id,
+    nameEn: r.roleNameEn ?? r.nameEn ?? r.name ?? "",
+    nameAr: r.roleNameAr ?? r.nameAr ?? r.name ?? "",
+    descriptionEn: r.description ?? r.descriptionEn ?? "",
+    descriptionAr: r.description ?? r.descriptionAr ?? "",
+    isSystem: r.isSystem ?? false,
+    status: r.status === true || r.status === "active" ? "active" : "inactive",
+    usersCount: r.usersCount ?? 0,
+    createdAt: r.createdAt ? new Date(r.createdAt).toISOString().split("T")[0] : "",
+  };
+}
 
 const translations = {
   en: {
@@ -376,7 +255,7 @@ interface UserForAssign {
 }
 
 export default function RolesPage() {
-  const [roles, setRoles] = useState<Role[]>(initialRoles);
+  const [roles, setRoles] = useState<Role[]>([]);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
   const [deletingRole, setDeletingRole] = useState<Role | null>(null);
@@ -386,82 +265,53 @@ export default function RolesPage() {
   const [userSearch, setUserSearch] = useState("");
   const [roleSearch, setRoleSearch] = useState("");
   const [showRoleSuggestions, setShowRoleSuggestions] = useState(false);
-  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(
-    new Set(),
-  );
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
   const [loadingRoleUsers, setLoadingRoleUsers] = useState(false);
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { data: usersData } = useQuery<UserForAssign[]>({
+  // ── Fetch all users (for assign dialog) ──────────────────────────────────
+  const { data: usersData } = useQuery({
     queryKey: ["/api/UserManagement/get-all-users"],
-    queryFn: async () => {
-      const headers: Record<string, string> = {};
-      const token = localStorage.getItem("lottery_token");
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-      const response = await fetch("/api/UserManagement/get-all-users", { headers });
-      const data = await response.json();
-      return (data || []).map((u: any) => ({
-        id: u.id,
-        name: [u.firstName, u.lastName].filter(Boolean).join(" ") || u.email,
-        email: u.email,
-      }));
-    },
   });
 
-  const { data: rolesData, refetch: refetchRoles } = useQuery<Role[]>({
-    queryKey: ["/api/admin/roles"],
-    queryFn: async () => {
-      const response = await fetch("/api/admin/roles");
-      const data = await response.json();
-      return (data || []).map((r: any) => ({
-        id: r.id,
-        nameEn: r.nameEn || r.name,
-        nameAr: r.nameAr || r.name,
-        descriptionEn: r.descriptionEn || r.description || "",
-        descriptionAr: r.descriptionAr || r.description || "",
-        isSystem: r.isSystem || false,
-        status: r.status || "active",
-        usersCount: r.usersCount || 0,
-        createdAt: r.createdAt
-          ? new Date(r.createdAt).toISOString().split("T")[0]
-          : "",
-      }));
-    },
+  // ── Fetch roles from real API ─────────────────────────────────────────────
+  const { data: rolesRaw, isLoading: isRolesLoading } = useQuery({
+    queryKey: ["/api/Roles?includeDeleted=false"],
   });
 
   useEffect(() => {
-    if (rolesData && rolesData.length > 0) {
-      setRoles(rolesData);
-    }
-  }, [rolesData]);
+    if (!rolesRaw) return;
+    const arr: any[] = Array.isArray(rolesRaw)
+      ? rolesRaw
+      : (rolesRaw as any).data ?? (rolesRaw as any).roles ?? [];
+    setRoles(arr.map(mapApiRole));
+  }, [rolesRaw]);
 
-  const allUsers = usersData || [];
+  const allUsers: UserForAssign[] = useMemo(() => {
+    if (!usersData) return [];
+    const arr: any[] = Array.isArray(usersData)
+      ? usersData
+      : (usersData as any).data ?? (usersData as any).users ?? [];
+    return arr.map((u: any) => ({
+      id: String(u.id ?? u.userId),
+      name: [u.firstName, u.lastName].filter(Boolean).join(" ") || u.email || "",
+      email: u.email ?? "",
+    }));
+  }, [usersData]);
 
   const t = translations[language];
   const isRTL = language === "ar";
 
   const createForm = useForm<RoleFormValues>({
     resolver: zodResolver(roleFormSchema),
-    defaultValues: {
-      nameEn: "",
-      nameAr: "",
-      descriptionEn: "",
-      descriptionAr: "",
-      status: "active",
-    },
+    defaultValues: { nameEn: "", nameAr: "", descriptionEn: "", descriptionAr: "", status: "active" },
   });
 
   const editForm = useForm<RoleFormValues>({
     resolver: zodResolver(roleFormSchema),
-    defaultValues: {
-      nameEn: "",
-      nameAr: "",
-      descriptionEn: "",
-      descriptionAr: "",
-      status: "active",
-    },
+    defaultValues: { nameEn: "", nameAr: "", descriptionEn: "", descriptionAr: "", status: "active" },
   });
 
   const filteredRoles = useMemo(() => {
@@ -480,11 +330,7 @@ export default function RolesPage() {
     if (!roleSearch.trim() || roleSearch.length < 1) return [];
     const searchLower = roleSearch.toLowerCase();
     return roles
-      .filter(
-        (role) =>
-          role.nameEn.toLowerCase().includes(searchLower) ||
-          role.nameAr.includes(roleSearch),
-      )
+      .filter((role) => role.nameEn.toLowerCase().includes(searchLower) || role.nameAr.includes(roleSearch))
       .slice(0, 5);
   }, [roles, roleSearch]);
 
@@ -493,60 +339,106 @@ export default function RolesPage() {
 
   const paginatedRoles = useMemo(() => {
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    const end = start + ITEMS_PER_PAGE;
-    return filteredRoles.slice(start, end);
+    return filteredRoles.slice(start, start + ITEMS_PER_PAGE);
   }, [filteredRoles, currentPage]);
 
-  const handleToggleStatus = (roleId: string) => {
-    setRoles((prev) =>
-      prev.map((role) => {
-        if (role.id === roleId && !role.isSystem) {
-          return {
-            ...role,
-            status: role.status === "active" ? "inactive" : "active",
-          };
-        }
-        return role;
-      }),
-    );
+  // ── Create mutation ───────────────────────────────────────────────────────
+  const createMutation = useMutation({
+    mutationFn: async (data: RoleFormValues) => {
+      const res = await apiRequest("POST", "/api/Roles", {
+        roleNameEn: data.nameEn,
+        roleNameAr: data.nameAr,
+        description: data.descriptionAr || data.descriptionEn || "",
+        isSystem: false,
+        status: data.status === "active",
+      });
+      return res.json();
+    },
+    onSuccess: (body) => {
+      toast({ title: isRTL ? "تم الإنشاء" : "Created", description: isRTL ? "تم إنشاء الدور بنجاح" : "Role created successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/Roles?includeDeleted=false"] });
+      setIsCreateOpen(false);
+      createForm.reset();
+    },
+    onError: (err: Error) => {
+      toast({ title: isRTL ? "خطأ" : "Error", description: err.message, variant: "destructive" });
+    },
+  });
+
+  // ── Update mutation ───────────────────────────────────────────────────────
+  const updateMutation = useMutation({
+    mutationFn: async ({ role, data }: { role: Role; data: RoleFormValues }) => {
+      const res = await apiRequest("PUT", `/api/Roles/${role.id}`, {
+        roleId: role.id,
+        roleNameEn: data.nameEn,
+        roleNameAr: data.nameAr,
+        description: data.descriptionAr || data.descriptionEn || "",
+        status: data.status === "active",
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: isRTL ? "تم التحديث" : "Updated", description: isRTL ? "تم تحديث الدور بنجاح" : "Role updated successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/Roles?includeDeleted=false"] });
+      setEditingRole(null);
+      editForm.reset();
+    },
+    onError: (err: Error) => {
+      toast({ title: isRTL ? "خطأ" : "Error", description: err.message, variant: "destructive" });
+    },
+  });
+
+  // ── Delete mutation ───────────────────────────────────────────────────────
+  const deleteMutation = useMutation({
+    mutationFn: async (roleId: number) => {
+      const res = await apiRequest("DELETE", `/api/Roles/${roleId}`);
+      return res.status;
+    },
+    onSuccess: () => {
+      toast({ title: isRTL ? "تم الحذف" : "Deleted", description: isRTL ? "تم حذف الدور بنجاح" : "Role deleted successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/Roles?includeDeleted=false"] });
+      setDeletingRole(null);
+      const newTotalPages = Math.ceil((roles.length - 1) / ITEMS_PER_PAGE);
+      if (currentPage > newTotalPages && newTotalPages > 0) setCurrentPage(newTotalPages);
+    },
+    onError: (err: Error) => {
+      toast({ title: isRTL ? "خطأ" : "Error", description: err.message, variant: "destructive" });
+      setDeletingRole(null);
+    },
+  });
+
+  // ── Toggle status mutation ────────────────────────────────────────────────
+  const toggleStatusMutation = useMutation({
+    mutationFn: async (role: Role) => {
+      const res = await apiRequest("PUT", `/api/Roles/${role.id}`, {
+        roleId: role.id,
+        roleNameEn: role.nameEn,
+        roleNameAr: role.nameAr,
+        description: role.descriptionAr || role.descriptionEn || "",
+        status: role.status !== "active",
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/Roles?includeDeleted=false"] });
+    },
+    onError: (err: Error) => {
+      toast({ title: isRTL ? "خطأ" : "Error", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const handleToggleStatus = (roleId: number) => {
+    const role = roles.find((r) => r.id === roleId);
+    if (role && !role.isSystem) toggleStatusMutation.mutate(role);
   };
 
   const handleCreateSubmit = (data: RoleFormValues) => {
-    const newRole: Role = {
-      id: String(Date.now()),
-      nameEn: data.nameEn,
-      nameAr: data.nameAr,
-      descriptionEn: data.descriptionEn || "",
-      descriptionAr: data.descriptionAr || "",
-      isSystem: false,
-      status: data.status,
-      usersCount: 0,
-      createdAt: new Date().toISOString().split("T")[0],
-    };
-    setRoles((prev) => [...prev, newRole]);
-    setIsCreateOpen(false);
-    createForm.reset();
+    createMutation.mutate(data);
   };
 
   const handleEditSubmit = (data: RoleFormValues) => {
     if (!editingRole) return;
-    setRoles((prev) =>
-      prev.map((role) => {
-        if (role.id === editingRole.id) {
-          return {
-            ...role,
-            nameEn: data.nameEn,
-            nameAr: data.nameAr,
-            descriptionEn: data.descriptionEn || "",
-            descriptionAr: data.descriptionAr || "",
-            status: data.status,
-          };
-        }
-        return role;
-      }),
-    );
-    setEditingRole(null);
-    editForm.reset();
+    updateMutation.mutate({ role: editingRole, data });
   };
 
   const handleEditClick = (role: Role) => {
@@ -561,14 +453,7 @@ export default function RolesPage() {
   };
 
   const handleDeleteConfirm = () => {
-    if (deletingRole) {
-      setRoles((prev) => prev.filter((role) => role.id !== deletingRole.id));
-      setDeletingRole(null);
-      const newTotalPages = Math.ceil((roles.length - 1) / ITEMS_PER_PAGE);
-      if (currentPage > newTotalPages && newTotalPages > 0) {
-        setCurrentPage(newTotalPages);
-      }
-    }
+    if (deletingRole) deleteMutation.mutate(deletingRole.id);
   };
 
   const handleAssignUsersClick = async (role: Role) => {
@@ -576,13 +461,12 @@ export default function RolesPage() {
     setUserSearch("");
     setLoadingRoleUsers(true);
     try {
-      const response = await fetch(`/api/admin/roles/${role.id}/users`);
-      const data = await response.json();
-      if (data.success && Array.isArray(data.data)) {
-        setSelectedUserIds(new Set(data.data));
-      } else {
-        setSelectedUserIds(new Set());
-      }
+      const res = await apiRequest("GET", `/api/Roles/${role.id}/users`);
+      const data = await res.json();
+      const arr: any[] = Array.isArray(data)
+        ? data
+        : data?.data ?? data?.users ?? [];
+      setSelectedUserIds(new Set(arr.map((u: any) => String(u.id ?? u.userId ?? u))));
     } catch {
       setSelectedUserIds(new Set());
     } finally {
@@ -593,78 +477,29 @@ export default function RolesPage() {
   const handleUserToggle = (userId: string) => {
     setSelectedUserIds((prev) => {
       const newSet = new Set(prev);
-      if (newSet.has(userId)) {
-        newSet.delete(userId);
-      } else {
-        newSet.add(userId);
-      }
+      if (newSet.has(userId)) newSet.delete(userId); else newSet.add(userId);
       return newSet;
     });
   };
 
   const assignUsersMutation = useMutation({
-    mutationFn: async ({
-      roleId,
-      userIds,
-    }: {
-      roleId: string;
-      userIds: string[];
-    }) => {
-      const response = await apiRequest(
-        "POST",
-        `/api/admin/roles/${roleId}/users`,
-        {
-          userIds,
-          adminId: "admin",
-        },
-      );
-      return response.json();
+    mutationFn: async ({ roleId, userIds }: { roleId: number; userIds: string[] }) => {
+      const res = await apiRequest("POST", `/api/Roles/${roleId}/users`, { userIds });
+      return res.json();
     },
-    onSuccess: (data) => {
-      if (data.success) {
-        toast({
-          title: isRTL ? "تم الحفظ" : "Saved",
-          description: isRTL
-            ? "تم تعيين المستخدمين بنجاح"
-            : "Users assigned successfully",
-        });
-        setRoles((prev) =>
-          prev.map((role) =>
-            role.id === assigningRole?.id
-              ? { ...role, usersCount: selectedUserIds.size }
-              : role,
-          ),
-        );
-        queryClient.invalidateQueries({ queryKey: ["/api/UserManagement/get-all-users"] });
-        queryClient.invalidateQueries({ queryKey: ["/api/admin/roles"] });
-        setAssigningRole(null);
-      } else {
-        toast({
-          title: isRTL ? "خطأ" : "Error",
-          description:
-            data.error ||
-            (isRTL ? "فشل في تعيين المستخدمين" : "Failed to assign users"),
-          variant: "destructive",
-        });
-      }
+    onSuccess: () => {
+      toast({ title: isRTL ? "تم الحفظ" : "Saved", description: isRTL ? "تم تعيين المستخدمين بنجاح" : "Users assigned successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/Roles?includeDeleted=false"] });
+      setAssigningRole(null);
     },
-    onError: () => {
-      toast({
-        title: isRTL ? "خطأ" : "Error",
-        description: isRTL
-          ? "فشل في تعيين المستخدمين"
-          : "Failed to assign users",
-        variant: "destructive",
-      });
+    onError: (err: Error) => {
+      toast({ title: isRTL ? "خطأ" : "Error", description: err.message, variant: "destructive" });
     },
   });
 
   const handleSaveAssignments = () => {
     if (assigningRole) {
-      assignUsersMutation.mutate({
-        roleId: assigningRole.id,
-        userIds: Array.from(selectedUserIds),
-      });
+      assignUsersMutation.mutate({ roleId: assigningRole.id, userIds: Array.from(selectedUserIds) });
     }
   };
 
