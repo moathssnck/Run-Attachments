@@ -50,20 +50,20 @@ interface DashboardSettingsContextType {
 }
 
 const defaultSettings: DashboardSettings = {
-  showUsers: true,
-  showActiveDraws: true,
-  showTicketsSold: true,
-  showRevenue: true,
-  showTicketsSoldStat: true,
-  showTicketsRemaining: true,
-  showTicketsAvailable: true,
-  showTicketsCancelled: true,
-  showCharts: true,
-  showRecentActivity: true,
   showLiveIssues: true,
   showLiveCurrentYear: true,
   showLiveUsers: true,
   showLiveNotebooks: true,
+  showCharts: true,
+  showRecentActivity: true,
+  showUsers: false,
+  showActiveDraws: false,
+  showTicketsSold: false,
+  showRevenue: false,
+  showTicketsSoldStat: false,
+  showTicketsRemaining: false,
+  showTicketsAvailable: false,
+  showTicketsCancelled: false,
 };
 
 const defaultWidgetOrder: WidgetId[] = [
@@ -71,6 +71,8 @@ const defaultWidgetOrder: WidgetId[] = [
   "liveCurrentYear",
   "liveUsers",
   "liveNotebooks",
+  "charts",
+  "recentActivity",
   "users",
   "activeDraws",
   "ticketsSold",
@@ -79,8 +81,6 @@ const defaultWidgetOrder: WidgetId[] = [
   "ticketsRemaining",
   "ticketsAvailable",
   "ticketsCancelled",
-  "charts",
-  "recentActivity",
 ];
 
 const defaultWidgetWidths: WidgetWidths = {
