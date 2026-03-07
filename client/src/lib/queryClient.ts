@@ -47,9 +47,9 @@ export async function apiRequest(
   const buildHeaders = (): Record<string, string> => {
     const h: Record<string, string> = {};
     if (data !== undefined) h["Content-Type"] = "application/json";
-    // const token = localStorage.getItem("lottery_token");
     const token =
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEwMDEyIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvZW1haWxhZGRyZXNzIjoibXV0MTIzNDU2MjFAZXhhbXBsZS5jb20iLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoibXV0MTIzNDU2MjFAZXhhbXBsZS5jb20iLCJqdGkiOiJiYWMzMmQ2YS1iODI2LTQwOWQtYWFmNS1iNTIxYjAwMmY5OTQiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJVU0VSIiwiZXhwIjoxNzc1MzA3Mzg1LCJpc3MiOiJJVGhpbmsiLCJhdWQiOiJJVGhpbmsifQ.qZ_HaBUKSJPOlrmSTEIhpjSbGdFGKNlk7c_e-qove2o";
+      localStorage.getItem("lottery_token") ||
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEwMDEyIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvZW1haWxhZGRyZXNzIjoibXV0MTIzNDU2MjFAZXhhbXBsZS5jb20iLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoibXV0MTIzNDU2MjFAZXhhbXBsZS5jb20iLCJqdGkiOiIwY2Y2Y2M0OS1jNWMxLTRiZTktOTE3NC0yNDE2NjNiZjlkMjEiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJVU0VSIiwiZXhwIjoxNzc1MjE3MTA0LCJpc3MiOiJJVGhpbmsiLCJhdWQiOiJJVGhpbmsifQ.sfcipLOVCbf7NpY2TpfyThocanrg3ueub5MtGIe0XTE";
 
     if (token) h["Authorization"] = `Bearer ${token}`;
     return h;
