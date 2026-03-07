@@ -97,45 +97,6 @@ const moduleIcons: Record<string, React.ReactNode> = {
   audit: <FileText className="h-4 w-4" />,
 };
 
-const mockRoles: Role[] = [
-  {
-    id: "1",
-    nameEn: "Super Admin",
-    nameAr: "المدير العام",
-    descriptionEn: "Full system access",
-    descriptionAr: "وصول كامل للنظام",
-    isSystem: true,
-    status: "active",
-    name: "Super Admin",
-  },
-  {
-    id: "2",
-    nameEn: "Manager",
-    nameAr: "مدير",
-    descriptionEn: "Manage users and content",
-    descriptionAr: "إدارة المستخدمين والمحتوى",
-    status: "active",
-    name: "Manager",
-  },
-  {
-    id: "3",
-    nameEn: "Editor",
-    nameAr: "محرر",
-    descriptionEn: "Edit content and reports",
-    descriptionAr: "تحرير المحتوى والتقارير",
-    status: "active",
-    name: "Editor",
-  },
-  {
-    id: "4",
-    nameEn: "Viewer",
-    nameAr: "مشاهد",
-    descriptionEn: "View only access",
-    descriptionAr: "وصول للعرض فقط",
-    status: "active",
-    name: "Viewer",
-  },
-];
 
 const mockPermissions: Permission[] = [
   // Users module
@@ -276,14 +237,6 @@ const mockPermissions: Permission[] = [
   },
 ];
 
-const mockRolePermissions: RolePermission[] = [
-  { id: "rp1", roleId: "1", permissionId: "u1" },
-  { id: "rp2", roleId: "1", permissionId: "u1.1" },
-  { id: "rp3", roleId: "1", permissionId: "u1.2" },
-  { id: "rp4", roleId: "1", permissionId: "r1" },
-  { id: "rp5", roleId: "2", permissionId: "u1.1" },
-  { id: "rp6", roleId: "2", permissionId: "rp1" },
-];
 
 export default function PermissionsPage() {
   const { t, dir } = useLanguage();
@@ -308,83 +261,65 @@ export default function PermissionsPage() {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    if (selectedRoleId) loadRolePermissions(selectedRoleId);
+    else setRolePermissions([]);
+  }, [selectedRoleId]);
+
   const extractArray = <T,>(payload: any): T[] => {
     if (Array.isArray(payload)) return payload as T[];
     if (payload?.data && Array.isArray(payload.data)) return payload.data as T[];
-    if (payload?.data?.items && Array.isArray(payload.data.items)) {
-      return payload.data.items as T[];
-    }
-    if (payload?.items && Array.isArray(payload.items)) {
-      return payload.items as T[];
-    }
+    if (payload?.data?.items && Array.isArray(payload.data.items)) return payload.data.items as T[];
+    if (payload?.items && Array.isArray(payload.items)) return payload.items as T[];
     return [];
   };
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [rolesRes, permissionsRes, rolePermissionsRes] = await Promise.all([
-        apiRequest("GET", "/api/admin/roles"),
-        apiRequest("GET", "/api/admin/permissions"),
-        apiRequest("GET", "/api/admin/role-permissions"),
-      ]);
-
-      const [rolesPayload, permissionsPayload, rolePermissionsPayload] =
-        await Promise.all([
-          rolesRes.json(),
-          permissionsRes.json(),
-          rolePermissionsRes.json(),
-        ]);
-
+      const rolesRes = await apiRequest("GET", "/api/Roles?includeDeleted=false");
+      const rolesPayload = await rolesRes.json();
       const rolesData = extractArray<any>(rolesPayload).map((role) => ({
-        id: String(role.id ?? ""),
-        name: String(role.name ?? role.nameEn ?? ""),
-        nameEn: String(role.nameEn ?? role.name ?? ""),
-        nameAr: String(role.nameAr ?? role.name ?? ""),
+        id: String(role.roleId ?? role.id ?? ""),
+        name: String(role.roleNameEn ?? role.nameEn ?? role.name ?? ""),
+        nameEn: String(role.roleNameEn ?? role.nameEn ?? role.name ?? ""),
+        nameAr: String(role.roleNameAr ?? role.nameAr ?? role.name ?? ""),
         description: role.description,
-        descriptionEn: role.descriptionEn,
-        descriptionAr: role.descriptionAr,
+        descriptionEn: role.description ?? role.descriptionEn,
+        descriptionAr: role.description ?? role.descriptionAr,
         isSystem: Boolean(role.isSystem),
-        status: String(role.status ?? "active"),
+        status: role.status === true || role.status === "active" ? "active" : "inactive",
       }));
-
-      const permissionsData = extractArray<any>(permissionsPayload).map(
-        (perm) => ({
-          id: String(perm.id ?? perm.code ?? ""),
-          name: String(perm.name ?? perm.nameEn ?? ""),
-          nameEn: String(perm.nameEn ?? perm.name ?? ""),
-          nameAr: String(perm.nameAr ?? perm.name ?? ""),
-          description: perm.description,
-          descriptionEn: perm.descriptionEn,
-          descriptionAr: perm.descriptionAr,
-          module: String(perm.module ?? "general"),
-          parentId:
-            perm.parentId === undefined || perm.parentId === null
-              ? null
-              : String(perm.parentId),
-        }),
-      );
-
-      const rolePermissionsData = extractArray<any>(rolePermissionsPayload).map(
-        (entry) => ({
-          id: String(
-            entry.id ?? `${String(entry.roleId)}::${String(entry.permissionId)}`,
-          ),
-          roleId: String(entry.roleId ?? ""),
-          permissionId: String(entry.permissionId ?? ""),
-        }),
-      );
-
       setRoles(rolesData);
-      setPermissions(permissionsData);
-      setRolePermissions(rolePermissionsData);
+      setPermissions(mockPermissions);
+      setRolePermissions([]);
     } catch (error) {
-      console.error("Failed to fetch data:", error);
+      console.error("Failed to fetch roles:", error);
       setRoles([]);
-      setPermissions([]);
+      setPermissions(mockPermissions);
       setRolePermissions([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadRolePermissions = async (roleId: string) => {
+    try {
+      const res = await apiRequest("GET", `/api/Roles/${roleId}/permissions`);
+      const data = await res.json();
+      const arr = extractArray<any>(data);
+      const rps: RolePermission[] = arr.map((p: any) => {
+        const permId = String(p.permissionId ?? p.id ?? p.code ?? "");
+        return {
+          id: String(p.id ?? `${roleId}::${permId}`),
+          roleId,
+          permissionId: permId,
+        };
+      });
+      setRolePermissions(rps);
+      setPendingChanges(new Map());
+    } catch {
+      setRolePermissions([]);
     }
   };
 
@@ -568,34 +503,25 @@ export default function PermissionsPage() {
   };
 
   const handleSubmitChanges = async () => {
-    if (pendingChanges.size === 0) return;
+    if (pendingChanges.size === 0 || !selectedRoleId) return;
     setSaving(true);
     try {
-      const operations = Array.from(pendingChanges.entries()).map(
-        ([key, shouldAssign]) => {
-          const [roleId, permissionId] = key.split("::");
-          return { roleId, permissionId, shouldAssign };
-        },
-      );
+      const operations = Array.from(pendingChanges.entries()).map(([key, shouldAssign]) => {
+        const [roleId, permissionId] = key.split("::");
+        return { roleId, permissionId, shouldAssign };
+      });
 
       await Promise.all(
         operations.map(async ({ roleId, permissionId, shouldAssign }) => {
           if (shouldAssign) {
-            await apiRequest("POST", "/api/admin/role-permissions", {
-              roleId,
-              permissionId,
-            });
-            return;
+            await apiRequest("POST", `/api/Roles/${roleId}/permissions`, { permissionId });
+          } else {
+            await apiRequest("DELETE", `/api/Roles/${roleId}/permissions/${permissionId}`);
           }
-
-          await apiRequest("DELETE", "/api/admin/role-permissions", {
-            roleId,
-            permissionId,
-          });
         }),
       );
 
-      await fetchData();
+      await loadRolePermissions(selectedRoleId);
       setPendingChanges(new Map());
     } catch (error) {
       console.error("Failed to save permissions:", error);
