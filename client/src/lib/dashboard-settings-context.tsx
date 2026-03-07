@@ -84,10 +84,10 @@ const defaultWidgetOrder: WidgetId[] = [
 ];
 
 const defaultWidgetWidths: WidgetWidths = {
-  liveIssues: 1,
-  liveCurrentYear: 1,
-  liveUsers: 1,
-  liveNotebooks: 1,
+  liveIssues: 2,
+  liveCurrentYear: 2,
+  liveUsers: 2,
+  liveNotebooks: 2,
   users: 1,
   activeDraws: 1,
   ticketsSold: 1,
