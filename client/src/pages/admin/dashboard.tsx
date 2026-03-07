@@ -344,6 +344,10 @@ export default function AdminDashboard() {
   const [editMode, setEditMode] = useState(false);
 
   const widgetLabels: Record<WidgetId, string> = {
+    liveIssues:      language === "ar" ? "إجمالي الإصدارات" : "Total Issues",
+    liveCurrentYear: language === "ar" ? "إصدارات هذا العام" : "This Year's Issues",
+    liveUsers:       language === "ar" ? "إجمالي المستخدمين" : "Total Users",
+    liveNotebooks:   language === "ar" ? "إجمالي الدفاتر" : "Total Notebooks",
     users: language === "ar" ? "المستخدمون" : "Users",
     activeDraws: language === "ar" ? "السحوبات النشطة" : "Active Draws",
     ticketsSold: language === "ar" ? "التذاكر المباعة" : "Tickets Sold",
@@ -358,28 +362,21 @@ export default function AdminDashboard() {
 
   const getSettingKey = (widgetId: WidgetId): keyof typeof settings | null => {
     switch (widgetId) {
-      case "users":
-        return "showUsers";
-      case "activeDraws":
-        return "showActiveDraws";
-      case "ticketsSold":
-        return "showTicketsSold";
-      case "revenue":
-        return "showRevenue";
-      case "ticketsSold_stat":
-        return "showTicketsSoldStat";
-      case "ticketsRemaining":
-        return "showTicketsRemaining";
-      case "ticketsAvailable":
-        return "showTicketsAvailable";
-      case "ticketsCancelled":
-        return "showTicketsCancelled";
-      case "charts":
-        return "showCharts";
-      case "recentActivity":
-        return "showRecentActivity";
-      default:
-        return null;
+      case "liveIssues":      return "showLiveIssues";
+      case "liveCurrentYear": return "showLiveCurrentYear";
+      case "liveUsers":       return "showLiveUsers";
+      case "liveNotebooks":   return "showLiveNotebooks";
+      case "users":           return "showUsers";
+      case "activeDraws":     return "showActiveDraws";
+      case "ticketsSold":     return "showTicketsSold";
+      case "revenue":         return "showRevenue";
+      case "ticketsSold_stat": return "showTicketsSoldStat";
+      case "ticketsRemaining": return "showTicketsRemaining";
+      case "ticketsAvailable": return "showTicketsAvailable";
+      case "ticketsCancelled": return "showTicketsCancelled";
+      case "charts":          return "showCharts";
+      case "recentActivity":  return "showRecentActivity";
+      default:                return null;
     }
   };
 
@@ -528,92 +525,6 @@ export default function AdminDashboard() {
             </div>
           }
         />
-
-        {/* ── Live API Statistics ─────────────────────────────────────── */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Activity className="h-4 w-4 text-primary" />
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-              {language === "ar" ? "إحصائيات مباشرة" : "Live Statistics"}
-            </h2>
-          </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Total Issues */}
-            <Card className="border-primary/15 bg-gradient-to-br from-primary/5 to-transparent transition-all duration-200 hover:shadow-md">
-              <CardContent className="pt-5 pb-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10 shrink-0">
-                    <BookOpen className="h-5 w-5 text-primary" />
-                  </div>
-                  {isIssueStatsLoading ? (
-                    <Skeleton className="h-8 w-16" />
-                  ) : (
-                    <span className="text-3xl font-bold tabular-nums">{issueStats.total.toLocaleString("en-US")}</span>
-                  )}
-                </div>
-                <p className="text-sm font-medium text-muted-foreground mt-3">{language === "ar" ? "إجمالي الإصدارات" : "Total Issues"}</p>
-                {!isIssueStatsLoading && (issueStats.active > 0 || issueStats.completed > 0) && (
-                  <div className="flex gap-3 mt-2 text-xs text-muted-foreground">
-                    {issueStats.active > 0 && <span className="text-emerald-600 dark:text-emerald-400 font-medium">{issueStats.active} {language === "ar" ? "نشط" : "active"}</span>}
-                    {issueStats.completed > 0 && <span className="text-sky-600 dark:text-sky-400 font-medium">{issueStats.completed} {language === "ar" ? "مكتمل" : "completed"}</span>}
-                    {issueStats.cancelled > 0 && <span className="text-rose-600 dark:text-rose-400 font-medium">{issueStats.cancelled} {language === "ar" ? "ملغي" : "cancelled"}</span>}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Current Year Issues */}
-            <Card className="border-sky-200 dark:border-sky-800/40 transition-all duration-200 hover:shadow-md">
-              <CardContent className="pt-5 pb-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-sky-500/10 shrink-0">
-                    <ListChecks className="h-5 w-5 text-sky-600 dark:text-sky-400" />
-                  </div>
-                  {isCurrentYearLoading ? (
-                    <Skeleton className="h-8 w-16" />
-                  ) : (
-                    <span className="text-3xl font-bold tabular-nums text-sky-600 dark:text-sky-400">{currentYearCount.toLocaleString("en-US")}</span>
-                  )}
-                </div>
-                <p className="text-sm font-medium text-muted-foreground mt-3">{language === "ar" ? "إصدارات هذا العام" : "This Year's Issues"}</p>
-              </CardContent>
-            </Card>
-
-            {/* Total Users */}
-            <Card className="border-violet-200 dark:border-violet-800/40 transition-all duration-200 hover:shadow-md">
-              <CardContent className="pt-5 pb-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-violet-500/10 shrink-0">
-                    <Users className="h-5 w-5 text-violet-600 dark:text-violet-400" />
-                  </div>
-                  {isUsersLoading ? (
-                    <Skeleton className="h-8 w-16" />
-                  ) : (
-                    <span className="text-3xl font-bold tabular-nums text-violet-600 dark:text-violet-400">{totalUsersCount.toLocaleString("en-US")}</span>
-                  )}
-                </div>
-                <p className="text-sm font-medium text-muted-foreground mt-3">{language === "ar" ? "إجمالي المستخدمين" : "Total Users"}</p>
-              </CardContent>
-            </Card>
-
-            {/* Total Notebooks */}
-            <Card className="border-amber-200 dark:border-amber-800/40 transition-all duration-200 hover:shadow-md">
-              <CardContent className="pt-5 pb-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-amber-500/10 shrink-0">
-                    <CreditCard className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-                  </div>
-                  {isNotebooksLoading ? (
-                    <Skeleton className="h-8 w-16" />
-                  ) : (
-                    <span className="text-3xl font-bold tabular-nums text-amber-600 dark:text-amber-400">{totalNotebooks.toLocaleString("en-US")}</span>
-                  )}
-                </div>
-                <p className="text-sm font-medium text-muted-foreground mt-3">{language === "ar" ? "إجمالي الدفاتر" : "Total Notebooks"}</p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
 
         <DndContext
           sensors={sensors}
@@ -897,343 +808,238 @@ export default function AdminDashboard() {
                     </SortableStatCard>
                   );
                 }
+                // ── Live stat widgets ──────────────────────────────────
+                if (widgetId === "liveIssues" && settings.showLiveIssues) {
+                  return (
+                    <SortableStatCard key={widgetId} id={widgetId} editMode={editMode} onRemove={() => updateSetting("showLiveIssues", false)} width={widgetWidths[widgetId]} onWidthChange={(w) => updateWidgetWidth(widgetId, w)} maxWidth={gridColumns}>
+                      <Card className="border-primary/15 bg-gradient-to-br from-primary/5 to-transparent transition-all duration-200 hover:shadow-md h-full">
+                        <CardContent className="pt-5 pb-4">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10 shrink-0">
+                              <BookOpen className="h-5 w-5 text-primary" />
+                            </div>
+                            {isIssueStatsLoading ? <Skeleton className="h-8 w-16" /> : <span className="text-3xl font-bold tabular-nums">{issueStats.total.toLocaleString("en-US")}</span>}
+                          </div>
+                          <p className="text-sm font-medium text-muted-foreground mt-3">{language === "ar" ? "إجمالي الإصدارات" : "Total Issues"}</p>
+                          {!isIssueStatsLoading && (issueStats.active > 0 || issueStats.completed > 0) && (
+                            <div className="flex gap-3 mt-2 text-xs flex-wrap">
+                              {issueStats.active > 0 && <span className="text-emerald-600 dark:text-emerald-400 font-medium">{issueStats.active} {language === "ar" ? "نشط" : "active"}</span>}
+                              {issueStats.completed > 0 && <span className="text-sky-600 dark:text-sky-400 font-medium">{issueStats.completed} {language === "ar" ? "مكتمل" : "completed"}</span>}
+                              {issueStats.cancelled > 0 && <span className="text-rose-600 dark:text-rose-400 font-medium">{issueStats.cancelled} {language === "ar" ? "ملغي" : "cancelled"}</span>}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </SortableStatCard>
+                  );
+                }
+                if (widgetId === "liveCurrentYear" && settings.showLiveCurrentYear) {
+                  return (
+                    <SortableStatCard key={widgetId} id={widgetId} editMode={editMode} onRemove={() => updateSetting("showLiveCurrentYear", false)} width={widgetWidths[widgetId]} onWidthChange={(w) => updateWidgetWidth(widgetId, w)} maxWidth={gridColumns}>
+                      <Card className="border-sky-200 dark:border-sky-800/40 transition-all duration-200 hover:shadow-md h-full">
+                        <CardContent className="pt-5 pb-4">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-sky-500/10 shrink-0">
+                              <ListChecks className="h-5 w-5 text-sky-600 dark:text-sky-400" />
+                            </div>
+                            {isCurrentYearLoading ? <Skeleton className="h-8 w-16" /> : <span className="text-3xl font-bold tabular-nums text-sky-600 dark:text-sky-400">{currentYearCount.toLocaleString("en-US")}</span>}
+                          </div>
+                          <p className="text-sm font-medium text-muted-foreground mt-3">{language === "ar" ? "إصدارات هذا العام" : "This Year's Issues"}</p>
+                        </CardContent>
+                      </Card>
+                    </SortableStatCard>
+                  );
+                }
+                if (widgetId === "liveUsers" && settings.showLiveUsers) {
+                  return (
+                    <SortableStatCard key={widgetId} id={widgetId} editMode={editMode} onRemove={() => updateSetting("showLiveUsers", false)} width={widgetWidths[widgetId]} onWidthChange={(w) => updateWidgetWidth(widgetId, w)} maxWidth={gridColumns}>
+                      <Card className="border-violet-200 dark:border-violet-800/40 transition-all duration-200 hover:shadow-md h-full">
+                        <CardContent className="pt-5 pb-4">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-violet-500/10 shrink-0">
+                              <Users className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+                            </div>
+                            {isUsersLoading ? <Skeleton className="h-8 w-16" /> : <span className="text-3xl font-bold tabular-nums text-violet-600 dark:text-violet-400">{totalUsersCount.toLocaleString("en-US")}</span>}
+                          </div>
+                          <p className="text-sm font-medium text-muted-foreground mt-3">{language === "ar" ? "إجمالي المستخدمين" : "Total Users"}</p>
+                        </CardContent>
+                      </Card>
+                    </SortableStatCard>
+                  );
+                }
+                if (widgetId === "liveNotebooks" && settings.showLiveNotebooks) {
+                  return (
+                    <SortableStatCard key={widgetId} id={widgetId} editMode={editMode} onRemove={() => updateSetting("showLiveNotebooks", false)} width={widgetWidths[widgetId]} onWidthChange={(w) => updateWidgetWidth(widgetId, w)} maxWidth={gridColumns}>
+                      <Card className="border-amber-200 dark:border-amber-800/40 transition-all duration-200 hover:shadow-md h-full">
+                        <CardContent className="pt-5 pb-4">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-amber-500/10 shrink-0">
+                              <CreditCard className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                            </div>
+                            {isNotebooksLoading ? <Skeleton className="h-8 w-16" /> : <span className="text-3xl font-bold tabular-nums text-amber-600 dark:text-amber-400">{totalNotebooks.toLocaleString("en-US")}</span>}
+                          </div>
+                          <p className="text-sm font-medium text-muted-foreground mt-3">{language === "ar" ? "إجمالي الدفاتر" : "Total Notebooks"}</p>
+                        </CardContent>
+                      </Card>
+                    </SortableStatCard>
+                  );
+                }
+
+                // ── Charts widget ──────────────────────────────────────
+                if (widgetId === "charts" && settings.showCharts) {
+                  return (
+                    <SortableStatCard key={widgetId} id={widgetId} editMode={editMode} onRemove={() => updateSetting("showCharts", false)} width={widgetWidths[widgetId]} onWidthChange={(w) => updateWidgetWidth(widgetId, w)} maxWidth={gridColumns}>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Card className="transition-all duration-200 hover:shadow-md">
+                          <CardHeader className="border-b bg-muted/30">
+                            <CardTitle className="flex items-center gap-3 text-lg">
+                              <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400">
+                                <BarChart3 className="h-4 w-4" />
+                              </div>
+                              {language === "ar" ? "الإيرادات الشهرية" : "Monthly Revenue"}
+                            </CardTitle>
+                            <CardDescription>{language === "ar" ? "إجمالي الإيرادات خلال الأشهر الستة الماضية" : "Total revenue over the last 6 months"}</CardDescription>
+                          </CardHeader>
+                          <CardContent className="pt-6">
+                            <div className="h-[280px]">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={revenueData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                                  <XAxis dataKey="name" tick={{ fontSize: 12 }} className="text-muted-foreground" />
+                                  <YAxis tick={{ fontSize: 12 }} className="text-muted-foreground" tickFormatter={(value) => `${value.toLocaleString("en-US")}`} />
+                                  <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", direction: language === "ar" ? "rtl" : "ltr" }} formatter={(value: number) => [`${value.toLocaleString("en-US")} JOD`, language === "ar" ? "الإيرادات" : "Revenue"]} />
+                                  <Bar dataKey="revenue" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                                </BarChart>
+                              </ResponsiveContainer>
+                            </div>
+                          </CardContent>
+                        </Card>
+                        <Card className="transition-all duration-200 hover:shadow-md">
+                          <CardHeader className="border-b bg-muted/30">
+                            <CardTitle className="flex items-center gap-3 text-lg">
+                              <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400">
+                                <Ticket className="h-4 w-4" />
+                              </div>
+                              {language === "ar" ? "توزيع التذاكر" : "Ticket Distribution"}
+                            </CardTitle>
+                            <CardDescription>{language === "ar" ? "حالة التذاكر حسب النوع" : "Ticket status breakdown"}</CardDescription>
+                          </CardHeader>
+                          <CardContent className="pt-6" dir="ltr">
+                            <div className="h-[280px]">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                  <Pie data={ticketStatusData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={2} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
+                                    {ticketStatusData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                                  </Pie>
+                                  <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }} formatter={(value: number) => [value.toLocaleString("en-US"), language === "ar" ? "التذاكر" : "Tickets"]} />
+                                  <Legend />
+                                </PieChart>
+                              </ResponsiveContainer>
+                            </div>
+                          </CardContent>
+                        </Card>
+                        <Card className="transition-all duration-200 hover:shadow-md md:col-span-2">
+                          <CardHeader className="border-b bg-muted/30">
+                            <CardTitle className="flex items-center gap-3 text-lg">
+                              <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                                <TrendingUp className="h-4 w-4" />
+                              </div>
+                              {language === "ar" ? "مبيعات التذاكر" : "Ticket Sales Trend"}
+                            </CardTitle>
+                            <CardDescription>{language === "ar" ? "عدد التذاكر المباعة خلال الفترة" : "Number of tickets sold over time"}</CardDescription>
+                          </CardHeader>
+                          <CardContent className="pt-6">
+                            <div className="h-[230px]">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={revenueData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                                  <defs>
+                                    <linearGradient id="ticketGradient" x1="0" y1="0" x2="0" y2="1">
+                                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                                    </linearGradient>
+                                  </defs>
+                                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                                  <XAxis dataKey="name" tick={{ fontSize: 12 }} className="text-muted-foreground" />
+                                  <YAxis tick={{ fontSize: 12 }} className="text-muted-foreground" />
+                                  <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }} formatter={(value: number) => [value.toLocaleString("en-US"), language === "ar" ? "التذاكر" : "Tickets"]} />
+                                  <Area type="monotone" dataKey="tickets" stroke="hsl(var(--primary))" strokeWidth={2} fill="url(#ticketGradient)" />
+                                </AreaChart>
+                              </ResponsiveContainer>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </SortableStatCard>
+                  );
+                }
+
+                // ── Recent Activity widget ─────────────────────────────
+                if (widgetId === "recentActivity" && settings.showRecentActivity) {
+                  return (
+                    <SortableStatCard key={widgetId} id={widgetId} editMode={editMode} onRemove={() => updateSetting("showRecentActivity", false)} width={widgetWidths[widgetId]} onWidthChange={(w) => updateWidgetWidth(widgetId, w)} maxWidth={gridColumns}>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Card className="transition-all duration-200 hover:shadow-md">
+                          <CardHeader className="border-b bg-muted/30">
+                            <CardTitle className="flex items-center gap-3 text-lg">
+                              <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"><Users className="h-4 w-4" /></div>
+                              {t("dashboard.recentUsers")}
+                            </CardTitle>
+                            <CardDescription>{t("dashboard.recentlyRegistered")}</CardDescription>
+                          </CardHeader>
+                          <CardContent className="pt-5">
+                            {isLoading ? (
+                              <div className="space-y-4">{[1,2,3,4,5].map(i => <div key={i} className="flex items-center gap-3"><Skeleton className="h-10 w-10 rounded-full" /><div className="space-y-1 flex-1"><Skeleton className="h-4 w-1/3" /><Skeleton className="h-3 w-1/4" /></div><Skeleton className="h-5 w-16" /></div>)}</div>
+                            ) : stats?.recentUsers && stats.recentUsers.length > 0 ? (
+                              <div className="space-y-2">
+                                {stats.recentUsers.map((user) => (
+                                  <div key={user.id} className="flex items-center gap-3 p-2 rounded-lg cursor-pointer hover-elevate transition-colors" onClick={() => setSelectedUser(user as UserDetails)} data-testid={`user-row-${user.id}`}>
+                                    <Avatar><AvatarFallback>{user.firstName?.[0]}{user.lastName?.[0]}</AvatarFallback></Avatar>
+                                    <div className="flex-1 min-w-0"><p className="text-sm font-medium truncate">{user.firstName} {user.lastName}</p><p className="text-xs text-muted-foreground truncate">{user.email}</p></div>
+                                    <Badge variant="secondary">{getStatusLabel(user.status)}</Badge>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="text-center py-8 text-muted-foreground"><Users className="h-8 w-8 mx-auto mb-2" /><p>{t("dashboard.noUsers")}</p></div>
+                            )}
+                          </CardContent>
+                        </Card>
+                        <Card className="transition-all duration-200 hover:shadow-md">
+                          <CardHeader className="border-b bg-muted/30">
+                            <CardTitle className="flex items-center gap-3 text-lg">
+                              <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary/10 text-primary"><Ticket className="h-4 w-4" /></div>
+                              {t("dashboard.recentTickets")}
+                            </CardTitle>
+                            <CardDescription>{t("dashboard.recentPurchases")}</CardDescription>
+                          </CardHeader>
+                          <CardContent className="pt-5">
+                            {isLoading ? (
+                              <div className="space-y-4">{[1,2,3,4,5].map(i => <div key={i} className="flex items-center gap-3"><Skeleton className="h-10 w-10 rounded-md" /><div className="space-y-1 flex-1"><Skeleton className="h-4 w-1/3" /><Skeleton className="h-3 w-1/4" /></div><Skeleton className="h-5 w-16" /></div>)}</div>
+                            ) : stats?.recentTickets && stats.recentTickets.length > 0 ? (
+                              <div className="space-y-4">
+                                {stats.recentTickets.map((ticket) => (
+                                  <div key={ticket.id} className="flex items-center gap-3">
+                                    <div className="flex items-center justify-center w-10 h-10 rounded-md bg-primary/10"><Ticket className="h-5 w-5 text-primary" /></div>
+                                    <div className="flex-1 min-w-0"><p className="text-sm font-medium font-mono">#{ticket.ticketNumber}</p><p className="text-xs text-muted-foreground">{ticket.draw?.name || t("common.noData")}</p></div>
+                                    <Badge variant={ticket.status === "won" ? "default" : "secondary"}>{getStatusLabel(ticket.status)}</Badge>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="text-center py-8 text-muted-foreground"><Ticket className="h-8 w-8 mx-auto mb-2" /><p>{t("dashboard.noTickets")}</p></div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </SortableStatCard>
+                  );
+                }
+
                 return null;
               })}
             </div>
           </SortableContext>
         </DndContext>
-
-        {/* Charts Section */}
-        {settings.showCharts && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
-            {/* Revenue Chart */}
-            <Card className="transition-all duration-200 hover:shadow-md">
-              <CardHeader className="border-b bg-muted/30">
-                <CardTitle className="flex items-center gap-3 text-lg">
-                  <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400">
-                    <BarChart3 className="h-4 w-4" />
-                  </div>
-                  {language === "ar" ? "الإيرادات الشهرية" : "Monthly Revenue"}
-                </CardTitle>
-                <CardDescription>
-                  {language === "ar"
-                    ? "إجمالي الإيرادات خلال الأشهر الستة الماضية"
-                    : "Total revenue over the last 6 months"}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-6">
-                <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={revenueData}
-                      margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-                    >
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        className="stroke-muted"
-                      />
-                      <XAxis
-                        dataKey="name"
-                        tick={{ fontSize: 12 }}
-                        className="text-muted-foreground"
-                      />
-                      <YAxis
-                        tick={{ fontSize: 12 }}
-                        className="text-muted-foreground"
-                        tickFormatter={(value) =>
-                          `${value.toLocaleString("en-US")}`
-                        }
-                      />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: "hsl(var(--card))",
-                          border: "1px solid hsl(var(--border))",
-                          borderRadius: "8px",
-                          direction: language === "ar" ? "rtl" : "ltr",
-                        }}
-                        formatter={(value: number) => [
-                          `${value.toLocaleString("en-US")} JOD`,
-                          language === "ar" ? "الإيرادات" : "Revenue",
-                        ]}
-                      />
-                      <Bar
-                        dataKey="revenue"
-                        fill="hsl(var(--primary))"
-                        radius={[4, 4, 0, 0]}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Ticket Status Pie Chart */}
-            <Card className="transition-all duration-200 hover:shadow-md">
-              <CardHeader className="border-b bg-muted/30">
-                <CardTitle className="flex items-center gap-3 text-lg">
-                  <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400">
-                    <Ticket className="h-4 w-4" />
-                  </div>
-                  {language === "ar" ? "توزيع التذاكر" : "Ticket Distribution"}
-                </CardTitle>
-                <CardDescription>
-                  {language === "ar"
-                    ? "حالة التذاكر حسب النوع"
-                    : "Ticket status breakdown"}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-6" dir="ltr">
-                <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={ticketStatusData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={100}
-                        paddingAngle={2}
-                        dataKey="value"
-                        label={({ name, percent }) =>
-                          `${name} ${(percent * 100).toFixed(0)}%`
-                        }
-                        labelLine={false}
-                      >
-                        {ticketStatusData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: "hsl(var(--card))",
-                          border: "1px solid hsl(var(--border))",
-                          borderRadius: "8px",
-                        }}
-                        formatter={(value: number) => [
-                          value.toLocaleString("en-US"),
-                          language === "ar" ? "التذاكر" : "Tickets",
-                        ]}
-                      />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* Tickets Sold Trend */}
-        {settings.showCharts && (
-          <Card className="transition-all duration-200 hover:shadow-md">
-            <CardHeader className="border-b bg-muted/30">
-              <CardTitle className="flex items-center gap-3 text-lg">
-                <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                  <TrendingUp className="h-4 w-4" />
-                </div>
-                {language === "ar" ? "مبيعات التذاكر" : "Ticket Sales Trend"}
-              </CardTitle>
-              <CardDescription>
-                {language === "ar"
-                  ? "عدد التذاكر المباعة خلال الفترة"
-                  : "Number of tickets sold over time"}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-6">
-              <div className="h-[250px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart
-                    data={revenueData}
-                    margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-                  >
-                    <defs>
-                      <linearGradient
-                        id="ticketGradient"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="5%"
-                          stopColor="hsl(var(--primary))"
-                          stopOpacity={0.3}
-                        />
-                        <stop
-                          offset="95%"
-                          stopColor="hsl(var(--primary))"
-                          stopOpacity={0}
-                        />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      className="stroke-muted"
-                    />
-                    <XAxis
-                      dataKey="name"
-                      tick={{ fontSize: 12 }}
-                      className="text-muted-foreground"
-                    />
-                    <YAxis
-                      tick={{ fontSize: 12 }}
-                      className="text-muted-foreground"
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "hsl(var(--card))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "8px",
-                      }}
-                      formatter={(value: number) => [
-                        value.toLocaleString("en-US"),
-                        language === "ar" ? "التذاكر" : "Tickets",
-                      ]}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="tickets"
-                      stroke="hsl(var(--primary))"
-                      strokeWidth={2}
-                      fill="url(#ticketGradient)"
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Recent Activity Section */}
-        {settings.showRecentActivity && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
-            <Card className="transition-all duration-200 hover:shadow-md">
-              <CardHeader className="border-b bg-muted/30">
-                <CardTitle className="flex items-center gap-3 text-lg">
-                  <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                    <Users className="h-4 w-4" />
-                  </div>
-                  {t("dashboard.recentUsers")}
-                </CardTitle>
-                <CardDescription>
-                  {t("dashboard.recentlyRegistered")}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-5">
-                {isLoading ? (
-                  <div className="space-y-4">
-                    {[1, 2, 3, 4, 5].map((i) => (
-                      <div key={i} className="flex items-center gap-3">
-                        <Skeleton className="h-10 w-10 rounded-full" />
-                        <div className="space-y-1 flex-1">
-                          <Skeleton className="h-4 w-1/3" />
-                          <Skeleton className="h-3 w-1/4" />
-                        </div>
-                        <Skeleton className="h-5 w-16" />
-                      </div>
-                    ))}
-                  </div>
-                ) : stats?.recentUsers && stats.recentUsers.length > 0 ? (
-                  <div className="space-y-2">
-                    {stats.recentUsers.map((user) => (
-                      <div
-                        key={user.id}
-                        className="flex items-center gap-3 p-2 rounded-lg cursor-pointer hover-elevate transition-colors"
-                        onClick={() => setSelectedUser(user as UserDetails)}
-                        data-testid={`user-row-${user.id}`}
-                      >
-                        <Avatar>
-                          <AvatarFallback>
-                            {user.firstName?.[0]}
-                            {user.lastName?.[0]}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">
-                            {user.firstName} {user.lastName}
-                          </p>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {user.email}
-                          </p>
-                        </div>
-                        <Badge variant="secondary">
-                          {getStatusLabel(user.status)}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Users className="h-8 w-8 mx-auto mb-2" />
-                    <p>{t("dashboard.noUsers")}</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="transition-all duration-200 hover:shadow-md">
-              <CardHeader className="border-b bg-muted/30">
-                <CardTitle className="flex items-center gap-3 text-lg">
-                  <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary/10 text-primary">
-                    <Ticket className="h-4 w-4" />
-                  </div>
-                  {t("dashboard.recentTickets")}
-                </CardTitle>
-                <CardDescription>
-                  {t("dashboard.recentPurchases")}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-5">
-                {isLoading ? (
-                  <div className="space-y-4">
-                    {[1, 2, 3, 4, 5].map((i) => (
-                      <div key={i} className="flex items-center gap-3">
-                        <Skeleton className="h-10 w-10 rounded-md" />
-                        <div className="space-y-1 flex-1">
-                          <Skeleton className="h-4 w-1/3" />
-                          <Skeleton className="h-3 w-1/4" />
-                        </div>
-                        <Skeleton className="h-5 w-16" />
-                      </div>
-                    ))}
-                  </div>
-                ) : stats?.recentTickets && stats.recentTickets.length > 0 ? (
-                  <div className="space-y-4">
-                    {stats.recentTickets.map((ticket) => (
-                      <div key={ticket.id} className="flex items-center gap-3">
-                        <div className="flex items-center justify-center w-10 h-10 rounded-md bg-primary/10">
-                          <Ticket className="h-5 w-5 text-primary" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium font-mono">
-                            #{ticket.ticketNumber}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {ticket.draw?.name || t("common.noData")}
-                          </p>
-                        </div>
-                        <div className="text-left">
-                          <Badge
-                            variant={
-                              ticket.status === "won" ? "default" : "secondary"
-                            }
-                          >
-                            {getStatusLabel(ticket.status)}
-                          </Badge>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Ticket className="h-8 w-8 mx-auto mb-2" />
-                    <p>{t("dashboard.noTickets")}</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        )}
       </div>
 
       {/* User Details Dialog */}

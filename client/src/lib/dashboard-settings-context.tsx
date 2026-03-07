@@ -11,19 +11,27 @@ interface DashboardSettings {
   showTicketsCancelled: boolean;
   showCharts: boolean;
   showRecentActivity: boolean;
+  showLiveIssues: boolean;
+  showLiveCurrentYear: boolean;
+  showLiveUsers: boolean;
+  showLiveNotebooks: boolean;
 }
 
-export type WidgetId = 
-  | "users" 
-  | "activeDraws" 
-  | "ticketsSold" 
-  | "revenue" 
-  | "ticketsSold_stat" 
-  | "ticketsRemaining" 
-  | "ticketsAvailable" 
+export type WidgetId =
+  | "users"
+  | "activeDraws"
+  | "ticketsSold"
+  | "revenue"
+  | "ticketsSold_stat"
+  | "ticketsRemaining"
+  | "ticketsAvailable"
   | "ticketsCancelled"
   | "charts"
-  | "recentActivity";
+  | "recentActivity"
+  | "liveIssues"
+  | "liveCurrentYear"
+  | "liveUsers"
+  | "liveNotebooks";
 
 export type WidgetWidth = 1 | 2 | 3 | 4;
 
@@ -52,9 +60,17 @@ const defaultSettings: DashboardSettings = {
   showTicketsCancelled: true,
   showCharts: true,
   showRecentActivity: true,
+  showLiveIssues: true,
+  showLiveCurrentYear: true,
+  showLiveUsers: true,
+  showLiveNotebooks: true,
 };
 
 const defaultWidgetOrder: WidgetId[] = [
+  "liveIssues",
+  "liveCurrentYear",
+  "liveUsers",
+  "liveNotebooks",
   "users",
   "activeDraws",
   "ticketsSold",
@@ -68,6 +84,10 @@ const defaultWidgetOrder: WidgetId[] = [
 ];
 
 const defaultWidgetWidths: WidgetWidths = {
+  liveIssues: 1,
+  liveCurrentYear: 1,
+  liveUsers: 1,
+  liveNotebooks: 1,
   users: 1,
   activeDraws: 1,
   ticketsSold: 1,
@@ -76,8 +96,8 @@ const defaultWidgetWidths: WidgetWidths = {
   ticketsRemaining: 1,
   ticketsAvailable: 1,
   ticketsCancelled: 1,
-  charts: 2,
-  recentActivity: 2,
+  charts: 4,
+  recentActivity: 4,
 };
 
 const defaultGridColumns = 4;
@@ -109,7 +129,11 @@ export function DashboardSettingsProvider({ children }: { children: ReactNode })
       const saved = localStorage.getItem(ORDER_STORAGE_KEY);
       if (saved) {
         try {
-          return JSON.parse(saved);
+          const parsed: WidgetId[] = JSON.parse(saved);
+          // Ensure any new widget IDs are appended if missing from saved order
+          const allIds = defaultWidgetOrder;
+          const missing = allIds.filter(id => !parsed.includes(id));
+          return [...parsed, ...missing];
         } catch {
           return defaultWidgetOrder;
         }
@@ -186,16 +210,16 @@ export function DashboardSettingsProvider({ children }: { children: ReactNode })
   };
 
   return (
-    <DashboardSettingsContext.Provider value={{ 
-      settings, 
-      widgetOrder, 
+    <DashboardSettingsContext.Provider value={{
+      settings,
+      widgetOrder,
       widgetWidths,
       gridColumns,
-      updateWidgetOrder, 
-      updateSetting, 
+      updateWidgetOrder,
+      updateSetting,
       updateWidgetWidth,
       updateGridColumns,
-      resetToDefaults 
+      resetToDefaults
     }}>
       {children}
     </DashboardSettingsContext.Provider>
