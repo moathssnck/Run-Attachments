@@ -97,41 +97,24 @@ function extractCount(payload: unknown): number {
   if (Array.isArray(payload)) return payload.length;
   if (payload && typeof payload === "object") {
     const d = payload as Record<string, unknown>;
+    // Paged API: { totalCount, totalPages, data: [...] }
+    for (const key of ["totalCount", "total", "count", "totalRecords", "length"]) {
+      if (typeof d[key] === "number") return d[key] as number;
+    }
+    // Unwrap data/result envelope and try again
     for (const key of ["data", "items", "issues", "notebooks", "users", "result"]) {
       if (Array.isArray(d[key])) return (d[key] as unknown[]).length;
-    }
-    for (const key of ["total", "totalCount", "count", "length"]) {
-      if (typeof d[key] === "number") return d[key] as number;
+      if (d[key] && typeof d[key] === "object") {
+        const inner = d[key] as Record<string, unknown>;
+        for (const k2 of ["totalCount", "total", "count", "totalRecords"]) {
+          if (typeof inner[k2] === "number") return inner[k2] as number;
+        }
+      }
     }
   }
   return 0;
 }
 
-function asN(v: unknown): number {
-  if (typeof v === "number" && isFinite(v)) return v;
-  if (typeof v === "string" && v.trim()) { const n = Number(v); if (isFinite(n)) return n; }
-  return 0;
-}
-
-type IssueStats = {
-  total: number;
-  active: number;
-  completed: number;
-  cancelled: number;
-};
-
-function extractIssueStats(payload: unknown): IssueStats {
-  const zero = { total: 0, active: 0, completed: 0, cancelled: 0 };
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return zero;
-  const d = payload as Record<string, unknown>;
-  const inner = (d.data ?? d.result ?? d.statistics ?? d) as Record<string, unknown>;
-  return {
-    total:     asN(inner.totalIssues     ?? inner.total     ?? inner.count ?? inner.issueCount),
-    active:    asN(inner.activeIssues    ?? inner.active    ?? inner.openIssues),
-    completed: asN(inner.completedIssues ?? inner.completed ?? inner.closedIssues),
-    cancelled: asN(inner.cancelledIssues ?? inner.cancelled ?? inner.voidedIssues),
-  };
-}
 
 function StatCard({
   title,
@@ -309,21 +292,22 @@ export default function AdminDashboard() {
     queryKey: ["/api/admin/dashboard"],
   });
 
-  // ── Real API statistics ──────────────────────────────────────────────────
-  const { data: issueStatsRaw, isLoading: isIssueStatsLoading } = useQuery({
-    queryKey: [API_CONFIG.issues.statistics],
+  // ── Real API statistics (paged with pageSize=1 to read totalCount) ──────────
+  const { data: allIssuesPagedRaw, isLoading: isIssueStatsLoading } = useQuery({
+    queryKey: ["/api/Issue/paged?pageNumber=1&pageSize=1"],
   });
+  const currentYear = new Date().getFullYear();
   const { data: currentYearRaw, isLoading: isCurrentYearLoading } = useQuery({
-    queryKey: [API_CONFIG.issues.currentYear],
+    queryKey: [`/api/Issue/paged?pageNumber=1&pageSize=1&year=${currentYear}`],
   });
   const { data: allUsersRaw, isLoading: isUsersLoading } = useQuery({
     queryKey: [API_CONFIG.userManagement.all],
   });
   const { data: allNotebooksRaw, isLoading: isNotebooksLoading } = useQuery({
-    queryKey: [API_CONFIG.notebooks.all],
+    queryKey: ["/api/NoteBook/paged?pageNumber=1&pageSize=1"],
   });
 
-  const issueStats       = extractIssueStats(issueStatsRaw);
+  const totalIssues      = extractCount(allIssuesPagedRaw);
   const currentYearCount = extractCount(currentYearRaw);
   const totalUsersCount  = extractCount(allUsersRaw);
   const totalNotebooks   = extractCount(allNotebooksRaw);
@@ -818,16 +802,9 @@ export default function AdminDashboard() {
                             <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10 shrink-0">
                               <BookOpen className="h-5 w-5 text-primary" />
                             </div>
-                            {isIssueStatsLoading ? <Skeleton className="h-8 w-16" /> : <span className="text-3xl font-bold tabular-nums">{issueStats.total.toLocaleString("en-US")}</span>}
+                            {isIssueStatsLoading ? <Skeleton className="h-8 w-16" /> : <span className="text-3xl font-bold tabular-nums">{totalIssues.toLocaleString("en-US")}</span>}
                           </div>
                           <p className="text-sm font-medium text-muted-foreground mt-3">{language === "ar" ? "إجمالي الإصدارات" : "Total Issues"}</p>
-                          {!isIssueStatsLoading && (issueStats.active > 0 || issueStats.completed > 0) && (
-                            <div className="flex gap-3 mt-2 text-xs flex-wrap">
-                              {issueStats.active > 0 && <span className="text-emerald-600 dark:text-emerald-400 font-medium">{issueStats.active} {language === "ar" ? "نشط" : "active"}</span>}
-                              {issueStats.completed > 0 && <span className="text-sky-600 dark:text-sky-400 font-medium">{issueStats.completed} {language === "ar" ? "مكتمل" : "completed"}</span>}
-                              {issueStats.cancelled > 0 && <span className="text-rose-600 dark:text-rose-400 font-medium">{issueStats.cancelled} {language === "ar" ? "ملغي" : "cancelled"}</span>}
-                            </div>
-                          )}
                         </CardContent>
                       </Card>
                     </SortableStatCard>
