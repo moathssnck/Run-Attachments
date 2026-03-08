@@ -15,8 +15,9 @@ import {
   Filter,
   Eye,
   Edit,
-  Trash2,
   MoreHorizontal,
+  ToggleLeft,
+  ToggleRight,
   CheckCircle2,
   XCircle,
   Ticket,
@@ -70,16 +71,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
 import { AdminLayout } from "@/components/admin-layout";
 import { PageHeader } from "@/components/page-header";
@@ -119,7 +110,6 @@ export default function LotteryBooksPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedBook, setSelectedBook] = useState<LotteryBook | null>(null);
 
   // Search states
@@ -178,16 +168,6 @@ export default function LotteryBooksPage() {
     },
   });
 
-  const deleteBookMutation = useMutation({
-    mutationFn: async (id: number) => {
-      console.log("Deleting book:", id);
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-    },
-    onSuccess: () => {
-      setIsDeleteDialogOpen(false);
-      setSelectedBook(null);
-    },
-  });
 
   const toggleActiveMutation = useMutation({
     mutationFn: async ({ id, isActive }: { id: number; isActive: boolean }) => {
@@ -617,14 +597,13 @@ export default function LotteryBooksPage() {
                                     تعديل
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
-                                    onClick={() => {
-                                      setSelectedBook(book);
-                                      setIsDeleteDialogOpen(true);
-                                    }}
-                                    className="text-destructive gap-3 focus:text-destructive font-semibold cursor-pointer py-3"
+                                    onClick={() => toggleActiveMutation.mutate({ id: book.id, isActive: !book.isActive })}
+                                    className="gap-3 font-semibold cursor-pointer py-3"
+                                    data-testid={`button-toggle-ticket-${book.id}`}
                                   >
-                                    <Trash2 className="h-4.5 w-4.5" />
-                                    حذف
+                                    {book.isActive
+                                      ? <><ToggleLeft className="h-4.5 w-4.5 text-muted-foreground" />{t("lotteryBooks.deactivate") || "تعطيل"}</>
+                                      : <><ToggleRight className="h-4.5 w-4.5 text-emerald-600" />{t("lotteryBooks.activate") || "تفعيل"}</>}
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>
                               </DropdownMenu>
@@ -864,41 +843,6 @@ export default function LotteryBooksPage() {
           </DialogContent>
         </Dialog>
 
-        {/* Delete Confirmation */}
-        <AlertDialog
-          open={isDeleteDialogOpen}
-          onOpenChange={setIsDeleteDialogOpen}
-        >
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-destructive/10 mb-3">
-                <Trash2 className="h-6 w-6 text-destructive" />
-              </div>
-              <AlertDialogTitle className="text-xl font-bold">
-                حذف الدفتر
-              </AlertDialogTitle>
-              <AlertDialogDescription className="leading-relaxed text-base">
-                هل أنت متأكد من حذف الدفتر "{selectedBook?.bookNumber}"؟ هذا
-                الإجراء لا يمكن التراجع عنه.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter className="gap-2 sm:gap-2">
-              <AlertDialogCancel className="font-semibold gap-2">
-                <X className="h-4 w-4" />
-                إلغاء
-              </AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() =>
-                  selectedBook && deleteBookMutation.mutate(selectedBook.id)
-                }
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90 gap-2 font-semibold"
-              >
-                <Trash2 className="h-4 w-4" />
-                حذف
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
       </div>
     </AdminLayout>
   );

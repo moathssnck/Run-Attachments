@@ -14,7 +14,6 @@ import {
   X,
   Plus,
   Edit,
-  Trash2,
   MoreHorizontal,
   ChevronLeft,
   ChevronRight,
@@ -64,16 +63,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -258,7 +247,6 @@ export default function RolesPage() {
   const [roles, setRoles] = useState<Role[]>([]);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
-  const [deletingRole, setDeletingRole] = useState<Role | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const { language, dir } = useLanguage();
   const [assigningRole, setAssigningRole] = useState<Role | null>(null);
@@ -388,25 +376,6 @@ export default function RolesPage() {
     },
   });
 
-  // ── Delete mutation ───────────────────────────────────────────────────────
-  const deleteMutation = useMutation({
-    mutationFn: async (roleId: number) => {
-      const res = await apiRequest("DELETE", `/api/Roles/${roleId}`);
-      return res.status;
-    },
-    onSuccess: () => {
-      toast({ title: isRTL ? "تم الحذف" : "Deleted", description: isRTL ? "تم حذف الدور بنجاح" : "Role deleted successfully" });
-      queryClient.invalidateQueries({ queryKey: ["/api/Roles?includeDeleted=false"] });
-      setDeletingRole(null);
-      const newTotalPages = Math.ceil((roles.length - 1) / ITEMS_PER_PAGE);
-      if (currentPage > newTotalPages && newTotalPages > 0) setCurrentPage(newTotalPages);
-    },
-    onError: (err: Error) => {
-      toast({ title: isRTL ? "خطأ" : "Error", description: err.message, variant: "destructive" });
-      setDeletingRole(null);
-    },
-  });
-
   // ── Toggle status mutation ────────────────────────────────────────────────
   const toggleStatusMutation = useMutation({
     mutationFn: async (role: Role) => {
@@ -450,10 +419,6 @@ export default function RolesPage() {
       descriptionAr: role.descriptionAr || "",
       status: role.status,
     });
-  };
-
-  const handleDeleteConfirm = () => {
-    if (deletingRole) deleteMutation.mutate(deletingRole.id);
   };
 
   const handleAssignUsersClick = async (role: Role) => {
@@ -553,9 +518,6 @@ export default function RolesPage() {
   const getRoleName = (role: Role) => (isRTL ? role.nameAr : role.nameEn);
   const getRoleDescription = (role: Role) =>
     isRTL ? role.descriptionAr : role.descriptionEn;
-  const getDeleteRoleName = () =>
-    deletingRole ? (isRTL ? deletingRole.nameAr : deletingRole.nameEn) : "";
-
   return (
     <AdminLayout>
       <div
@@ -750,13 +712,6 @@ export default function RolesPage() {
                                     <Check className="h-4 w-4" />
                                   ),
                               },
-                              {
-                                value: "delete",
-                                label: t.delete,
-                                icon: <Trash2 className="h-4 w-4" />,
-                                variant: "destructive",
-                                separator: true,
-                              },
                             ]}
                             onSelect={(action) => {
                               if (action === "edit") handleEditClick(role);
@@ -764,8 +719,6 @@ export default function RolesPage() {
                                 handleAssignUsersClick(role);
                               else if (action === "toggle")
                                 handleToggleStatus(role.id);
-                              else if (action === "delete")
-                                setDeletingRole(role);
                             }}
                             data-testid={`button-role-actions-${role.id}`}
                           />
@@ -1104,37 +1057,6 @@ export default function RolesPage() {
             </Form>
           </DialogContent>
         </Dialog>
-
-        {/* Delete Confirmation Dialog */}
-        <AlertDialog
-          open={!!deletingRole}
-          onOpenChange={() => setDeletingRole(null)}
-        >
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>{t.deleteRole}</AlertDialogTitle>
-              <AlertDialogDescription>
-                {t.deleteConfirm} &quot;{getDeleteRoleName()}&quot;?{" "}
-                {t.deleteWarning}
-                {deletingRole && deletingRole.usersCount > 0 && (
-                  <span className="block mt-2 text-amber-600 dark:text-amber-400">
-                    {t.warning} {deletingRole.usersCount} {t.usersAssigned}
-                  </span>
-                )}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter className="gap-2">
-              <AlertDialogCancel>{t.cancel}</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleDeleteConfirm}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                data-testid="button-confirm-delete-role"
-              >
-                {t.delete}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
 
         {/* Assign Users Dialog */}
         <Dialog

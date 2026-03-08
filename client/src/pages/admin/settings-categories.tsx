@@ -3,11 +3,12 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   Plus,
   Pencil,
-  Trash2,
   FolderTree,
   BookOpen,
   Search,
   Loader2,
+  ToggleLeft,
+  ToggleRight,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin-layout";
 import { PageHeader } from "@/components/page-header";
@@ -33,16 +34,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -146,7 +137,6 @@ export default function SettingsCategoriesPage() {
   // ── Category state ────────────────────────────────────────────────────────
   const [isAddCatOpen, setIsAddCatOpen] = useState(false);
   const [isEditCatOpen, setIsEditCatOpen] = useState(false);
-  const [isDeleteCatOpen, setIsDeleteCatOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] =
     useState<NormalizedLookupCategory | null>(null);
   const [catForm, setCatForm] = useState({
@@ -158,7 +148,6 @@ export default function SettingsCategoriesPage() {
   // ── Lookup (Definition) state ─────────────────────────────────────────────
   const [isAddLookupOpen, setIsAddLookupOpen] = useState(false);
   const [isEditLookupOpen, setIsEditLookupOpen] = useState(false);
-  const [isDeleteLookupOpen, setIsDeleteLookupOpen] = useState(false);
   const [selectedLookup, setSelectedLookup] = useState<NormalizedLookup | null>(null);
   const [lookupForm, setLookupForm] = useState({
     lookupAr: "",
@@ -276,26 +265,6 @@ export default function SettingsCategoriesPage() {
       }),
   });
 
-  const deleteCatMutation = useMutation({
-    mutationFn: (id: number) =>
-      apiRequest("DELETE", API_CONFIG.lookupCategory.byId(id)),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [API_CONFIG.lookupCategory.list] });
-      setIsDeleteCatOpen(false);
-      setSelectedCategory(null);
-      toast({
-        title: isRTL ? "تم الحذف" : "Deleted",
-        description: isRTL ? "تم حذف الفئة بنجاح" : "Category deleted successfully",
-      });
-    },
-    onError: () =>
-      toast({
-        title: t("common.error"),
-        description: isRTL ? "فشل في حذف الفئة" : "Failed to delete category",
-        variant: "destructive",
-      }),
-  });
-
   // ── Lookup mutations ──────────────────────────────────────────────────────
 
   const createLookupMutation = useMutation({
@@ -351,21 +320,22 @@ export default function SettingsCategoriesPage() {
       }),
   });
 
-  const deleteLookupMutation = useMutation({
-    mutationFn: (id: number) => apiRequest("DELETE", API_CONFIG.lookup.byId(id)),
+  const toggleLookupMutation = useMutation({
+    mutationFn: (lookup: NormalizedLookup) =>
+      apiRequest("PUT", API_CONFIG.lookup.byId(lookup.id), {
+        id: lookup.id,
+        lookupAr: lookup.lookupAr,
+        lookupEn: lookup.lookupEn,
+        lookupCategoryId: lookup.lookupCategoryId,
+        active: !lookup.active,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [API_CONFIG.lookup.list] });
-      setIsDeleteLookupOpen(false);
-      setSelectedLookup(null);
-      toast({
-        title: isRTL ? "تم الحذف" : "Deleted",
-        description: isRTL ? "تم حذف العنصر بنجاح" : "Lookup deleted successfully",
-      });
     },
     onError: () =>
       toast({
         title: t("common.error"),
-        description: isRTL ? "فشل في الحذف" : "Failed to delete",
+        description: isRTL ? "فشل في تغيير الحالة" : "Failed to toggle status",
         variant: "destructive",
       }),
   });
@@ -468,18 +438,6 @@ export default function SettingsCategoriesPage() {
                             className="h-8 w-8 text-amber-600 hover:bg-amber-50 hover:text-amber-700"
                           >
                             <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => {
-                              setSelectedCategory(cat);
-                              setIsDeleteCatOpen(true);
-                            }}
-                            data-testid={`button-delete-category-${cat.id}`}
-                            className="h-8 w-8 text-red-600 hover:bg-red-50 hover:text-red-700"
-                          >
-                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </TableCell>
@@ -592,14 +550,13 @@ export default function SettingsCategoriesPage() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => {
-                              setSelectedLookup(lookup);
-                              setIsDeleteLookupOpen(true);
-                            }}
-                            data-testid={`button-delete-definition-${lookup.id}`}
-                            className="h-8 w-8 text-red-600 hover:bg-red-50 hover:text-red-700"
+                            onClick={() => toggleLookupMutation.mutate(lookup)}
+                            data-testid={`button-toggle-definition-${lookup.id}`}
+                            className={`h-8 w-8 ${lookup.active ? "text-amber-600 hover:bg-amber-50 hover:text-amber-700" : "text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700"}`}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            {lookup.active
+                              ? <ToggleLeft className="h-4 w-4" />
+                              : <ToggleRight className="h-4 w-4" />}
                           </Button>
                         </div>
                       </TableCell>
@@ -712,34 +669,6 @@ export default function SettingsCategoriesPage() {
           </DialogContent>
         </Dialog>
 
-        {/* ── Delete Category Confirmation ─────────────────────────────── */}
-        <AlertDialog open={isDeleteCatOpen} onOpenChange={setIsDeleteCatOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-destructive/10 mb-3">
-                <Trash2 className="h-6 w-6 text-destructive" />
-              </div>
-              <AlertDialogTitle>{isRTL ? "تأكيد الحذف" : "Confirm Delete"}</AlertDialogTitle>
-              <AlertDialogDescription>
-                {isRTL
-                  ? `هل أنت متأكد من حذف الفئة "${selectedCategory?.lookupCategoryAr}"؟`
-                  : `Are you sure you want to delete category "${selectedCategory?.lookupCategoryEn}"?`}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel data-testid="button-cancel-delete-category">
-                {t("common.cancel")}
-              </AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => selectedCategory && deleteCatMutation.mutate(selectedCategory.id)}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                data-testid="button-confirm-delete-category"
-              >
-                {isRTL ? "حذف" : "Delete"}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
 
         {/* ── Add Lookup Dialog ────────────────────────────────────────── */}
         <Dialog open={isAddLookupOpen} onOpenChange={setIsAddLookupOpen}>
@@ -897,34 +826,6 @@ export default function SettingsCategoriesPage() {
           </DialogContent>
         </Dialog>
 
-        {/* ── Delete Lookup Confirmation ───────────────────────────────── */}
-        <AlertDialog open={isDeleteLookupOpen} onOpenChange={setIsDeleteLookupOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-destructive/10 mb-3">
-                <Trash2 className="h-6 w-6 text-destructive" />
-              </div>
-              <AlertDialogTitle>{isRTL ? "تأكيد الحذف" : "Confirm Delete"}</AlertDialogTitle>
-              <AlertDialogDescription>
-                {isRTL
-                  ? `هل أنت متأكد من حذف "${selectedLookup?.lookupAr}"؟`
-                  : `Are you sure you want to delete "${selectedLookup?.lookupEn}"?`}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel data-testid="button-cancel-delete-definition">
-                {t("common.cancel")}
-              </AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => selectedLookup && deleteLookupMutation.mutate(selectedLookup.id)}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                data-testid="button-confirm-delete-definition"
-              >
-                {isRTL ? "حذف" : "Delete"}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
       </div>
     </AdminLayout>
   );

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Settings, Pencil, Search, Loader2, Filter, Plus, Trash2 } from "lucide-react";
+import { Settings, Pencil, Search, Loader2, Filter, Plus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,16 +21,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import {
   Table,
   TableBody,
@@ -135,7 +125,6 @@ export default function CustomSettingsPage() {
 
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedSetting, setSelectedSetting] = useState<NormalizedCustomSetting | null>(null);
 
   const [editForm, setEditForm] = useState({
@@ -260,27 +249,6 @@ export default function CustomSettingsPage() {
       toast({
         title: isRTL ? "خطأ" : "Error",
         description: isRTL ? "فشل في تغيير الحالة" : "Failed to change status",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: number) =>
-      apiRequest("DELETE", API_CONFIG.customSettingSystem.byId(id)),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [API_CONFIG.customSettingSystem.list] });
-      setIsDeleteDialogOpen(false);
-      setSelectedSetting(null);
-      toast({
-        title: isRTL ? "تم الحذف" : "Deleted",
-        description: isRTL ? "تم حذف الإعداد" : "Setting has been deleted",
-      });
-    },
-    onError: () => {
-      toast({
-        title: isRTL ? "خطأ" : "Error",
-        description: isRTL ? "فشل في حذف الإعداد" : "Failed to delete setting",
         variant: "destructive",
       });
     },
@@ -446,18 +414,6 @@ export default function CustomSettingsPage() {
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => {
-                              setSelectedSetting(setting);
-                              setIsDeleteDialogOpen(true);
-                            }}
-                            data-testid={`button-delete-${setting.id}`}
-                            className="h-8 w-8 text-red-600 hover:bg-red-50 hover:text-red-700"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -606,38 +562,6 @@ export default function CustomSettingsPage() {
           </DialogContent>
         </Dialog>
 
-        {/* Delete Confirmation */}
-        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-destructive/10 mb-3">
-                <Trash2 className="h-6 w-6 text-destructive" />
-              </div>
-              <AlertDialogTitle>
-                {isRTL ? "تأكيد الحذف" : "Confirm Delete"}
-              </AlertDialogTitle>
-              <AlertDialogDescription>
-                {isRTL
-                  ? `هل أنت متأكد من حذف الإعداد رقم "${selectedSetting?.id}"؟ لا يمكن التراجع عن هذه العملية.`
-                  : `Are you sure you want to delete setting #${selectedSetting?.id}? This action cannot be undone.`}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel data-testid="button-cancel-delete">
-                {t("common.cancel")}
-              </AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() =>
-                  selectedSetting && deleteMutation.mutate(selectedSetting.id)
-                }
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                data-testid="button-confirm-delete"
-              >
-                {isRTL ? "حذف" : "Delete"}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
       </div>
     </AdminLayout>
   );
