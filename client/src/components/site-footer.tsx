@@ -34,10 +34,10 @@ export function SiteFooter({ minimal = false }: { minimal?: boolean }) {
           </div>
 
           <div className="flex items-center gap-6 text-sm text-muted-foreground">
-            <a href="#" className="hover:text-foreground transition-colors">
+            <a href="/page/1300" className="hover:text-foreground transition-colors">
               {isRTL ? "الشروط والأحكام" : "Terms"}
             </a>
-            <a href="#" className="hover:text-foreground transition-colors">
+            <a href="/page/1301" className="hover:text-foreground transition-colors">
               {isRTL ? "سياسة الخصوصية" : "Privacy"}
             </a>
             <a href="#" className="hover:text-foreground transition-colors">
