@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -52,8 +52,13 @@ import { API_CONFIG } from "@/lib/api-config";
 
 type Raw = Record<string, unknown>;
 
-type LookupItem = { id: number; labelAr: string; labelEn: string };
-type ContentRecord  = { id: number; systemContentCategoryId: number; content: string };
+type SystemContentItem = {
+  id: number;
+  systemContentCategoryId: number;
+  nameAr: string;
+  nameEn: string;
+  content: string;
+};
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -64,7 +69,10 @@ function asStr(v: unknown, fb = ""): string {
 }
 function asNum(v: unknown, fb = 0): number {
   if (typeof v === "number" && isFinite(v)) return v;
-  if (typeof v === "string" && v.trim()) { const n = Number(v); if (isFinite(n)) return n; }
+  if (typeof v === "string" && v.trim()) {
+    const n = Number(v);
+    if (isFinite(n)) return n;
+  }
   return fb;
 }
 
@@ -84,41 +92,43 @@ function unwrapArray(payload: unknown, ...keys: string[]): Raw[] {
   return [];
 }
 
-// ─── Normalisers ──────────────────────────────────────────────────────────────
-
-function normLookup(r: Raw): LookupItem {
+function normItem(r: Raw): SystemContentItem {
   return {
-    id:      asNum(r.id),
-    labelAr: asStr(r.lookupAr ?? r.nameAr ?? r.name),
-    labelEn: asStr(r.lookupEn ?? r.nameEn ?? r.name),
+    id: asNum(r.id ?? r.systemContentId),
+    systemContentCategoryId: asNum(r.systemContentCategoryId ?? r.categoryId),
+    nameAr: asStr(
+      r.nameAr ?? r.titleAr ?? r.lookupAr ?? r.labelAr ?? r.name ?? r.title
+    ),
+    nameEn: asStr(
+      r.nameEn ?? r.titleEn ?? r.lookupEn ?? r.labelEn ?? r.name ?? r.title
+    ),
+    content: asStr(r.content ?? r.contentAr ?? r.body),
   };
 }
 
-function normContent(payload: unknown): ContentRecord | null {
+function normSingle(payload: unknown): SystemContentItem | null {
   let r: Raw | null = null;
   if (payload && typeof payload === "object" && !Array.isArray(payload)) {
     const obj = payload as Raw;
-    if (typeof obj.id === "number") r = obj;
-    else {
-      for (const k of ["data", "result", "systemContent", "content"]) {
+    if (typeof obj.id === "number" || typeof obj.systemContentId === "number") {
+      r = obj;
+    } else {
+      for (const k of ["data", "result", "systemContent"]) {
         if (obj[k] && typeof obj[k] === "object" && !Array.isArray(obj[k])) {
           r = obj[k] as Raw;
           break;
         }
       }
-      // array wrapper with one item
-      const arr = unwrapArray(payload, "data", "result", "systemContent", "contents", "items");
-      if (!r && arr.length > 0) r = arr[0];
+      if (!r) {
+        const arr = unwrapArray(payload, "data", "result", "items");
+        if (arr.length > 0) r = arr[0];
+      }
     }
   } else if (Array.isArray(payload) && (payload as Raw[]).length > 0) {
     r = (payload as Raw[])[0];
   }
   if (!r) return null;
-  return {
-    id:                    asNum(r.id ?? r.systemContentId),
-    systemContentCategoryId: asNum(r.systemContentCategoryId ?? r.categoryId),
-    content:               asStr(r.content ?? r.contentAr ?? r.body),
-  };
+  return normItem(r);
 }
 
 // ─── Rich Text Editor ─────────────────────────────────────────────────────────
@@ -127,10 +137,14 @@ function EditorToolbar({ editor }: { editor: any }) {
   if (!editor) return null;
   const setLink = () => {
     const url = window.prompt("URL:");
-    if (url) editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
+    if (url)
+      editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
   };
   return (
-    <div className="flex flex-wrap items-center gap-0.5 p-2 border-b bg-muted/30" dir="ltr">
+    <div
+      className="flex flex-wrap items-center gap-0.5 p-2 border-b bg-muted/30"
+      dir="ltr"
+    >
       <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleBold().run()} className={editor.isActive("bold") ? "bg-accent text-accent-foreground" : ""} data-testid="editor-bold"><Bold className="h-4 w-4" /></Button>
       <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleItalic().run()} className={editor.isActive("italic") ? "bg-accent text-accent-foreground" : ""} data-testid="editor-italic"><Italic className="h-4 w-4" /></Button>
       <Button type="button" variant="ghost" size="icon" onClick={() => editor.chain().focus().toggleUnderline().run()} className={editor.isActive("underline") ? "bg-accent text-accent-foreground" : ""} data-testid="editor-underline"><UnderlineIcon className="h-4 w-4" /></Button>
@@ -162,10 +176,25 @@ function EditorToolbar({ editor }: { editor: any }) {
   );
 }
 
-function RichTextEditor({ content, onChange, editorKey }: { content: string; onChange: (html: string) => void; editorKey: string }) {
+function RichTextEditor({
+  content,
+  onChange,
+  editorKey,
+}: {
+  content: string;
+  onChange: (html: string) => void;
+  editorKey: string;
+}) {
   const editor = useEditor(
     {
-      extensions: [StarterKit, Underline, TextStyle, Color, Link.configure({ openOnClick: false }), TextAlign.configure({ types: ["heading", "paragraph"] })],
+      extensions: [
+        StarterKit,
+        Underline,
+        TextStyle,
+        Color,
+        Link.configure({ openOnClick: false }),
+        TextAlign.configure({ types: ["heading", "paragraph"] }),
+      ],
       content,
       onUpdate: ({ editor }) => onChange(editor.getHTML()),
     },
@@ -175,13 +204,14 @@ function RichTextEditor({ content, onChange, editorKey }: { content: string; onC
     <div className="border rounded-lg overflow-hidden bg-background">
       <EditorToolbar editor={editor} />
       <div className="prose prose-sm dark:prose-invert max-w-none">
-        <EditorContent editor={editor} className="min-h-[300px] p-4 focus-within:outline-none [&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[280px]" />
+        <EditorContent
+          editor={editor}
+          className="min-h-[300px] p-4 focus-within:outline-none [&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[280px]"
+        />
       </div>
     </div>
   );
 }
-
-const SYSTEM_CONTENT_CATEGORY_ID = 12;
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
@@ -190,87 +220,96 @@ export default function SystemContentPage() {
   const isRTL = dir === "rtl";
   const { toast } = useToast();
 
-  const [selectedLookupId, setSelectedLookupId] = useState<string>("");
+  const [selectedId, setSelectedId] = useState<string>("");
   const [editorContent, setEditorContent] = useState("");
 
+  // ── 1. Fetch all system content items ─────────────────────────────────────
+  const {
+    data: items = [],
+    isLoading: isItemsLoading,
+    isError: isItemsError,
+  } = useQuery<SystemContentItem[]>({
+    queryKey: [API_CONFIG.systemContent.list],
+    queryFn: async () => {
+      const res = await apiRequest("GET", API_CONFIG.systemContent.list);
+      if (!res.ok) throw new Error(`${res.status}`);
+      const payload = await res.json();
+      const rows = unwrapArray(payload, "data", "result", "items", "systemContents");
+      return rows.map(normItem);
+    },
+    retry: 1,
+  });
+
+  // ── 2. Fetch full record by selected ID ────────────────────────────────────
+  const {
+    data: selectedRecord,
+    isLoading: isRecordLoading,
+    isError: isRecordError,
+  } = useQuery<SystemContentItem | null>({
+    queryKey: [API_CONFIG.systemContent.byId(selectedId)],
+    queryFn: async () => {
+      const res = await apiRequest("GET", API_CONFIG.systemContent.byId(selectedId));
+      if (!res.ok) throw new Error(`${res.status}`);
+      const payload = await res.json();
+      const record = normSingle(payload);
+      if (record) setEditorContent(record.content);
+      return record;
+    },
+    enabled: !!selectedId,
+    retry: 1,
+  });
+
+  // ── Handler: when user picks a new item ───────────────────────────────────
   const handleSelectChange = (value: string) => {
     setEditorContent("");
-    setSelectedLookupId(value);
+    setSelectedId(value);
   };
 
-  // ── Fetch Lookups for system content category (ID 12) ─────────────────────
-  const {
-    data: lookups = [],
-    isLoading: isLookupsLoading,
-    isError: isLookupsError,
-  } = useQuery<LookupItem[]>({
-    queryKey: [API_CONFIG.lookup.byCategory(SYSTEM_CONTENT_CATEGORY_ID)],
-    queryFn: async () => {
-      const res = await apiRequest("GET", API_CONFIG.lookup.byCategory(SYSTEM_CONTENT_CATEGORY_ID));
-      if (!res.ok) throw new Error(`${res.status}`);
-      const payload = await res.json();
-      const rows = unwrapArray(payload, "lookups", "data", "items", "result");
-      return rows.map(normLookup);
-    },
-    retry: 1,
-  });
-
-  // ── Fetch SystemContent by selected lookup ID ──────────────────────────────
-  const {
-    data: contentRecord,
-    isLoading: isContentLoading,
-    isError: isContentError,
-  } = useQuery<ContentRecord | null>({
-    queryKey: [API_CONFIG.systemContent.byLookupId(selectedLookupId)],
-    queryFn: async () => {
-      const res = await apiRequest("GET", API_CONFIG.systemContent.byLookupId(selectedLookupId));
-      if (!res.ok) throw new Error(`${res.status}`);
-      const payload = await res.json();
-      return normContent(payload);
-    },
-    enabled: !!selectedLookupId,
-    retry: 1,
-  });
-
-  // Populate editor when content record loads
-  useEffect(() => {
-    if (contentRecord) {
-      setEditorContent(contentRecord.content);
-    } else if (selectedLookupId && !isContentLoading && !isContentError) {
-      setEditorContent("");
-    }
-  }, [selectedLookupId, contentRecord?.id, isContentLoading]);
-
-  // ── Upsert mutation ────────────────────────────────────────────────────────
+  // ── 3. Upsert mutation ─────────────────────────────────────────────────────
   const upsertMutation = useMutation({
-    mutationFn: (body: { id: number; systemContentCategoryId: number; content: string }) =>
-      apiRequest("POST", API_CONFIG.systemContent.upsert, body),
+    mutationFn: (body: {
+      id: number;
+      systemContentCategoryId: number;
+      content: string;
+    }) => apiRequest("POST", API_CONFIG.systemContent.upsert, body),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [API_CONFIG.systemContent.byLookupId(selectedLookupId)] });
+      queryClient.invalidateQueries({
+        queryKey: [API_CONFIG.systemContent.byId(selectedId)],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [API_CONFIG.systemContent.list],
+      });
       toast({ title: isRTL ? "تم الحفظ بنجاح" : "Saved successfully" });
     },
     onError: () => {
-      toast({ title: isRTL ? "فشل في الحفظ" : "Failed to save", variant: "destructive" });
+      toast({
+        title: isRTL ? "فشل في الحفظ" : "Failed to save",
+        variant: "destructive",
+      });
     },
   });
 
   const handleSave = () => {
-    if (!selectedLookupId) return;
+    if (!selectedId || !selectedRecord) return;
     upsertMutation.mutate({
-      id:                      contentRecord?.id ?? Number(selectedLookupId),
-      systemContentCategoryId: SYSTEM_CONTENT_CATEGORY_ID,
-      content:                 editorContent,
+      id: selectedRecord.id,
+      systemContentCategoryId: selectedRecord.systemContentCategoryId,
+      content: editorContent,
     });
   };
 
-  const selectedLookup = lookups.find((l) => String(l.id) === selectedLookupId);
+  const selectedItem = items.find((i) => String(i.id) === selectedId);
 
   return (
     <AdminLayout>
       <div className="p-6 space-y-6" dir={dir}>
         <PageHeader
           title={isRTL ? "محتويات النظام" : "System Content"}
-          subtitle={isRTL ? "تعديل صفحات المحتوى مثل الشروط والأحكام وسياسة الخصوصية" : "Edit content pages like Terms & Conditions, Privacy Policy"}
+          subtitle={
+            isRTL
+              ? "تعديل صفحات المحتوى مثل الشروط والأحكام وسياسة الخصوصية"
+              : "Edit content pages like Terms & Conditions, Privacy Policy"
+          }
           icon={<FileText className="h-5 w-5" />}
         />
 
@@ -280,21 +319,39 @@ export default function SystemContentPage() {
             {/* Dropdown */}
             <div className="w-full sm:w-80 space-y-2">
               <Label>{isRTL ? "اختر المحتوى" : "Select Content"}</Label>
-              <Select value={selectedLookupId} onValueChange={handleSelectChange}>
+              <Select value={selectedId} onValueChange={handleSelectChange}>
                 <SelectTrigger data-testid="select-content">
-                  <SelectValue placeholder={isRTL ? "اختر المحتوى للتعديل..." : "Choose content to edit..."} />
+                  <SelectValue
+                    placeholder={
+                      isRTL
+                        ? "اختر المحتوى للتعديل..."
+                        : "Choose content to edit..."
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent>
-                  {isLookupsLoading ? (
-                    <SelectItem value="__loading" disabled>{isRTL ? "جارٍ التحميل..." : "Loading..."}</SelectItem>
-                  ) : isLookupsError ? (
-                    <SelectItem value="__error" disabled>{isRTL ? "فشل في التحميل" : "Failed to load"}</SelectItem>
-                  ) : lookups.length === 0 ? (
-                    <SelectItem value="__empty" disabled>{isRTL ? "لا توجد عناصر" : "No items found"}</SelectItem>
+                  {isItemsLoading ? (
+                    <SelectItem value="__loading" disabled>
+                      {isRTL ? "جارٍ التحميل..." : "Loading..."}
+                    </SelectItem>
+                  ) : isItemsError ? (
+                    <SelectItem value="__error" disabled>
+                      {isRTL ? "فشل في التحميل" : "Failed to load"}
+                    </SelectItem>
+                  ) : items.length === 0 ? (
+                    <SelectItem value="__empty" disabled>
+                      {isRTL ? "لا توجد عناصر" : "No items found"}
+                    </SelectItem>
                   ) : (
-                    lookups.map((item) => (
-                      <SelectItem key={item.id} value={String(item.id)} data-testid={`option-content-${item.id}`}>
-                        {isRTL ? item.labelAr : item.labelEn}
+                    items.map((item) => (
+                      <SelectItem
+                        key={item.id}
+                        value={String(item.id)}
+                        data-testid={`option-content-${item.id}`}
+                      >
+                        {isRTL
+                          ? item.nameAr || item.nameEn || `#${item.id}`
+                          : item.nameEn || item.nameAr || `#${item.id}`}
                       </SelectItem>
                     ))
                   )}
@@ -302,15 +359,15 @@ export default function SystemContentPage() {
               </Select>
             </div>
 
-            {/* Loading spinner while fetching content */}
-            {selectedLookupId && isContentLoading && (
+            {/* Loading spinner while fetching record */}
+            {selectedId && isRecordLoading && (
               <div className="flex items-center justify-center py-16">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
             )}
 
-            {/* Content fetch error */}
-            {selectedLookupId && isContentError && !isContentLoading && (
+            {/* Fetch error */}
+            {selectedId && isRecordError && !isRecordLoading && (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <FileText className="h-12 w-12 mb-4 text-destructive opacity-70" />
                 <p className="font-semibold text-destructive">
@@ -319,43 +376,63 @@ export default function SystemContentPage() {
               </div>
             )}
 
-            {/* Editor */}
-            {selectedLookup && !isContentLoading && (
+            {/* Editor — shown once we have a selected item and record loaded */}
+            {selectedItem && selectedRecord && !isRecordLoading && (
               <>
                 <Separator />
 
-                {contentRecord && (
-                  <div className="flex gap-4 text-xs text-muted-foreground">
-                    <span>{isRTL ? "المعرف:" : "ID:"} <span className="font-mono font-semibold">{contentRecord.id}</span></span>
-                    <span>{isRTL ? "رقم الفئة:" : "Category ID:"} <span className="font-mono font-semibold">{contentRecord.systemContentCategoryId}</span></span>
-                  </div>
-                )}
+                <div className="flex gap-4 text-xs text-muted-foreground">
+                  <span>
+                    {isRTL ? "المعرف:" : "ID:"}{" "}
+                    <span className="font-mono font-semibold">
+                      {selectedRecord.id}
+                    </span>
+                  </span>
+                  <span>
+                    {isRTL ? "رقم الفئة:" : "Category ID:"}{" "}
+                    <span className="font-mono font-semibold">
+                      {selectedRecord.systemContentCategoryId}
+                    </span>
+                  </span>
+                </div>
 
                 <RichTextEditor
-                  editorKey={selectedLookupId}
+                  editorKey={selectedId}
                   content={editorContent}
                   onChange={setEditorContent}
                 />
 
                 <div className="flex justify-end">
-                  <Button onClick={handleSave} disabled={upsertMutation.isPending} data-testid="button-save-content">
+                  <Button
+                    onClick={handleSave}
+                    disabled={upsertMutation.isPending}
+                    data-testid="button-save-content"
+                  >
+                    {upsertMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 ltr:mr-2 rtl:ml-2 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4 ltr:mr-2 rtl:ml-2" />
+                    )}
                     {upsertMutation.isPending
-                      ? <Loader2 className="h-4 w-4 ltr:mr-2 rtl:ml-2 animate-spin" />
-                      : <Save className="h-4 w-4 ltr:mr-2 rtl:ml-2" />}
-                    {upsertMutation.isPending
-                      ? (isRTL ? "جارٍ الحفظ..." : "Saving...")
-                      : (isRTL ? "حفظ التغييرات" : "Save Changes")}
+                      ? isRTL
+                        ? "جارٍ الحفظ..."
+                        : "Saving..."
+                      : isRTL
+                        ? "حفظ التغييرات"
+                        : "Save Changes"}
                   </Button>
                 </div>
               </>
             )}
 
             {/* Empty state */}
-            {!selectedLookupId && !isLookupsLoading && (
+            {!selectedId && !isItemsLoading && (
               <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
                 <FileText className="h-12 w-12 mb-4 opacity-50" />
                 <p className="text-lg font-medium">
-                  {isRTL ? "اختر صفحة من القائمة للتعديل" : "Select a page from the dropdown to edit"}
+                  {isRTL
+                    ? "اختر صفحة من القائمة للتعديل"
+                    : "Select a page from the dropdown to edit"}
                 </p>
               </div>
             )}
