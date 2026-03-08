@@ -480,14 +480,14 @@ export default function IssuesPage() {
   const getStatusBadge = (isOpen: boolean) => {
     if (!isOpen) {
       return (
-        <Badge className="bg-red-500 hover:bg-red-600 text-white border-0 gap-1 font-medium px-2.5 py-0.5">
+        <Badge variant="danger" className="gap-1 font-medium">
           <Lock className="h-3 w-3" />
           {t("issues.statusClosed")}
         </Badge>
       );
     }
     return (
-      <Badge variant="success" className="gap-1 font-medium px-2.5 py-0.5">
+      <Badge variant="success" className="gap-1 font-medium">
         <DoorOpen className="h-3 w-3" />
         {t("issues.statusOpen")}
       </Badge>
@@ -1177,14 +1177,14 @@ export default function IssuesPage() {
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-10 w-10 rounded-xl text-emerald-600 hover:bg-emerald-100/60 hover:text-emerald-700 shadow-sm hover:shadow-md transition-all"
+                                    className="h-8 w-8 rounded-lg text-blue-600 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950/30"
                                     onClick={() => {
                                       setSelectedIssue(issue);
                                       setIsViewDialogOpen(true);
                                     }}
                                     data-testid={`button-view-issue-${issue.id}`}
                                   >
-                                    <Eye className="h-5 w-5" />
+                                    <Eye className="h-4 w-4" />
                                   </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>{t("issues.viewIssue")}</TooltipContent>
@@ -1196,11 +1196,11 @@ export default function IssuesPage() {
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-10 w-10 rounded-xl text-amber-600 hover:bg-amber-100/60 hover:text-amber-700 shadow-sm hover:shadow-md transition-all"
+                                    className="h-8 w-8 rounded-lg text-amber-600 hover:bg-amber-50 hover:text-amber-700 dark:hover:bg-amber-950/30"
                                     onClick={() => handleEditIssue(issue)}
                                     data-testid={`button-edit-issue-${issue.id}`}
                                   >
-                                    <Edit className="h-5 w-5" />
+                                    <Edit className="h-4 w-4" />
                                   </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>{t("issues.editIssue")}</TooltipContent>
@@ -1213,11 +1213,11 @@ export default function IssuesPage() {
                                     <Button
                                       variant="ghost"
                                       size="icon"
-                                      className="h-10 w-10 rounded-xl text-gray-600 hover:bg-gray-100/60 hover:text-gray-700 shadow-sm hover:shadow-md transition-all"
+                                      className="h-8 w-8 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800"
                                       onClick={() => closeIssueMutation.mutate(issue)}
                                       data-testid={`button-close-issue-${issue.id}`}
                                     >
-                                      <ToggleRight className="h-5 w-5" />
+                                      <ToggleRight className="h-4 w-4" />
                                     </Button>
                                   </TooltipTrigger>
                                   <TooltipContent>{t("issues.closeIssue")}</TooltipContent>
@@ -1228,11 +1228,11 @@ export default function IssuesPage() {
                                     <Button
                                       variant="ghost"
                                       size="icon"
-                                      className="h-10 w-10 rounded-xl text-emerald-600 hover:bg-emerald-100/60 hover:text-emerald-700 shadow-sm hover:shadow-md transition-all"
+                                      className="h-8 w-8 rounded-lg text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 dark:hover:bg-emerald-950/30"
                                       onClick={() => reopenIssueMutation.mutate(issue)}
                                       data-testid={`button-reopen-issue-${issue.id}`}
                                     >
-                                      <ToggleLeft className="h-5 w-5" />
+                                      <ToggleLeft className="h-4 w-4" />
                                     </Button>
                                   </TooltipTrigger>
                                   <TooltipContent>{t("issues.reopenIssue")}</TooltipContent>
@@ -1245,14 +1245,14 @@ export default function IssuesPage() {
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-10 w-10 rounded-xl text-red-600 hover:bg-red-100/60 hover:text-red-700 shadow-sm hover:shadow-md transition-all"
+                                    className="h-8 w-8 rounded-lg text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30"
                                     onClick={() => {
                                       setSelectedIssue(issue);
                                       setIsDeleteDialogOpen(true);
                                     }}
                                     data-testid={`button-delete-issue-${issue.id}`}
                                   >
-                                    <Trash2 className="h-5 w-5" />
+                                    <Trash2 className="h-4 w-4" />
                                   </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>{t("issues.deleteIssue")}</TooltipContent>

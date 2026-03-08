@@ -548,7 +548,7 @@ export default function CustomSettingsPage() {
                             size="icon" variant="ghost"
                             onClick={() => handleEdit(setting)}
                             data-testid={`button-edit-${setting.id}`}
-                            className="h-8 w-8 text-amber-600 hover:bg-amber-50 hover:text-amber-700"
+                            className="h-8 w-8 rounded-lg text-amber-600 hover:bg-amber-50 hover:text-amber-700 dark:hover:bg-amber-950/30"
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
@@ -556,7 +556,7 @@ export default function CustomSettingsPage() {
                             size="icon" variant="ghost"
                             onClick={() => { setSelectedSetting(setting); setIsDeleteDialogOpen(true); }}
                             data-testid={`button-delete-${setting.id}`}
-                            className="h-8 w-8 text-red-600 hover:bg-red-50 hover:text-red-700"
+                            className="h-8 w-8 rounded-lg text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>

@@ -465,7 +465,7 @@ export default function SettingsCategoriesPage() {
                             size="icon"
                             onClick={() => handleEditCat(cat)}
                             data-testid={`button-edit-category-${cat.id}`}
-                            className="h-8 w-8 text-amber-600 hover:bg-amber-50 hover:text-amber-700"
+                            className="h-8 w-8 rounded-lg text-amber-600 hover:bg-amber-50 hover:text-amber-700 dark:hover:bg-amber-950/30"
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
@@ -477,7 +477,7 @@ export default function SettingsCategoriesPage() {
                               setIsDeleteCatOpen(true);
                             }}
                             data-testid={`button-delete-category-${cat.id}`}
-                            className="h-8 w-8 text-red-600 hover:bg-red-50 hover:text-red-700"
+                            className="h-8 w-8 rounded-lg text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -574,7 +574,7 @@ export default function SettingsCategoriesPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={lookup.active ? "default" : "secondary"}>
+                        <Badge variant={lookup.active ? "success" : "danger"}>
                           {lookup.active ? t("common.active") : t("common.inactive")}
                         </Badge>
                       </TableCell>
@@ -585,7 +585,7 @@ export default function SettingsCategoriesPage() {
                             size="icon"
                             onClick={() => handleEditLookup(lookup)}
                             data-testid={`button-edit-definition-${lookup.id}`}
-                            className="h-8 w-8 text-amber-600 hover:bg-amber-50 hover:text-amber-700"
+                            className="h-8 w-8 rounded-lg text-amber-600 hover:bg-amber-50 hover:text-amber-700 dark:hover:bg-amber-950/30"
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
@@ -597,7 +597,7 @@ export default function SettingsCategoriesPage() {
                               setIsDeleteLookupOpen(true);
                             }}
                             data-testid={`button-delete-definition-${lookup.id}`}
-                            className="h-8 w-8 text-red-600 hover:bg-red-50 hover:text-red-700"
+                            className="h-8 w-8 rounded-lg text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>

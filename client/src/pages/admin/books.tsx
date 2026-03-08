@@ -608,13 +608,13 @@ export default function LotteryBooksPage() {
                                     <Button
                                       variant="ghost"
                                       size="icon"
-                                      className="h-9 w-9 text-primary hover:bg-primary hover:text-primary-foreground shadow-sm hover:shadow-md rounded-lg"
+                                      className="h-8 w-8 rounded-lg text-blue-600 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950/30"
                                       onClick={() => {
                                         setSelectedBook(book);
                                         setIsViewDialogOpen(true);
                                       }}
                                     >
-                                      <Eye className="h-4.5 w-4.5" />
+                                      <Eye className="h-4 w-4" />
                                       <span className="sr-only">{t("lotteryBooks.view")}</span>
                                     </Button>
                                   </TooltipTrigger>
@@ -626,10 +626,10 @@ export default function LotteryBooksPage() {
                                     <Button
                                       variant="ghost"
                                       size="icon"
-                                      className="h-9 w-9 text-amber-600 hover:bg-amber-50 hover:text-amber-700 shadow-sm hover:shadow-md rounded-lg"
+                                      className="h-8 w-8 rounded-lg text-amber-600 hover:bg-amber-50 hover:text-amber-700 dark:hover:bg-amber-950/30"
                                       onClick={() => handleEditBook(book)}
                                     >
-                                      <Edit className="h-4.5 w-4.5" />
+                                      <Edit className="h-4 w-4" />
                                       <span className="sr-only">{t("common.edit")}</span>
                                     </Button>
                                   </TooltipTrigger>
