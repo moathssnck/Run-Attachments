@@ -4,6 +4,10 @@ export async function tryRefreshToken(): Promise<boolean> {
   const storedRefresh = localStorage.getItem("lottery_refresh_token");
   const currentToken = localStorage.getItem("lottery_token");
   if (!storedRefresh) return false;
+  if (isTokenExpired(storedRefresh)) {
+    clearAuthAndRedirect();
+    return false;
+  }
   try {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
@@ -41,6 +45,28 @@ function clearAuthAndRedirect() {
   }
 }
 
+function isTokenExpired(token: string): boolean {
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    if (!payload.exp) return false;
+    return Date.now() >= payload.exp * 1000;
+  } catch {
+    return true;
+  }
+}
+
+export function getStoredToken(): string | null {
+  const token = localStorage.getItem("lottery_token");
+  if (!token) return null;
+  if (isTokenExpired(token)) {
+    localStorage.removeItem("lottery_token");
+    localStorage.removeItem("lottery_refresh_token");
+    localStorage.removeItem("lottery_user");
+    return null;
+  }
+  return token;
+}
+
 export async function apiRequest(
   method: string,
   url: string,
@@ -49,10 +75,7 @@ export async function apiRequest(
   const buildHeaders = (): Record<string, string> => {
     const h: Record<string, string> = {};
     if (data !== undefined) h["Content-Type"] = "application/json";
-    const token =
-      localStorage.getItem("lottery_token") ||
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEwMDEyIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvZW1haWxhZGRyZXNzIjoibXV0MTIzNDU2MjFAZXhhbXBsZS5jb20iLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoibXV0MTIzNDU2MjFAZXhhbXBsZS5jb20iLCJqdGkiOiIwY2Y2Y2M0OS1jNWMxLTRiZTktOTE3NC0yNDE2NjNiZjlkMjEiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJVU0VSIiwiZXhwIjoxNzc1MjE3MTA0LCJpc3MiOiJJVGhpbmsiLCJhdWQiOiJJVGhpbmsifQ.sfcipLOVCbf7NpY2TpfyThocanrg3ueub5MtGIe0XTE";
-
+    const token = getStoredToken();
     if (token) h["Authorization"] = `Bearer ${token}`;
     return h;
   };
@@ -95,7 +118,7 @@ export const getQueryFn: <T>(options: {
   async ({ queryKey }) => {
     const buildHeaders = (): Record<string, string> => {
       const h: Record<string, string> = {};
-      const token = localStorage.getItem("lottery_token");
+      const token = getStoredToken();
       if (token) h["Authorization"] = `Bearer ${token}`;
       return h;
     };

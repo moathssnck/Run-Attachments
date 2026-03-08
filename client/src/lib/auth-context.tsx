@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import type { User, UserRole } from "@shared/schema";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, getStoredToken } from "@/lib/queryClient";
 
 interface AuthContextType {
   user: User | null;
@@ -24,18 +24,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const storedUser = localStorage.getItem("lottery_user");
-    const storedToken = localStorage.getItem("lottery_token");
+    const validToken = getStoredToken();
     const storedRefresh = localStorage.getItem("lottery_refresh_token");
-    if (storedUser) {
+    if (storedUser && validToken) {
       try {
         setUser(JSON.parse(storedUser));
-        setToken(storedToken);
+        setToken(validToken);
         setRefreshToken(storedRefresh);
-      } catch (e) {
+      } catch {
         localStorage.removeItem("lottery_user");
         localStorage.removeItem("lottery_token");
         localStorage.removeItem("lottery_refresh_token");
       }
+    } else if (storedUser && !validToken) {
+      localStorage.removeItem("lottery_user");
+      localStorage.removeItem("lottery_token");
+      localStorage.removeItem("lottery_refresh_token");
     }
     setIsLoading(false);
   }, []);
