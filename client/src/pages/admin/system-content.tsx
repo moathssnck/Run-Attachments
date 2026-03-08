@@ -54,6 +54,7 @@ type Raw = Record<string, unknown>;
 
 type SystemContentItem = {
   id: number;
+  systemContentLookupId: number;
   systemContentCategoryId: number;
   nameAr: string;
   nameEn: string;
@@ -95,12 +96,13 @@ function unwrapArray(payload: unknown, ...keys: string[]): Raw[] {
 function normItem(r: Raw): SystemContentItem {
   return {
     id: asNum(r.id ?? r.systemContentId),
+    systemContentLookupId: asNum(r.systemContentLookupId ?? r.lookupId),
     systemContentCategoryId: asNum(r.systemContentCategoryId ?? r.categoryId),
     nameAr: asStr(
-      r.nameAr ?? r.titleAr ?? r.lookupAr ?? r.labelAr ?? r.name ?? r.title
+      r.lookupNameAr ?? r.nameAr ?? r.titleAr ?? r.lookupAr ?? r.labelAr ?? r.name ?? r.title
     ),
     nameEn: asStr(
-      r.nameEn ?? r.titleEn ?? r.lookupEn ?? r.labelEn ?? r.name ?? r.title
+      r.lookupNameEn ?? r.nameEn ?? r.titleEn ?? r.lookupEn ?? r.labelEn ?? r.name ?? r.title
     ),
     content: asStr(r.content ?? r.contentAr ?? r.body),
   };
@@ -240,15 +242,15 @@ export default function SystemContentPage() {
     retry: 1,
   });
 
-  // ── 2. Fetch full record by selected ID ────────────────────────────────────
+  // ── 2. Fetch full record by selected lookup ID ────────────────────────────
   const {
     data: selectedRecord,
     isLoading: isRecordLoading,
     isError: isRecordError,
   } = useQuery<SystemContentItem | null>({
-    queryKey: [API_CONFIG.systemContent.byId(selectedId)],
+    queryKey: [API_CONFIG.systemContent.byLookupId(selectedId)],
     queryFn: async () => {
-      const res = await apiRequest("GET", API_CONFIG.systemContent.byId(selectedId));
+      const res = await apiRequest("GET", API_CONFIG.systemContent.byLookupId(selectedId));
       if (!res.ok) throw new Error(`${res.status}`);
       const payload = await res.json();
       const record = normSingle(payload);
@@ -274,7 +276,7 @@ export default function SystemContentPage() {
     }) => apiRequest("POST", API_CONFIG.systemContent.upsert, body),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: [API_CONFIG.systemContent.byId(selectedId)],
+        queryKey: [API_CONFIG.systemContent.byLookupId(selectedId)],
       });
       queryClient.invalidateQueries({
         queryKey: [API_CONFIG.systemContent.list],
@@ -298,7 +300,7 @@ export default function SystemContentPage() {
     });
   };
 
-  const selectedItem = items.find((i) => String(i.id) === selectedId);
+  const selectedItem = items.find((i) => String(i.systemContentLookupId) === selectedId);
 
   return (
     <AdminLayout>
@@ -346,7 +348,7 @@ export default function SystemContentPage() {
                     items.map((item) => (
                       <SelectItem
                         key={item.id}
-                        value={String(item.id)}
+                        value={String(item.systemContentLookupId)}
                         data-testid={`option-content-${item.id}`}
                       >
                         {isRTL
