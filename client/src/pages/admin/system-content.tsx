@@ -193,6 +193,11 @@ export default function SystemContentPage() {
   const [selectedLookupId, setSelectedLookupId] = useState<string>("");
   const [editorContent, setEditorContent] = useState("");
 
+  const handleSelectChange = (value: string) => {
+    setEditorContent("");
+    setSelectedLookupId(value);
+  };
+
   // ── Fetch Lookups for system content category (ID 12) ─────────────────────
   const {
     data: lookups = [],
@@ -275,7 +280,7 @@ export default function SystemContentPage() {
             {/* Dropdown */}
             <div className="w-full sm:w-80 space-y-2">
               <Label>{isRTL ? "اختر المحتوى" : "Select Content"}</Label>
-              <Select value={selectedLookupId} onValueChange={setSelectedLookupId}>
+              <Select value={selectedLookupId} onValueChange={handleSelectChange}>
                 <SelectTrigger data-testid="select-content">
                   <SelectValue placeholder={isRTL ? "اختر المحتوى للتعديل..." : "Choose content to edit..."} />
                 </SelectTrigger>
