@@ -18,9 +18,7 @@ import {
   Filter,
   Eye,
   DoorOpen,
-  DoorClosed,
   Edit,
-  Trash2,
   ToggleLeft,
   ToggleRight,
 } from "lucide-react";
@@ -67,16 +65,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -267,7 +255,6 @@ export default function IssuesPage() {
   // Dialog state
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [selectedIssue, setSelectedIssue] = useState<NormalizedIssue | null>(
     null
@@ -421,18 +408,6 @@ export default function IssuesPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [API_CONFIG.issues.paged] });
       toast({ title: t("issues.reopened"), description: t("issues.reopenedDesc") });
-    },
-  });
-
-  const deleteIssueMutation = useMutation({
-    mutationFn: async (id: number) => {
-      return apiRequest("DELETE", API_CONFIG.issues.byId(id));
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [API_CONFIG.issues.paged] });
-      setIsDeleteDialogOpen(false);
-      setSelectedIssue(null);
-      toast({ title: t("issues.deleted"), description: t("issues.deletedDesc") });
     },
   });
 
@@ -1239,24 +1214,6 @@ export default function IssuesPage() {
                                 </Tooltip>
                               )}
 
-                              {/* Delete */}
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-10 w-10 rounded-xl text-red-600 hover:bg-red-100/60 hover:text-red-700 shadow-sm hover:shadow-md transition-all"
-                                    onClick={() => {
-                                      setSelectedIssue(issue);
-                                      setIsDeleteDialogOpen(true);
-                                    }}
-                                    data-testid={`button-delete-issue-${issue.id}`}
-                                  >
-                                    <Trash2 className="h-5 w-5" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>{t("issues.deleteIssue")}</TooltipContent>
-                              </Tooltip>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -1292,61 +1249,31 @@ export default function IssuesPage() {
               <CreateFormContent />
             </div>
             <Separator />
-            <DialogFooter className="pt-6">
-              <div className="grid grid-cols-2 gap-4 w-full">
-                <Button
-                  onClick={() => setIsCreateDialogOpen(false)}
-                  variant="outline"
-                  className="h-16 text-lg font-bold gap-3 border-none bg-red-600 text-white hover:bg-destructive hover:text-destructive-foreground transition-all shadow-md"
-                  data-testid="button-cancel-create"
-                >
-                  <X className="h-6 w-6" />
-                  {t("issues.cancel")}
-                </Button>
-                <Button
-                  onClick={createForm.handleSubmit(onCreateSubmit)}
-                  disabled={createIssueMutation.isPending}
-                  className="h-16 text-lg font-bold gap-3 bg-primary text-primary-foreground hover:bg-primary/90 transition-all border-none shadow-md"
-                  data-testid="button-submit-create"
-                >
-                  {createIssueMutation.isPending ? (
-                    <span className="h-6 w-6 animate-spin rounded-full border-3 border-primary-foreground border-t-transparent" />
-                  ) : (
-                    <Plus className="h-6 w-6" />
-                  )}
-                  {t("issues.newIssue")}
-                </Button>
-                <Button
-                  onClick={createForm.handleSubmit((data) =>
-                    createIssueMutation.mutate({ ...data, issueTypeId: data.issueTypeId })
-                  )}
-                  disabled={createIssueMutation.isPending}
-                  className="h-16 text-lg font-bold gap-3 bg-emerald-600 text-white hover:bg-emerald-700 transition-all border-none shadow-md"
-                  data-testid="button-open-create"
-                >
-                  {createIssueMutation.isPending ? (
-                    <span className="h-6 w-6 animate-spin rounded-full border-3 border-white border-t-transparent" />
-                  ) : (
-                    <DoorOpen className="h-6 w-6" />
-                  )}
-                  {t("issues.openIssue")}
-                </Button>
-                <Button
-                  onClick={createForm.handleSubmit((data) =>
-                    createIssueMutation.mutate({ ...data, issueTypeId: data.issueTypeId })
-                  )}
-                  disabled={createIssueMutation.isPending}
-                  className="h-16 text-lg font-bold gap-3 bg-primary text-primary-foreground hover:bg-primary/90 transition-all border-none shadow-md"
-                  data-testid="button-close-create"
-                >
-                  {createIssueMutation.isPending ? (
-                    <span className="h-6 w-6 animate-spin rounded-full border-3 border-white border-t-transparent" />
-                  ) : (
-                    <DoorClosed className="h-6 w-6" />
-                  )}
-                  {t("issues.closeIssue")}
-                </Button>
-              </div>
+            <DialogFooter className="pt-4 gap-3 sm:gap-3">
+              <Button
+                onClick={() => setIsCreateDialogOpen(false)}
+                variant="outline"
+                size="lg"
+                className="font-semibold gap-2"
+                data-testid="button-cancel-create"
+              >
+                <X className="h-5 w-5" />
+                {t("issues.cancel")}
+              </Button>
+              <Button
+                onClick={createForm.handleSubmit(onCreateSubmit)}
+                disabled={createIssueMutation.isPending}
+                size="lg"
+                className="font-semibold gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-8"
+                data-testid="button-submit-create"
+              >
+                {createIssueMutation.isPending ? (
+                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+                ) : (
+                  <Plus className="h-5 w-5" />
+                )}
+                {t("issues.newIssue")}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -1488,42 +1415,6 @@ export default function IssuesPage() {
           </DialogContent>
         </Dialog>
 
-        {/* Delete Confirmation */}
-        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-          <AlertDialogContent className="border-none shadow-2xl">
-            <AlertDialogHeader>
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-destructive/10 mb-3">
-                <Trash2 className="h-6 w-6 text-destructive" />
-              </div>
-              <AlertDialogTitle className="text-xl font-bold">
-                {t("issues.deleteTitle")}
-              </AlertDialogTitle>
-              <AlertDialogDescription className="leading-relaxed text-base">
-                {t("issues.deleteConfirm")} &ldquo;{selectedIssue?.issueNo}&rdquo;?{" "}
-                {t("issues.deleteWarning")}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter className="gap-2 sm:gap-2">
-              <AlertDialogCancel
-                data-testid="button-cancel-delete"
-                className="font-semibold gap-2"
-              >
-                <X className="h-4 w-4" />
-                {t("issues.cancel")}
-              </AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() =>
-                  selectedIssue && deleteIssueMutation.mutate(selectedIssue.id)
-                }
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90 gap-2 font-semibold"
-                data-testid="button-confirm-delete"
-              >
-                <Trash2 className="h-4 w-4" />
-                {t("issues.deleteIssue")}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
       </TooltipProvider>
     </AdminLayout>
   );
