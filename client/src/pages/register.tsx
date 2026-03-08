@@ -706,11 +706,11 @@ export default function RegisterPage() {
                         <div className="space-y-1 leading-none">
                           <FormLabel className="text-sm font-normal leading-relaxed">
                             {t("auth.agreeToTerms")}{" "}
-                            <a href="/page/1300" className="text-primary hover:underline font-medium" target="_blank" rel="noopener noreferrer">
+                            <a href="#" className="text-primary hover:underline font-medium">
                               {t("auth.termsAndConditions")}
                             </a>{" "}
                             {t("common.and")}{" "}
-                            <a href="/page/1301" className="text-primary hover:underline font-medium" target="_blank" rel="noopener noreferrer">
+                            <a href="#" className="text-primary hover:underline font-medium">
                               {t("auth.privacyPolicy")}
                             </a>
                           </FormLabel>

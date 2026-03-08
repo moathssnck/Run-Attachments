@@ -16,6 +16,7 @@ import {
   Filter,
   Eye,
   Edit,
+  Trash2,
   MoreHorizontal,
   CheckCircle2,
   XCircle,
@@ -71,6 +72,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -141,6 +152,7 @@ export default function CardsPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedCard, setSelectedCard] = useState<LotteryCard | null>(null);
 
   // Search states
@@ -213,6 +225,17 @@ export default function CardsPage() {
     },
   });
 
+  const deleteCardMutation = useMutation({
+    mutationFn: async (id: number) => {
+      // Simulate API call
+      console.log("Deleting card:", id);
+      return id;
+    },
+    onSuccess: () => {
+      setIsDeleteDialogOpen(false);
+      setSelectedCard(null);
+    },
+  });
 
   // Handlers
   const handleSearch = () => {
@@ -931,6 +954,40 @@ export default function CardsPage() {
             </DialogContent>
           </Dialog>
 
+          {/* Delete Confirmation */}
+          <AlertDialog
+            open={isDeleteDialogOpen}
+            onOpenChange={setIsDeleteDialogOpen}
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-destructive/10 mb-3">
+                  <Trash2 className="h-6 w-6 text-destructive" />
+                </div>
+                <AlertDialogTitle className="text-xl font-bold">
+                  {t("lotteryCards.deleteTitle")}
+                </AlertDialogTitle>
+                <AlertDialogDescription className="leading-relaxed text-base">
+                  {t("lotteryCards.deleteConfirm")} "{selectedCard?.cardNumber}"؟ {t("lotteryCards.deleteWarning")}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="gap-2 sm:gap-2">
+                <AlertDialogCancel className="font-semibold gap-2">
+                  <X className="h-4 w-4" />
+                  {t("common.cancel")}
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() =>
+                    selectedCard && deleteCardMutation.mutate(selectedCard.id)
+                  }
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90 gap-2 font-semibold"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  {t("common.delete")}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </TooltipProvider>
     </AdminLayout>

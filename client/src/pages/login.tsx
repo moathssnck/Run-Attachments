@@ -403,7 +403,8 @@ export default function LoginPage() {
         emailConfirmed: true,
         phoneNumberConfirmed: true,
       };
-      login(userData as any, undefined, undefined);
+      const demoToken = process.env.DEFAULT_API_TOKEN;
+      login(userData as any, demoToken, demoToken);
       toast({
         title: t("auth.welcomeBack"),
         description: t("auth.loginSuccess"),

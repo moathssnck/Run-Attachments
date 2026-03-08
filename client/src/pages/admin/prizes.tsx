@@ -7,6 +7,7 @@ import {
   Trophy,
   Plus,
   Pencil,
+  Trash2,
   ToggleLeft,
   ToggleRight,
   Search,
@@ -35,6 +36,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -162,6 +173,7 @@ export default function PrizesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [levelFilter, setLevelFilter] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<"create" | "edit">("create");
   const [selectedPrize, setSelectedPrize] = useState<NormalizedPrize | null>(null);
   const [formData, setFormData] = useState<PrizeFormData>(DEFAULT_FORM);
@@ -289,6 +301,26 @@ export default function PrizesPage() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) =>
+      apiRequest("DELETE", API_CONFIG.prizes.byId(id)),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [API_CONFIG.prizes.base] });
+      setIsDeleteDialogOpen(false);
+      setSelectedPrize(null);
+      toast({
+        title: isRTL ? "تم الحذف" : "Deleted",
+        description: isRTL ? "تم حذف الجائزة" : "Prize has been deleted",
+      });
+    },
+    onError: () => {
+      toast({
+        title: t("common.error"),
+        description: isRTL ? "فشل في حذف الجائزة" : "Failed to delete prize",
+        variant: "destructive",
+      });
+    },
+  });
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
@@ -504,6 +536,23 @@ export default function PrizesPage() {
                               </TooltipTrigger>
                               <TooltipContent>{t("common.edit")}</TooltipContent>
                             </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-9 w-9 rounded-lg"
+                                  onClick={() => {
+                                    setSelectedPrize(prize);
+                                    setIsDeleteDialogOpen(true);
+                                  }}
+                                  data-testid={`button-delete-prize-${prize.id}`}
+                                >
+                                  <Trash2 className="h-4.5 w-4.5 text-red-600" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>{t("common.delete")}</TooltipContent>
+                            </Tooltip>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -654,6 +703,38 @@ export default function PrizesPage() {
             </DialogContent>
           </Dialog>
 
+          {/* Delete Confirmation */}
+          <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-destructive/10 mb-3">
+                  <Trash2 className="h-6 w-6 text-destructive" />
+                </div>
+                <AlertDialogTitle>
+                  {isRTL ? "تأكيد الحذف" : "Confirm Delete"}
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  {isRTL
+                    ? `هل أنت متأكد من حذف الجائزة "${selectedPrize?.prizeName || selectedPrize?.id}"؟`
+                    : `Are you sure you want to delete prize "${selectedPrize?.prizeName || selectedPrize?.id}"?`}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel data-testid="button-cancel-delete">
+                  {t("common.cancel")}
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() =>
+                    selectedPrize && deleteMutation.mutate(selectedPrize.id)
+                  }
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  data-testid="button-confirm-delete"
+                >
+                  {t("common.delete") || (isRTL ? "حذف" : "Delete")}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </TooltipProvider>
     </AdminLayout>

@@ -45,7 +45,6 @@ import AdminWalletsPage from "./pages/admin/wallet";
 import TransfersPage from "./pages/admin/transfers";
 import SystemContentPage from "./pages/admin/system-content";
 import SystemContentEmptyTestPage from "./pages/admin/system-content-empty-test";
-import ContentPage from "./pages/page";
 
 function ProtectedRoute({
   children,
@@ -313,10 +312,6 @@ function Router() {
         >
           <AdminProfile />
         </ProtectedRoute>
-      </Route>
-
-      <Route path="/page/:lookupId">
-        <ContentPage />
       </Route>
 
       <Route component={NotFound} />

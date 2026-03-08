@@ -19,6 +19,8 @@ import {
   Eye,
   DoorOpen,
   Edit,
+  ToggleLeft,
+  ToggleRight,
 } from "lucide-react";
 import {
   Card,
@@ -122,23 +124,24 @@ function normalizeIssue(raw: RawApiIssue, index: number): NormalizedIssue {
   const issueNo = asStr(raw.issueNo ?? raw.issueNumber, String(id));
   const issueTypeId = asNum(raw.issueTypeId) ?? 1;
   const issueTypeName = asStr(
-    raw.issueTypeName ?? raw.issueTypeNameAr ?? raw.typeName,
+    raw.issueTypeName ?? raw.issueTypeNameAr ?? raw.typeName
   );
   const issueDate = asStr(
     raw.issueDate ?? raw.startDate,
-    new Date().toISOString(),
+    new Date().toISOString()
   );
   const issueDrawingDate = asStr(
     raw.issueDrawingDate ?? raw.endDate ?? raw.drawDate,
-    issueDate,
+    issueDate
   );
   const issueFrom =
     asNum(raw.issueFrom ?? raw.startTicketNumber ?? raw.fromNumber) ?? 1;
   const issueTo =
     asNum(raw.issueTo ?? raw.endTicketNumber ?? raw.toNumber) ?? issueFrom;
   const issueSead =
-    asNum(raw.issueSead ?? raw.issueSeed ?? raw.seed ?? raw.ticketsPerBook) ??
-    10;
+    asNum(
+      raw.issueSead ?? raw.issueSeed ?? raw.seed ?? raw.ticketsPerBook
+    ) ?? 10;
   const issueStatusId = asNum(raw.issueStatusId) ?? 1;
   const isClosed =
     typeof raw.isClosed === "boolean" ? raw.isClosed : issueStatusId !== 1;
@@ -254,7 +257,7 @@ export default function IssuesPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [selectedIssue, setSelectedIssue] = useState<NormalizedIssue | null>(
-    null,
+    null
   );
 
   // ── Fetch all issues (paged) ──────────────────────────────────────────────
@@ -275,14 +278,7 @@ export default function IssuesPage() {
     isLoading: isSearchLoading,
     refetch: refetchSearch,
   } = useQuery<NormalizedIssue[]>({
-    queryKey: [
-      API_CONFIG.issues.search,
-      searchIssueNumber,
-      searchType,
-      searchFromDate,
-      searchToDate,
-      searchStatus,
-    ],
+    queryKey: [API_CONFIG.issues.search, searchIssueNumber, searchType, searchFromDate, searchToDate, searchStatus],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (searchIssueNumber) params.set("searchTerm", searchIssueNumber);
@@ -290,18 +286,13 @@ export default function IssuesPage() {
         const typeOpt = ISSUE_TYPE_OPTIONS.find((o) => o.label === searchType);
         if (typeOpt) params.set("issueTypeId", String(typeOpt.value));
       }
-      if (searchStatus === "open")
-        params.set("issueStatusId", String(ISSUE_STATUS_OPEN));
-      if (searchStatus === "closed")
-        params.set("issueStatusId", String(ISSUE_STATUS_CLOSED));
+      if (searchStatus === "open") params.set("issueStatusId", String(ISSUE_STATUS_OPEN));
+      if (searchStatus === "closed") params.set("issueStatusId", String(ISSUE_STATUS_CLOSED));
       if (searchFromDate) params.set("fromDate", searchFromDate);
       if (searchToDate) params.set("toDate", searchToDate);
       params.set("pageNumber", "1");
       params.set("pageSize", "100");
-      const res = await apiRequest(
-        "GET",
-        `${API_CONFIG.issues.search}?${params.toString()}`,
-      );
+      const res = await apiRequest("GET", `${API_CONFIG.issues.search}?${params.toString()}`);
       const payload = await res.json();
       return extractIssues(payload);
     },
@@ -353,17 +344,10 @@ export default function IssuesPage() {
       queryClient.invalidateQueries({ queryKey: [API_CONFIG.issues.paged] });
       setIsCreateDialogOpen(false);
       createForm.reset();
-      toast({
-        title: t("issues.created"),
-        description: t("issues.createdDesc"),
-      });
+      toast({ title: t("issues.created"), description: t("issues.createdDesc") });
     },
     onError: () => {
-      toast({
-        title: t("issues.error"),
-        description: t("issues.createError"),
-        variant: "destructive",
-      });
+      toast({ title: t("issues.error"), description: t("issues.createError"), variant: "destructive" });
     },
   });
 
@@ -386,20 +370,46 @@ export default function IssuesPage() {
       queryClient.invalidateQueries({ queryKey: [API_CONFIG.issues.paged] });
       setIsEditDialogOpen(false);
       setSelectedIssue(null);
-      toast({
-        title: t("issues.updated"),
-        description: t("issues.updatedDesc"),
-      });
+      toast({ title: t("issues.updated"), description: t("issues.updatedDesc") });
     },
     onError: () => {
-      toast({
-        title: t("issues.error"),
-        description: t("issues.updateError"),
-        variant: "destructive",
-      });
+      toast({ title: t("issues.error"), description: t("issues.updateError"), variant: "destructive" });
     },
   });
 
+  const closeIssueMutation = useMutation({
+    mutationFn: async (issue: NormalizedIssue) => {
+      return apiRequest("PUT", API_CONFIG.issues.byId(issue.id), {
+        issueId: issue.id,
+        issueNo: Number(issue.issueNo),
+        issueDate: new Date(issue.issueDate).toISOString(),
+        issueDrawingDate: new Date(issue.issueDrawingDate).toISOString(),
+        issueTypeId: issue.issueTypeId,
+        issueStatusId: ISSUE_STATUS_CLOSED,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [API_CONFIG.issues.paged] });
+      toast({ title: t("issues.closed"), description: t("issues.closedDesc") });
+    },
+  });
+
+  const reopenIssueMutation = useMutation({
+    mutationFn: async (issue: NormalizedIssue) => {
+      return apiRequest("PUT", API_CONFIG.issues.byId(issue.id), {
+        issueId: issue.id,
+        issueNo: Number(issue.issueNo),
+        issueDate: new Date(issue.issueDate).toISOString(),
+        issueDrawingDate: new Date(issue.issueDrawingDate).toISOString(),
+        issueTypeId: issue.issueTypeId,
+        issueStatusId: ISSUE_STATUS_OPEN,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [API_CONFIG.issues.paged] });
+      toast({ title: t("issues.reopened"), description: t("issues.reopenedDesc") });
+    },
+  });
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
@@ -422,12 +432,8 @@ export default function IssuesPage() {
     editForm.reset({
       issueNo: Number(issue.issueNo) || 1,
       issueTypeId: issue.issueTypeId,
-      issueDate: issue.issueDate
-        ? format(new Date(issue.issueDate), "yyyy-MM-dd")
-        : "",
-      issueDrawingDate: issue.issueDrawingDate
-        ? format(new Date(issue.issueDrawingDate), "yyyy-MM-dd")
-        : "",
+      issueDate: issue.issueDate ? format(new Date(issue.issueDate), "yyyy-MM-dd") : "",
+      issueDrawingDate: issue.issueDrawingDate ? format(new Date(issue.issueDrawingDate), "yyyy-MM-dd") : "",
       issueAnnual: "",
       issueStatusId: issue.issueStatusId,
     });
@@ -463,9 +469,7 @@ export default function IssuesPage() {
     );
   };
 
-  const resolveIssueTypeKey = (
-    issue: NormalizedIssue,
-  ): "regular" | "special" | "support" => {
+  const resolveIssueTypeKey = (issue: NormalizedIssue): "regular" | "special" | "support" => {
     const name = (issue.issueTypeName ?? "").toLowerCase();
     if (name.includes("special") || name.includes("خاص")) return "special";
     if (name.includes("support") || name.includes("دعم")) return "support";
@@ -476,12 +480,9 @@ export default function IssuesPage() {
 
   const getTypeBadge = (typeKey: "regular" | "special" | "support") => {
     const styles: Record<string, string> = {
-      regular:
-        "bg-emerald-500/10 text-emerald-700 border-emerald-500/30 hover:bg-emerald-500/15 dark:text-emerald-400",
-      special:
-        "bg-amber-500/10 text-amber-700 border-amber-500/30 hover:bg-amber-500/15 dark:text-amber-400",
-      support:
-        "bg-red-500/10 text-red-700 border-red-500/30 hover:bg-red-500/15 dark:text-red-400",
+      regular: "bg-emerald-500/10 text-emerald-700 border-emerald-500/30 hover:bg-emerald-500/15 dark:text-emerald-400",
+      special: "bg-amber-500/10 text-amber-700 border-amber-500/30 hover:bg-amber-500/15 dark:text-amber-400",
+      support: "bg-red-500/10 text-red-700 border-red-500/30 hover:bg-red-500/15 dark:text-red-400",
     };
     const labels: Record<string, string> = {
       regular: t("issues.typeRegular"),
@@ -509,11 +510,8 @@ export default function IssuesPage() {
 
   const CreateFormContent = () => (
     <Form {...createForm}>
-      <form
-        onSubmit={createForm.handleSubmit(onCreateSubmit)}
-        className="space-y-6"
-      >
-        <div className="grid grid-cols-1 gap-4">
+      <form onSubmit={createForm.handleSubmit(onCreateSubmit)} className="space-y-6">
+        <div className="grid grid-cols-2 gap-4">
           <FormField
             control={createForm.control}
             name="issueTypeId"
@@ -527,23 +525,43 @@ export default function IssuesPage() {
                   onValueChange={(v) => field.onChange(Number(v))}
                 >
                   <FormControl>
-                    <SelectTrigger
-                      data-testid="select-create-type"
-                      className="h-12 text-base"
-                    >
+                    <SelectTrigger data-testid="select-create-type" className="h-12 text-base">
                       <SelectValue />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
                     {ISSUE_TYPE_OPTIONS.map((opt) => (
                       <SelectItem key={opt.value} value={String(opt.value)}>
-                        {t(
-                          `issues.type${opt.label.charAt(0).toUpperCase() + opt.label.slice(1)}`,
-                        )}
+                        {t(`issues.type${opt.label.charAt(0).toUpperCase() + opt.label.slice(1)}`)}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={createForm.control}
+            name="issueSead"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-lg font-semibold uppercase tracking-wide text-muted-foreground">
+                  {t("issues.seed")}
+                </FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <Package className="absolute start-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/60" />
+                    <Input
+                      data-testid="input-create-seed"
+                      type="number"
+                      className="ps-10 h-12 text-base"
+                      {...field}
+                      onChange={(e) => field.onChange(Number(e.target.value) || 0)}
+                    />
+                  </div>
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -562,12 +580,7 @@ export default function IssuesPage() {
                 <FormControl>
                   <div className="relative">
                     <Calendar className="absolute start-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/60" />
-                    <Input
-                      data-testid="input-create-issue-date"
-                      type="date"
-                      className="ps-10 h-12 text-base"
-                      {...field}
-                    />
+                    <Input data-testid="input-create-issue-date" type="date" className="ps-10 h-12 text-base" {...field} />
                   </div>
                 </FormControl>
                 <FormMessage />
@@ -585,12 +598,7 @@ export default function IssuesPage() {
                 <FormControl>
                   <div className="relative">
                     <Calendar className="absolute start-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/60" />
-                    <Input
-                      data-testid="input-create-draw-date"
-                      type="date"
-                      className="ps-10 h-12 text-base"
-                      {...field}
-                    />
+                    <Input data-testid="input-create-draw-date" type="date" className="ps-10 h-12 text-base" {...field} />
                   </div>
                 </FormControl>
                 <FormMessage />
@@ -616,9 +624,7 @@ export default function IssuesPage() {
                       type="number"
                       className="ps-10 h-12 text-base"
                       {...field}
-                      onChange={(e) =>
-                        field.onChange(Number(e.target.value) || 0)
-                      }
+                      onChange={(e) => field.onChange(Number(e.target.value) || 0)}
                     />
                   </div>
                 </FormControl>
@@ -626,53 +632,23 @@ export default function IssuesPage() {
               </FormItem>
             )}
           />
-          <div className="grid grid-cols-1 gap-4">
-            <FormField
-              control={createForm.control}
-              name="issueTo"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-lg font-semibold uppercase tracking-wide text-muted-foreground w-full ">
-                    {t("issues.toNumber")}``
-                  </FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <Hash className="absolute start-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/60" />
-                      <Input
-                        data-testid="input-create-to"
-                        type="number"
-                        className="ps-10 h-12 text-base"
-                        {...field}
-                        onChange={(e) =>
-                          field.onChange(Number(e.target.value) || 0)
-                        }
-                      />
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
           <FormField
             control={createForm.control}
-            name="issueSead"
+            name="issueTo"
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-lg font-semibold uppercase tracking-wide text-muted-foreground">
-                  {t("issues.seed")}
+                  {t("issues.toNumber")}
                 </FormLabel>
                 <FormControl>
                   <div className="relative">
-                    <Package className="absolute start-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/60" />
+                    <Hash className="absolute start-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/60" />
                     <Input
-                      data-testid="input-create-seed"
+                      data-testid="input-create-to"
                       type="number"
                       className="ps-10 h-12 text-base"
                       {...field}
-                      onChange={(e) =>
-                        field.onChange(Number(e.target.value) || 0)
-                      }
+                      onChange={(e) => field.onChange(Number(e.target.value) || 0)}
                     />
                   </div>
                 </FormControl>
@@ -689,10 +665,7 @@ export default function IssuesPage() {
 
   const EditFormContent = () => (
     <Form {...editForm}>
-      <form
-        onSubmit={editForm.handleSubmit(onEditSubmit)}
-        className="space-y-6"
-      >
+      <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-6">
         <div className="grid grid-cols-2 gap-4">
           <FormField
             control={editForm.control}
@@ -710,9 +683,7 @@ export default function IssuesPage() {
                       type="number"
                       className="ps-10 h-12 text-base"
                       {...field}
-                      onChange={(e) =>
-                        field.onChange(Number(e.target.value) || 0)
-                      }
+                      onChange={(e) => field.onChange(Number(e.target.value) || 0)}
                     />
                   </div>
                 </FormControl>
@@ -733,19 +704,14 @@ export default function IssuesPage() {
                   onValueChange={(v) => field.onChange(Number(v))}
                 >
                   <FormControl>
-                    <SelectTrigger
-                      data-testid="select-edit-type"
-                      className="h-12 text-base"
-                    >
+                    <SelectTrigger data-testid="select-edit-type" className="h-12 text-base">
                       <SelectValue />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
                     {ISSUE_TYPE_OPTIONS.map((opt) => (
                       <SelectItem key={opt.value} value={String(opt.value)}>
-                        {t(
-                          `issues.type${opt.label.charAt(0).toUpperCase() + opt.label.slice(1)}`,
-                        )}
+                        {t(`issues.type${opt.label.charAt(0).toUpperCase() + opt.label.slice(1)}`)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -768,12 +734,7 @@ export default function IssuesPage() {
                 <FormControl>
                   <div className="relative">
                     <Calendar className="absolute start-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/60" />
-                    <Input
-                      data-testid="input-edit-issue-date"
-                      type="date"
-                      className="ps-10 h-12 text-base"
-                      {...field}
-                    />
+                    <Input data-testid="input-edit-issue-date" type="date" className="ps-10 h-12 text-base" {...field} />
                   </div>
                 </FormControl>
                 <FormMessage />
@@ -791,12 +752,7 @@ export default function IssuesPage() {
                 <FormControl>
                   <div className="relative">
                     <Calendar className="absolute start-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/60" />
-                    <Input
-                      data-testid="input-edit-draw-date"
-                      type="date"
-                      className="ps-10 h-12 text-base"
-                      {...field}
-                    />
+                    <Input data-testid="input-edit-draw-date" type="date" className="ps-10 h-12 text-base" {...field} />
                   </div>
                 </FormControl>
                 <FormMessage />
@@ -817,12 +773,7 @@ export default function IssuesPage() {
                 <FormControl>
                   <div className="relative">
                     <Calendar className="absolute start-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/60" />
-                    <Input
-                      data-testid="input-edit-annual"
-                      type="date"
-                      className="ps-10 h-12 text-base"
-                      {...field}
-                    />
+                    <Input data-testid="input-edit-annual" type="date" className="ps-10 h-12 text-base" {...field} />
                   </div>
                 </FormControl>
                 <FormMessage />
@@ -842,10 +793,7 @@ export default function IssuesPage() {
                   onValueChange={(v) => field.onChange(Number(v))}
                 >
                   <FormControl>
-                    <SelectTrigger
-                      data-testid="select-edit-status"
-                      className="h-12 text-base"
-                    >
+                    <SelectTrigger data-testid="select-edit-status" className="h-12 text-base">
                       <SelectValue />
                     </SelectTrigger>
                   </FormControl>
@@ -942,25 +890,14 @@ export default function IssuesPage() {
                     {t("issues.issueType")}
                   </Label>
                   <Select value={searchType} onValueChange={setSearchType}>
-                    <SelectTrigger
-                      id="search-type"
-                      data-testid="select-search-type"
-                    >
+                    <SelectTrigger id="search-type" data-testid="select-search-type">
                       <SelectValue placeholder={t("issues.allTypes")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">
-                        {t("issues.allTypes")}
-                      </SelectItem>
-                      <SelectItem value="regular">
-                        {t("issues.typeRegular")}
-                      </SelectItem>
-                      <SelectItem value="special">
-                        {t("issues.typeSpecial")}
-                      </SelectItem>
-                      <SelectItem value="support">
-                        {t("issues.typeSupport")}
-                      </SelectItem>
+                      <SelectItem value="all">{t("issues.allTypes")}</SelectItem>
+                      <SelectItem value="regular">{t("issues.typeRegular")}</SelectItem>
+                      <SelectItem value="special">{t("issues.typeSpecial")}</SelectItem>
+                      <SelectItem value="support">{t("issues.typeSupport")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1016,22 +953,13 @@ export default function IssuesPage() {
                     {t("issues.status")}
                   </Label>
                   <Select value={searchStatus} onValueChange={setSearchStatus}>
-                    <SelectTrigger
-                      id="search-status"
-                      data-testid="select-search-status"
-                    >
+                    <SelectTrigger id="search-status" data-testid="select-search-status">
                       <SelectValue placeholder={t("issues.allStatuses")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">
-                        {t("issues.allStatuses")}
-                      </SelectItem>
-                      <SelectItem value="open">
-                        {t("issues.statusOpen")}
-                      </SelectItem>
-                      <SelectItem value="closed">
-                        {t("issues.statusClosed")}
-                      </SelectItem>
+                      <SelectItem value="all">{t("issues.allStatuses")}</SelectItem>
+                      <SelectItem value="open">{t("issues.statusOpen")}</SelectItem>
+                      <SelectItem value="closed">{t("issues.statusClosed")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1076,9 +1004,7 @@ export default function IssuesPage() {
                   </div>
                   <div>
                     <CardTitle className="text-lg font-bold">
-                      {hasSearched
-                        ? t("issues.searchResults")
-                        : t("issues.allIssues")}
+                      {hasSearched ? t("issues.searchResults") : t("issues.allIssues")}
                     </CardTitle>
                     <CardDescription className="text-sm mt-1">
                       {displayIssues.length}{" "}
@@ -1089,10 +1015,7 @@ export default function IssuesPage() {
                   </div>
                 </div>
                 {hasSearched && (
-                  <Badge
-                    variant="secondary"
-                    className="text-lg font-medium gap-1"
-                  >
+                  <Badge variant="secondary" className="text-lg font-medium gap-1">
                     <Filter className="h-3 w-3" />
                     {t("issues.searchResults")}
                   </Badge>
@@ -1239,9 +1162,7 @@ export default function IssuesPage() {
                                     <Eye className="h-5 w-5" />
                                   </Button>
                                 </TooltipTrigger>
-                                <TooltipContent>
-                                  {t("issues.viewIssue")}
-                                </TooltipContent>
+                                <TooltipContent>{t("issues.viewIssue")}</TooltipContent>
                               </Tooltip>
 
                               {/* Edit */}
@@ -1257,10 +1178,41 @@ export default function IssuesPage() {
                                     <Edit className="h-5 w-5" />
                                   </Button>
                                 </TooltipTrigger>
-                                <TooltipContent>
-                                  {t("issues.editIssue")}
-                                </TooltipContent>
+                                <TooltipContent>{t("issues.editIssue")}</TooltipContent>
                               </Tooltip>
+
+                              {/* Toggle close/open */}
+                              {issue.isOpen ? (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-10 w-10 rounded-xl text-gray-600 hover:bg-gray-100/60 hover:text-gray-700 shadow-sm hover:shadow-md transition-all"
+                                      onClick={() => closeIssueMutation.mutate(issue)}
+                                      data-testid={`button-close-issue-${issue.id}`}
+                                    >
+                                      <ToggleRight className="h-5 w-5" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>{t("issues.closeIssue")}</TooltipContent>
+                                </Tooltip>
+                              ) : (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-10 w-10 rounded-xl text-emerald-600 hover:bg-emerald-100/60 hover:text-emerald-700 shadow-sm hover:shadow-md transition-all"
+                                      onClick={() => reopenIssueMutation.mutate(issue)}
+                                      data-testid={`button-reopen-issue-${issue.id}`}
+                                    >
+                                      <ToggleLeft className="h-5 w-5" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>{t("issues.reopenIssue")}</TooltipContent>
+                                </Tooltip>
+                              )}
 
                             </div>
                           </TableCell>
@@ -1411,16 +1363,12 @@ export default function IssuesPage() {
                   value={getTypeBadge(resolveIssueTypeKey(selectedIssue))}
                 />
                 <DetailItem
-                  icon={
-                    <Calendar className="h-3 w-3 text-muted-foreground/70" />
-                  }
+                  icon={<Calendar className="h-3 w-3 text-muted-foreground/70" />}
                   label={t("issues.issueDate")}
                   value={formatDate(selectedIssue.issueDate)}
                 />
                 <DetailItem
-                  icon={
-                    <Calendar className="h-3 w-3 text-muted-foreground/70" />
-                  }
+                  icon={<Calendar className="h-3 w-3 text-muted-foreground/70" />}
                   label={t("issues.drawDate")}
                   value={formatDate(selectedIssue.issueDrawingDate)}
                 />
@@ -1435,9 +1383,7 @@ export default function IssuesPage() {
                   value={toWesternNumerals(String(selectedIssue.issueTo))}
                 />
                 <DetailItem
-                  icon={
-                    <Package className="h-3 w-3 text-muted-foreground/70" />
-                  }
+                  icon={<Package className="h-3 w-3 text-muted-foreground/70" />}
                   label={t("issues.seed")}
                   value={toWesternNumerals(String(selectedIssue.issueSead))}
                 />
@@ -1446,9 +1392,7 @@ export default function IssuesPage() {
                   value={getStatusBadge(selectedIssue.isOpen)}
                 />
                 <DetailItem
-                  icon={
-                    <Calendar className="h-3 w-3 text-muted-foreground/70" />
-                  }
+                  icon={<Calendar className="h-3 w-3 text-muted-foreground/70" />}
                   label={t("issues.detailCreated")}
                   value={formatDate(selectedIssue.createdAt)}
                 />
@@ -1470,6 +1414,7 @@ export default function IssuesPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
       </TooltipProvider>
     </AdminLayout>
   );

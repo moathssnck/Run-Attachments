@@ -7,43 +7,34 @@ import logoImage from "@assets/logo01_1767784684828.png";
 import { SiteFooter } from "@/components/site-footer";
 import { ColorThemeToggle } from "@/components/theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
-import { apiRequest } from "@/lib/queryClient";
 
 interface SystemContentItem {
-  id: number;
-  systemContentLookupId: number;
-  lookupNameAr: string;
-  lookupNameEn: string;
-  content: string;
-}
-
-interface ApiResponse {
-  success: boolean;
-  systemContent: SystemContentItem | null;
+  id: string;
+  slug: string;
+  titleAr: string;
+  titleEn: string;
+  contentAr: string;
+  contentEn: string;
+  isActive: boolean;
 }
 
 export default function ContentPage() {
   const { language } = useLanguage();
   const isRTL = language === "ar";
-  const [, params] = useRoute("/page/:lookupId");
-  const lookupId = params?.lookupId || "";
+  const [, params] = useRoute("/page/:slug");
+  const slug = params?.slug || "";
 
-  const { data, isLoading } = useQuery<ApiResponse>({
-    queryKey: [`/api/SystemContent/lookup/${lookupId}`],
+  const { data, isLoading } = useQuery<{ success: boolean; data: SystemContentItem | null }>({
+    queryKey: ["/api/system-content/slug", slug],
     queryFn: async () => {
-      const res = await apiRequest("GET", `/api/SystemContent/lookup/${lookupId}`);
-      if (!res.ok) throw new Error(`${res.status}`);
+      const res = await fetch(`/api/system-content/slug/${slug}`);
       return res.json();
     },
-    enabled: !!lookupId,
+    enabled: !!slug,
   });
 
-  const item = data?.success ? data.systemContent : null;
-  const notFound = !isLoading && !item;
-
-  const title = item
-    ? (isRTL ? item.lookupNameAr : item.lookupNameEn)
-    : "";
+  const item = data?.data;
+  const notFound = !isLoading && (!item || !item.isActive);
 
   return (
     <div className="min-h-screen flex flex-col bg-background" dir={isRTL ? "rtl" : "ltr"}>
@@ -83,8 +74,8 @@ export default function ContentPage() {
                 </h1>
                 <p className="text-muted-foreground" data-testid="text-no-results-description">
                   {isRTL
-                    ? "عذراً، الصفحة المطلوبة غير متوفرة."
-                    : "Sorry, the requested page is not available."}
+                    ? "عذراً، الصفحة المطلوبة غير متوفرة أو تم إلغاء تفعيلها."
+                    : "Sorry, the requested page is not available or has been deactivated."}
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -110,13 +101,15 @@ export default function ContentPage() {
                 <FileText className="h-5 w-5" />
               </div>
               <h1 className="text-3xl font-bold text-foreground" data-testid="text-page-title">
-                {title}
+                {isRTL ? item!.titleAr : item!.titleEn}
               </h1>
             </div>
             <div
               className="prose prose-lg dark:prose-invert max-w-none"
               dir={isRTL ? "rtl" : "ltr"}
-              dangerouslySetInnerHTML={{ __html: item!.content }}
+              dangerouslySetInnerHTML={{
+                __html: isRTL ? item!.contentAr : item!.contentEn,
+              }}
               data-testid="content-body"
             />
           </div>
