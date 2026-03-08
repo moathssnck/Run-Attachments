@@ -52,12 +52,16 @@ import { API_CONFIG } from "@/lib/api-config";
 
 type Raw = Record<string, unknown>;
 
+type LookupItem = {
+  id: number;
+  labelAr: string;
+  labelEn: string;
+};
+
 type ContentRecord = {
   id: number;
   systemContentCategoryId: number;
   content: string;
-  labelAr: string;
-  labelEn: string;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -89,13 +93,36 @@ function unwrapArray(payload: unknown, ...keys: string[]): Raw[] {
   return [];
 }
 
-function normRecord(r: Raw): ContentRecord {
+function normLookup(r: Raw): LookupItem {
+  return {
+    id:      asNum(r.id ?? r.lookupId),
+    labelAr: asStr(r.lookupAr ?? r.nameAr ?? r.labelAr ?? r.name),
+    labelEn: asStr(r.lookupEn ?? r.nameEn ?? r.labelEn ?? r.name),
+  };
+}
+
+function normContent(payload: unknown): ContentRecord | null {
+  let r: Raw | null = null;
+  if (payload && typeof payload === "object" && !Array.isArray(payload)) {
+    const obj = payload as Raw;
+    if (typeof obj.id === "number") r = obj;
+    else {
+      for (const k of ["data", "result", "systemContent", "content"]) {
+        if (obj[k] && typeof obj[k] === "object" && !Array.isArray(obj[k])) {
+          r = obj[k] as Raw; break;
+        }
+      }
+      const arr = unwrapArray(payload, "data", "result", "systemContent", "contents", "items");
+      if (!r && arr.length > 0) r = arr[0];
+    }
+  } else if (Array.isArray(payload) && (payload as Raw[]).length > 0) {
+    r = (payload as Raw[])[0];
+  }
+  if (!r) return null;
   return {
     id:                      asNum(r.id ?? r.systemContentId),
     systemContentCategoryId: asNum(r.systemContentCategoryId ?? r.categoryId),
     content:                 asStr(r.content ?? r.contentAr ?? r.body),
-    labelAr:                 asStr(r.titleAr ?? r.nameAr ?? r.labelAr ?? r.title ?? r.name),
-    labelEn:                 asStr(r.titleEn ?? r.nameEn ?? r.labelEn ?? r.title ?? r.name),
   };
 }
 
@@ -166,48 +193,62 @@ export default function SystemContentPage() {
   const isRTL = dir === "rtl";
   const { toast } = useToast();
 
-  const [selectedId, setSelectedId] = useState<string>("");
-  const [editorContent, setEditorContent] = useState("");
+  const [selectedLookupId, setSelectedLookupId] = useState<string>("");
+  const [editorContent, setEditorContent]       = useState("");
 
-  // ── Fetch all system content records ──────────────────────────────────────
+  // ── 1. Fetch all lookups (for dropdown) ───────────────────────────────────
   const {
-    data: records = [],
-    isLoading,
-    isError,
-    error,
-  } = useQuery<ContentRecord[]>({
-    queryKey: [API_CONFIG.systemContent.list],
+    data: lookups = [],
+    isLoading: isLookupsLoading,
+    isError: isLookupsError,
+  } = useQuery<LookupItem[]>({
+    queryKey: [API_CONFIG.lookup.list],
     queryFn: async () => {
-      const res = await apiRequest("GET", API_CONFIG.systemContent.list);
+      const res = await apiRequest("GET", API_CONFIG.lookup.list);
       if (!res.ok) {
         const text = await res.text().catch(() => "");
         throw new Error(`${res.status}${text ? ": " + text : ""}`);
       }
       const payload = await res.json();
-      return unwrapArray(payload, "systemContents", "contents", "data", "items", "result")
-        .map(normRecord)
-        .filter((r) => r.id > 0);
+      return unwrapArray(payload, "lookups", "data", "items", "result")
+        .map(normLookup)
+        .filter((l) => l.id > 0);
     },
     retry: 1,
   });
 
-  const selectedRecord = records.find((r) => String(r.id) === selectedId) ?? null;
+  // ── 2. Fetch SystemContent for the selected lookup ─────────────────────────
+  const {
+    data: contentRecord,
+    isLoading: isContentLoading,
+    isError: isContentError,
+  } = useQuery<ContentRecord | null>({
+    queryKey: [API_CONFIG.systemContent.byLookupId(selectedLookupId)],
+    queryFn: async () => {
+      const res = await apiRequest("GET", API_CONFIG.systemContent.byLookupId(selectedLookupId));
+      if (!res.ok) throw new Error(`${res.status}`);
+      const payload = await res.json();
+      return normContent(payload);
+    },
+    enabled: !!selectedLookupId,
+    retry: 1,
+  });
 
-  // Populate editor when selection changes
+  // Populate editor when content loads or selection changes
   useEffect(() => {
-    if (selectedRecord) {
-      setEditorContent(selectedRecord.content);
-    } else {
+    if (contentRecord) {
+      setEditorContent(contentRecord.content);
+    } else if (!isContentLoading && !isContentError) {
       setEditorContent("");
     }
-  }, [selectedId, selectedRecord?.id]);
+  }, [selectedLookupId, contentRecord?.id, isContentLoading]);
 
   // ── Upsert mutation ────────────────────────────────────────────────────────
   const upsertMutation = useMutation({
     mutationFn: (body: { id: number; systemContentCategoryId: number; content: string }) =>
       apiRequest("POST", API_CONFIG.systemContent.upsert, body),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [API_CONFIG.systemContent.list] });
+      queryClient.invalidateQueries({ queryKey: [API_CONFIG.systemContent.byLookupId(selectedLookupId)] });
       toast({ title: isRTL ? "تم الحفظ بنجاح" : "Saved successfully" });
     },
     onError: () => {
@@ -216,13 +257,15 @@ export default function SystemContentPage() {
   });
 
   const handleSave = () => {
-    if (!selectedRecord) return;
+    if (!selectedLookupId) return;
     upsertMutation.mutate({
-      id:                      selectedRecord.id,
-      systemContentCategoryId: selectedRecord.systemContentCategoryId,
+      id:                      contentRecord?.id ?? Number(selectedLookupId),
+      systemContentCategoryId: contentRecord?.systemContentCategoryId ?? Number(selectedLookupId),
       content:                 editorContent,
     });
   };
+
+  const showEditor = !!selectedLookupId && !isContentLoading && !isContentError;
 
   return (
     <AdminLayout>
@@ -239,31 +282,29 @@ export default function SystemContentPage() {
             {/* Content selector */}
             <div className="max-w-sm space-y-2">
               <Label>{isRTL ? "اختر المحتوى" : "Select Content"}</Label>
-              {isLoading ? (
+              {isLookupsLoading ? (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   {isRTL ? "جارٍ التحميل..." : "Loading..."}
                 </div>
-              ) : isError ? (
+              ) : isLookupsError ? (
                 <p className="text-sm text-destructive">
-                  {(error as Error)?.message || (isRTL ? "فشل في التحميل" : "Failed to load")}
+                  {isRTL ? "فشل في تحميل القائمة" : "Failed to load list"}
                 </p>
               ) : (
-                <Select value={selectedId} onValueChange={setSelectedId}>
+                <Select value={selectedLookupId} onValueChange={(val) => { setSelectedLookupId(val); setEditorContent(""); }}>
                   <SelectTrigger data-testid="select-content">
                     <SelectValue placeholder={isRTL ? "اختر المحتوى..." : "Select content..."} />
                   </SelectTrigger>
                   <SelectContent>
-                    {records.length === 0 ? (
+                    {lookups.length === 0 ? (
                       <SelectItem value="__empty" disabled>
-                        {isRTL ? "لا يوجد محتوى" : "No content found"}
+                        {isRTL ? "لا يوجد محتوى" : "No items found"}
                       </SelectItem>
                     ) : (
-                      records.map((r) => (
-                        <SelectItem key={r.id} value={String(r.id)} data-testid={`option-content-${r.id}`}>
-                          {isRTL
-                            ? (r.labelAr || r.labelEn || `#${r.id}`)
-                            : (r.labelEn || r.labelAr || `#${r.id}`)}
+                      lookups.map((l) => (
+                        <SelectItem key={l.id} value={String(l.id)} data-testid={`option-content-${l.id}`}>
+                          {isRTL ? (l.labelAr || l.labelEn || `#${l.id}`) : (l.labelEn || l.labelAr || `#${l.id}`)}
                         </SelectItem>
                       ))
                     )}
@@ -272,12 +313,29 @@ export default function SystemContentPage() {
               )}
             </div>
 
+            {/* Loading content */}
+            {selectedLookupId && isContentLoading && (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            )}
+
+            {/* Content error */}
+            {selectedLookupId && isContentError && !isContentLoading && (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <FileText className="h-12 w-12 mb-4 text-destructive opacity-70" />
+                <p className="font-semibold text-destructive">
+                  {isRTL ? "فشل في تحميل المحتوى" : "Failed to load content"}
+                </p>
+              </div>
+            )}
+
             {/* Editor */}
-            {selectedRecord && (
+            {showEditor && (
               <>
                 <Separator />
                 <RichTextEditor
-                  editorKey={selectedId}
+                  editorKey={selectedLookupId}
                   content={editorContent}
                   onChange={setEditorContent}
                 />
@@ -295,7 +353,7 @@ export default function SystemContentPage() {
             )}
 
             {/* Empty state */}
-            {!isLoading && !isError && !selectedId && (
+            {!isLookupsLoading && !isLookupsError && !selectedLookupId && (
               <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
                 <FileText className="h-12 w-12 mb-4 opacity-40" />
                 <p className="text-lg font-medium">
