@@ -434,6 +434,8 @@ function RichTextEditor({
   );
 }
 
+const SYSTEM_CONTENT_CATEGORY_ID = 1300;
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function SystemContentPage() {
@@ -449,18 +451,21 @@ export default function SystemContentPage() {
     setSelectedLookupId(value);
   };
 
-  // ── Fetch system content list (no hardcoded category ID needed) ──────────
+  // ── Fetch Lookups for system content category (ID 12) ─────────────────────
   const {
     data: lookups = [],
     isLoading: isLookupsLoading,
     isError: isLookupsError,
   } = useQuery<LookupItem[]>({
-    queryKey: [API_CONFIG.systemContent.list],
+    queryKey: [API_CONFIG.lookup.byCategory(SYSTEM_CONTENT_CATEGORY_ID)],
     queryFn: async () => {
-      const res = await apiRequest("GET", API_CONFIG.systemContent.list);
+      const res = await apiRequest(
+        "GET",
+        API_CONFIG.lookup.byCategory(SYSTEM_CONTENT_CATEGORY_ID),
+      );
       if (!res.ok) throw new Error(`${res.status}`);
       const payload = await res.json();
-      const rows = unwrapArray(payload, "data", "systemContents", "items", "result");
+      const rows = unwrapArray(payload, "lookups", "data", "items", "result");
       return rows.map(normLookup);
     },
     retry: 1,
@@ -499,7 +504,7 @@ export default function SystemContentPage() {
   const upsertMutation = useMutation({
     mutationFn: (body: {
       id: number;
-      systemContentLookupId: number;
+      systemContentCategoryId: number;
       content: string;
     }) => apiRequest("POST", API_CONFIG.systemContent.upsert, body),
     onSuccess: () => {
@@ -519,8 +524,8 @@ export default function SystemContentPage() {
   const handleSave = () => {
     if (!selectedLookupId) return;
     upsertMutation.mutate({
-      id: contentRecord?.id ?? 0,
-      systemContentLookupId: contentRecord?.systemContentLookupId ?? Number(selectedLookupId),
+      id: contentRecord?.id ?? Number(selectedLookupId),
+      systemContentCategoryId: SYSTEM_CONTENT_CATEGORY_ID,
       content: editorContent,
     });
   };
@@ -617,7 +622,7 @@ export default function SystemContentPage() {
                       </span>
                     </span>
                     <span>
-                      {isRTL ? "رقم الرابط:" : "Lookup ID:"}{" "}
+                      {isRTL ? "رقم الفئة:" : "Category ID:"}{" "}
                       <span className="font-mono font-semibold">
                         {contentRecord.systemContentLookupId}
                       </span>
