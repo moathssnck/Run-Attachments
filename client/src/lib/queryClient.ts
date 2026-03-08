@@ -1,17 +1,19 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
-import { env } from "process";
 
 export async function tryRefreshToken(): Promise<boolean> {
   const storedRefresh = localStorage.getItem("lottery_refresh_token");
+  const currentToken = localStorage.getItem("lottery_token");
   if (!storedRefresh) return false;
   try {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "Accept-Language": localStorage.getItem("language") || "ar",
+    };
+    if (currentToken) headers["Authorization"] = `Bearer ${currentToken}`;
     const res = await fetch("/api/Auth/refresh", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        refreshToken: storedRefresh,
-        token: process.env.DEFAULT_API_TOKEN,
-      }),
+      headers,
+      body: JSON.stringify({ refreshToken: storedRefresh }),
     });
     if (!res.ok) return false;
     const result = await res.json();
