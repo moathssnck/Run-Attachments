@@ -1,0 +1,88 @@
+{
+	"id": "0fa06889-88c2-41cd-9f35-f0f5cc7af55e",
+	"name": "SystemContent",
+	"timestamp": "2026-03-08T12:41:43.599Z",
+	"collection_id": "29386686-ae2b5a10-a855-47cd-bae1-e8d2a7f44902",
+	"folder_id": 0,
+	"environment_id": "29386686-1d19ce45-2e04-45b3-99a6-7d3a598b4895",
+	"totalPass": 0,
+	"delay": 0,
+	"persist": true,
+	"status": "finished",
+	"startedAt": "2026-03-08T12:41:42.050Z",
+	"totalFail": 0,
+	"results": [
+		{
+			"id": "ea309bbb-be70-43ea-a346-8767d7e0eaf3",
+			"name": "Add / Update",
+			"url": "https://ithink-71db.onrender.com/api/SystemContent/upsert",
+			"time": 299,
+			"responseCode": {
+				"code": 400,
+				"name": "Bad Request"
+			},
+			"tests": {},
+			"testPassFailCounts": {},
+			"times": [
+				299
+			],
+			"allTests": [
+				{}
+			]
+		},
+		{
+			"id": "126696ee-d130-40ff-8621-037609a3330f",
+			"name": "Get By Id",
+			"url": "https://ithink-71db.onrender.com/api/SystemContent/3",
+			"time": 102,
+			"responseCode": {
+				"code": 200,
+				"name": "OK"
+			},
+			"tests": {},
+			"testPassFailCounts": {},
+			"times": [
+				102
+			],
+			"allTests": [
+				{}
+			]
+		},
+		{
+			"id": "69da64f6-8505-4758-a6c3-15f3a4323f50",
+			"name": "Get By lookup Id",
+			"url": "https://ithink-71db.onrender.com/api/SystemContent/lookup/1301",
+			"time": 174,
+			"responseCode": {
+				"code": 200,
+				"name": "OK"
+			},
+			"tests": {},
+			"testPassFailCounts": {},
+			"times": [
+				174
+			],
+			"allTests": [
+				{}
+			]
+		}
+	],
+	"count": 1,
+	"totalTime": 575,
+	"collection": {
+		"requests": [
+			{
+				"id": "ea309bbb-be70-43ea-a346-8767d7e0eaf3",
+				"method": "POST"
+			},
+			{
+				"id": "126696ee-d130-40ff-8621-037609a3330f",
+				"method": "GET"
+			},
+			{
+				"id": "69da64f6-8505-4758-a6c3-15f3a4323f50",
+				"method": "GET"
+			}
+		]
+	}
+}

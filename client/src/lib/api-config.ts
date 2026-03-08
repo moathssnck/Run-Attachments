@@ -13,10 +13,10 @@ export const API_CONFIG = {
     upsert: "/api/CardSetting",
   },
   customSettingSystem: {
-    list: "/api/CustomeSettingSystem?includeDeleted=false",
-    base: "/api/CustomeSettingSystem",
-    byId: (id: ApiEntityId) => `/api/CustomeSettingSystem/${id}`,
-    activeById: (id: ApiEntityId) => `/api/CustomeSettingSystem/active/${id}`,
+    list: "/api/SystemContent?includeDeleted=false",
+    upsert: "/api/SystemContent/upsert",
+    byId: (id: ApiEntityId) => `/api/SystemContent/${id}`,
+    byLookupId: (id: ApiEntityId) => `/api/SystemContent/lookup/${id}`,
   },
   systemContent: {
     list: "/api/SystemContent?includeDeleted=false",

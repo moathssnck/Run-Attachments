@@ -55,7 +55,8 @@ type Raw = Record<string, unknown>;
 type SystemContentItem = {
   id: number;
   systemContentLookupId: number;
-  systemContentCategoryId: number;
+  categoryNameAr: string;
+  categoryNameEn: string;
   nameAr: string;
   nameEn: string;
   content: string;
@@ -97,7 +98,8 @@ function normItem(r: Raw): SystemContentItem {
   return {
     id: asNum(r.id ?? r.systemContentId),
     systemContentLookupId: asNum(r.systemContentLookupId ?? r.lookupId),
-    systemContentCategoryId: asNum(r.systemContentCategoryId ?? r.categoryId),
+    categoryNameAr: asStr(r.categoryNameAr ?? r.categoryAr),
+    categoryNameEn: asStr(r.categoryNameEn ?? r.categoryEn),
     nameAr: asStr(
       r.lookupNameAr ?? r.nameAr ?? r.titleAr ?? r.lookupAr ?? r.labelAr ?? r.name ?? r.title
     ),
@@ -271,7 +273,7 @@ export default function SystemContentPage() {
   const upsertMutation = useMutation({
     mutationFn: (body: {
       id: number;
-      systemContentCategoryId: number;
+      systemContentLookupId: number;
       content: string;
     }) => apiRequest("POST", API_CONFIG.systemContent.upsert, body),
     onSuccess: () => {
@@ -295,7 +297,7 @@ export default function SystemContentPage() {
     if (!selectedId || !selectedRecord) return;
     upsertMutation.mutate({
       id: selectedRecord.id,
-      systemContentCategoryId: selectedRecord.systemContentCategoryId,
+      systemContentLookupId: selectedRecord.systemContentLookupId,
       content: editorContent,
     });
   };
@@ -391,9 +393,9 @@ export default function SystemContentPage() {
                     </span>
                   </span>
                   <span>
-                    {isRTL ? "رقم الفئة:" : "Category ID:"}{" "}
-                    <span className="font-mono font-semibold">
-                      {selectedRecord.systemContentCategoryId}
+                    {isRTL ? "الفئة:" : "Category:"}{" "}
+                    <span className="font-semibold">
+                      {isRTL ? selectedRecord.categoryNameAr : selectedRecord.categoryNameEn}
                     </span>
                   </span>
                 </div>
