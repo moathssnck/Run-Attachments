@@ -29,6 +29,8 @@ import {
   Minus,
   Quote,
   Loader2,
+  Layers,
+  Tag,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin-layout";
 import { PageHeader } from "@/components/page-header";
@@ -51,18 +53,9 @@ import { API_CONFIG } from "@/lib/api-config";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Raw = Record<string, unknown>;
-
-type LookupItem = {
-  id: number;
-  labelAr: string;
-  labelEn: string;
-};
-
-type ContentRecord = {
-  id: number;
-  systemContentCategoryId: number;
-  content: string;
-};
+type LookupCategory = { id: number; labelAr: string; labelEn: string };
+type LookupItem     = { id: number; labelAr: string; labelEn: string };
+type ContentRecord  = { id: number; systemContentCategoryId: number; content: string };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -91,6 +84,14 @@ function unwrapArray(payload: unknown, ...keys: string[]): Raw[] {
     }
   }
   return [];
+}
+
+function normCategory(r: Raw): LookupCategory {
+  return {
+    id:      asNum(r.id ?? r.lookupCategoryId),
+    labelAr: asStr(r.nameAr ?? r.labelAr ?? r.lookupCategoryAr ?? r.name),
+    labelEn: asStr(r.nameEn ?? r.labelEn ?? r.lookupCategoryEn ?? r.name),
+  };
 }
 
 function normLookup(r: Raw): LookupItem {
@@ -193,31 +194,46 @@ export default function SystemContentPage() {
   const isRTL = dir === "rtl";
   const { toast } = useToast();
 
-  const [selectedLookupId, setSelectedLookupId] = useState<string>("");
-  const [editorContent, setEditorContent]       = useState("");
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
+  const [selectedLookupId, setSelectedLookupId]     = useState<string>("");
+  const [editorContent, setEditorContent]           = useState("");
 
-  // ── 1. Fetch all lookups (for dropdown) ───────────────────────────────────
+  // ── 1. Fetch all Lookup Categories ────────────────────────────────────────
+  const {
+    data: categories = [],
+    isLoading: isCategoriesLoading,
+    isError: isCategoriesError,
+  } = useQuery<LookupCategory[]>({
+    queryKey: [API_CONFIG.lookupCategory.list],
+    queryFn: async () => {
+      const res = await apiRequest("GET", API_CONFIG.lookupCategory.list);
+      if (!res.ok) throw new Error(`${res.status}`);
+      const payload = await res.json();
+      const rows = unwrapArray(payload, "lookupCategories", "categories", "data", "items", "result");
+      return rows.map(normCategory).filter((c) => c.id > 0);
+    },
+    retry: 1,
+  });
+
+  // ── 2. Fetch Lookups for the selected category ─────────────────────────────
   const {
     data: lookups = [],
     isLoading: isLookupsLoading,
     isError: isLookupsError,
   } = useQuery<LookupItem[]>({
-    queryKey: [API_CONFIG.lookup.list],
+    queryKey: [API_CONFIG.lookup.byCategory(selectedCategoryId)],
     queryFn: async () => {
-      const res = await apiRequest("GET", API_CONFIG.lookup.list);
-      if (!res.ok) {
-        const text = await res.text().catch(() => "");
-        throw new Error(`${res.status}${text ? ": " + text : ""}`);
-      }
+      const res = await apiRequest("GET", API_CONFIG.lookup.byCategory(selectedCategoryId));
+      if (!res.ok) throw new Error(`${res.status}`);
       const payload = await res.json();
-      return unwrapArray(payload, "lookups", "data", "items", "result")
-        .map(normLookup)
-        .filter((l) => l.id > 0);
+      const rows = unwrapArray(payload, "lookups", "data", "items", "result");
+      return rows.map(normLookup).filter((l) => l.id > 0);
     },
+    enabled: !!selectedCategoryId,
     retry: 1,
   });
 
-  // ── 2. Fetch SystemContent for the selected lookup ─────────────────────────
+  // ── 3. Fetch SystemContent for the selected lookup ─────────────────────────
   const {
     data: contentRecord,
     isLoading: isContentLoading,
@@ -234,14 +250,22 @@ export default function SystemContentPage() {
     retry: 1,
   });
 
-  // Populate editor when content loads or selection changes
+  // Populate editor when content record loads or lookup changes
   useEffect(() => {
+    if (!selectedLookupId) return;
     if (contentRecord) {
       setEditorContent(contentRecord.content);
     } else if (!isContentLoading && !isContentError) {
       setEditorContent("");
     }
   }, [selectedLookupId, contentRecord?.id, isContentLoading]);
+
+  // Reset lookup when category changes
+  const handleCategoryChange = (val: string) => {
+    setSelectedCategoryId(val);
+    setSelectedLookupId("");
+    setEditorContent("");
+  };
 
   // ── Upsert mutation ────────────────────────────────────────────────────────
   const upsertMutation = useMutation({
@@ -260,7 +284,7 @@ export default function SystemContentPage() {
     if (!selectedLookupId) return;
     upsertMutation.mutate({
       id:                      contentRecord?.id ?? Number(selectedLookupId),
-      systemContentCategoryId: contentRecord?.systemContentCategoryId ?? Number(selectedLookupId),
+      systemContentCategoryId: contentRecord?.systemContentCategoryId ?? Number(selectedCategoryId),
       content:                 editorContent,
     });
   };
@@ -279,38 +303,80 @@ export default function SystemContentPage() {
         <Card>
           <CardContent className="p-6 space-y-6">
 
-            {/* Content selector */}
-            <div className="max-w-sm space-y-2">
-              <Label>{isRTL ? "اختر المحتوى" : "Select Content"}</Label>
-              {isLookupsLoading ? (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  {isRTL ? "جارٍ التحميل..." : "Loading..."}
-                </div>
-              ) : isLookupsError ? (
-                <p className="text-sm text-destructive">
-                  {isRTL ? "فشل في تحميل القائمة" : "Failed to load list"}
-                </p>
-              ) : (
-                <Select value={selectedLookupId} onValueChange={(val) => { setSelectedLookupId(val); setEditorContent(""); }}>
-                  <SelectTrigger data-testid="select-content">
-                    <SelectValue placeholder={isRTL ? "اختر المحتوى..." : "Select content..."} />
+            {/* Selection row: Category + Lookup */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl">
+
+              {/* Step 1 – Lookup Category */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1.5">
+                  <Layers className="h-3.5 w-3.5 text-muted-foreground" />
+                  {isRTL ? "فئة البحث" : "Lookup Category"}
+                </Label>
+                <Select value={selectedCategoryId} onValueChange={handleCategoryChange}>
+                  <SelectTrigger data-testid="select-category">
+                    <SelectValue placeholder={
+                      isCategoriesLoading
+                        ? (isRTL ? "جارٍ التحميل..." : "Loading...")
+                        : isCategoriesError
+                          ? (isRTL ? "فشل في التحميل" : "Failed to load")
+                          : (isRTL ? "اختر الفئة..." : "Select category...")
+                    } />
                   </SelectTrigger>
                   <SelectContent>
-                    {lookups.length === 0 ? (
-                      <SelectItem value="__empty" disabled>
-                        {isRTL ? "لا يوجد محتوى" : "No items found"}
-                      </SelectItem>
+                    {isCategoriesLoading ? (
+                      <SelectItem value="__loading" disabled>{isRTL ? "جارٍ التحميل..." : "Loading..."}</SelectItem>
+                    ) : isCategoriesError ? (
+                      <SelectItem value="__error" disabled>{isRTL ? "فشل في التحميل" : "Failed to load"}</SelectItem>
+                    ) : categories.length === 0 ? (
+                      <SelectItem value="__empty" disabled>{isRTL ? "لا توجد فئات" : "No categories found"}</SelectItem>
                     ) : (
-                      lookups.map((l) => (
-                        <SelectItem key={l.id} value={String(l.id)} data-testid={`option-content-${l.id}`}>
-                          {isRTL ? (l.labelAr || l.labelEn || `#${l.id}`) : (l.labelEn || l.labelAr || `#${l.id}`)}
+                      categories.map((cat) => (
+                        <SelectItem key={cat.id} value={String(cat.id)} data-testid={`option-category-${cat.id}`}>
+                          {isRTL ? cat.labelAr : cat.labelEn}
                         </SelectItem>
                       ))
                     )}
                   </SelectContent>
                 </Select>
-              )}
+              </div>
+
+              {/* Step 2 – Lookup Item */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1.5">
+                  <Tag className="h-3.5 w-3.5 text-muted-foreground" />
+                  {isRTL ? "المحتوى" : "Content Item"}
+                </Label>
+                <Select
+                  value={selectedLookupId}
+                  onValueChange={setSelectedLookupId}
+                  disabled={!selectedCategoryId || isLookupsLoading}
+                >
+                  <SelectTrigger data-testid="select-content">
+                    <SelectValue placeholder={
+                      !selectedCategoryId
+                        ? (isRTL ? "اختر الفئة أولاً" : "Select a category first")
+                        : isLookupsLoading
+                          ? (isRTL ? "جارٍ التحميل..." : "Loading...")
+                          : (isRTL ? "اختر المحتوى..." : "Select content...")
+                    } />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {isLookupsLoading ? (
+                      <SelectItem value="__loading" disabled>{isRTL ? "جارٍ التحميل..." : "Loading..."}</SelectItem>
+                    ) : isLookupsError ? (
+                      <SelectItem value="__error" disabled>{isRTL ? "فشل في التحميل" : "Failed to load"}</SelectItem>
+                    ) : lookups.length === 0 && selectedCategoryId ? (
+                      <SelectItem value="__empty" disabled>{isRTL ? "لا توجد عناصر في هذه الفئة" : "No items in this category"}</SelectItem>
+                    ) : (
+                      lookups.map((item) => (
+                        <SelectItem key={item.id} value={String(item.id)} data-testid={`option-content-${item.id}`}>
+                          {isRTL ? item.labelAr : item.labelEn}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {/* Loading content */}
@@ -320,7 +386,7 @@ export default function SystemContentPage() {
               </div>
             )}
 
-            {/* Content error */}
+            {/* Content fetch error */}
             {selectedLookupId && isContentError && !isContentLoading && (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <FileText className="h-12 w-12 mb-4 text-destructive opacity-70" />
@@ -352,12 +418,22 @@ export default function SystemContentPage() {
               </>
             )}
 
-            {/* Empty state */}
-            {!isLookupsLoading && !isLookupsError && !selectedLookupId && (
+            {/* Empty state — nothing selected */}
+            {!selectedCategoryId && !isCategoriesLoading && (
               <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
                 <FileText className="h-12 w-12 mb-4 opacity-40" />
                 <p className="text-lg font-medium">
-                  {isRTL ? "اختر محتوى للتعديل" : "Select content to edit"}
+                  {isRTL ? "اختر الفئة ثم المحتوى للتعديل" : "Select a category then a content item to edit"}
+                </p>
+              </div>
+            )}
+
+            {/* Category selected but no lookup chosen yet */}
+            {selectedCategoryId && !selectedLookupId && !isLookupsLoading && lookups.length > 0 && (
+              <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
+                <Tag className="h-10 w-10 mb-3 opacity-40" />
+                <p className="font-medium">
+                  {isRTL ? "اختر عنصراً من القائمة للتعديل" : "Select a content item from the dropdown to edit"}
                 </p>
               </div>
             )}
