@@ -55,7 +55,7 @@ type Raw = Record<string, unknown>;
 type LookupItem = { id: number; labelAr: string; labelEn: string };
 type ContentRecord = {
   id: number;
-  systemContentLookupId: number;
+  systemContentCategoryId: number;
   content: string;
 };
 
@@ -95,9 +95,9 @@ function unwrapArray(payload: unknown, ...keys: string[]): Raw[] {
 
 function normLookup(r: Raw): LookupItem {
   return {
-    id: asNum(r.systemContentLookupId ?? r.lookupId ?? r.id),
-    labelAr: asStr(r.lookupNameAr ?? r.nameAr ?? r.lookupAr ?? r.name),
-    labelEn: asStr(r.lookupNameEn ?? r.nameEn ?? r.lookupEn ?? r.name),
+    id: asNum(r.id),
+    labelAr: asStr(r.lookupAr ?? r.nameAr ?? r.name),
+    labelEn: asStr(r.lookupEn ?? r.nameEn ?? r.name),
   };
 }
 
@@ -130,7 +130,7 @@ function normContent(payload: unknown): ContentRecord | null {
   if (!r) return null;
   return {
     id: asNum(r.id ?? r.systemContentId),
-    systemContentLookupId: asNum(r.systemContentLookupId ?? r.lookupId),
+    systemContentCategoryId: asNum(r.systemContentCategoryId ?? r.categoryId),
     content: asStr(r.content ?? r.contentAr ?? r.body),
   };
 }
@@ -434,7 +434,7 @@ function RichTextEditor({
   );
 }
 
-const SYSTEM_CONTENT_CATEGORY_ID = 1300;
+const SYSTEM_CONTENT_CATEGORY_ID = 12;
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
@@ -445,11 +445,6 @@ export default function SystemContentPage() {
 
   const [selectedLookupId, setSelectedLookupId] = useState<string>("");
   const [editorContent, setEditorContent] = useState("");
-
-  const handleSelectChange = (value: string) => {
-    setEditorContent("");
-    setSelectedLookupId(value);
-  };
 
   // ── Fetch Lookups for system content category (ID 12) ─────────────────────
   const {
@@ -552,7 +547,7 @@ export default function SystemContentPage() {
               <Label>{isRTL ? "اختر المحتوى" : "Select Content"}</Label>
               <Select
                 value={selectedLookupId}
-                onValueChange={handleSelectChange}
+                onValueChange={setSelectedLookupId}
               >
                 <SelectTrigger data-testid="select-content">
                   <SelectValue
@@ -624,7 +619,7 @@ export default function SystemContentPage() {
                     <span>
                       {isRTL ? "رقم الفئة:" : "Category ID:"}{" "}
                       <span className="font-mono font-semibold">
-                        {contentRecord.systemContentLookupId}
+                        {contentRecord.systemContentCategoryId}
                       </span>
                     </span>
                   </div>
@@ -676,3 +671,4 @@ export default function SystemContentPage() {
     </AdminLayout>
   );
 }
+SystemContentPage.displayName = "SystemContentPage";
