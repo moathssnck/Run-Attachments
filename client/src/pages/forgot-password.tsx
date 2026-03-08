@@ -59,12 +59,22 @@ export default function ForgotPasswordPage() {
     defaultValues: { resetToken: "", newPassword: "", confirmPassword: "" },
   });
 
+  const buildHeaders = () => {
+    const h: Record<string, string> = {
+      "Content-Type": "application/json",
+      "Accept-Language": language,
+    };
+    const token = localStorage.getItem("lottery_token");
+    if (token) h["Authorization"] = `Bearer ${token}`;
+    return h;
+  };
+
   const handleRequestSubmit = async (data: RequestData) => {
     setIsLoading(true);
     try {
       const response = await fetch("/api/Auth/forgot-password", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: buildHeaders(),
         body: JSON.stringify({ email: data.email, phoneNumber: data.phoneNumber }),
       });
       let result: any = {};
@@ -112,7 +122,7 @@ export default function ForgotPasswordPage() {
     try {
       const response = await fetch("/api/Auth/reset-password", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: buildHeaders(),
         body: JSON.stringify({
           email,
           phoneNumber,
