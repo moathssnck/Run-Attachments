@@ -55,7 +55,7 @@ type Raw = Record<string, unknown>;
 type LookupItem = { id: number; labelAr: string; labelEn: string };
 type ContentRecord = {
   id: number;
-  systemContentCategoryId: number;
+  systemContentLookupId: number;
   content: string;
 };
 
@@ -95,9 +95,9 @@ function unwrapArray(payload: unknown, ...keys: string[]): Raw[] {
 
 function normLookup(r: Raw): LookupItem {
   return {
-    id: asNum(r.id),
-    labelAr: asStr(r.lookupAr ?? r.nameAr ?? r.name),
-    labelEn: asStr(r.lookupEn ?? r.nameEn ?? r.name),
+    id: asNum(r.systemContentLookupId ?? r.id),
+    labelAr: asStr(r.lookupNameAr ?? r.lookupAr ?? r.nameAr ?? r.name),
+    labelEn: asStr(r.lookupNameEn ?? r.lookupEn ?? r.nameEn ?? r.name),
   };
 }
 
@@ -130,7 +130,7 @@ function normContent(payload: unknown): ContentRecord | null {
   if (!r) return null;
   return {
     id: asNum(r.id ?? r.systemContentId),
-    systemContentCategoryId: asNum(r.systemContentCategoryId ?? r.categoryId),
+    systemContentLookupId: asNum(r.systemContentLookupId ?? r.lookupId),
     content: asStr(r.content ?? r.contentAr ?? r.body),
   };
 }
@@ -434,8 +434,6 @@ function RichTextEditor({
   );
 }
 
-const SYSTEM_CONTENT_CATEGORY_ID = 12;
-
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function SystemContentPage() {
@@ -452,15 +450,12 @@ export default function SystemContentPage() {
     isLoading: isLookupsLoading,
     isError: isLookupsError,
   } = useQuery<LookupItem[]>({
-    queryKey: [API_CONFIG.lookup.byCategory(SYSTEM_CONTENT_CATEGORY_ID)],
+    queryKey: [API_CONFIG.systemContent.list],
     queryFn: async () => {
-      const res = await apiRequest(
-        "GET",
-        API_CONFIG.lookup.byCategory(SYSTEM_CONTENT_CATEGORY_ID),
-      );
+      const res = await apiRequest("GET", API_CONFIG.systemContent.list);
       if (!res.ok) throw new Error(`${res.status}`);
       const payload = await res.json();
-      const rows = unwrapArray(payload, "lookups", "data", "items", "result");
+      const rows = unwrapArray(payload, "data", "systemContents", "items", "result");
       return rows.map(normLookup);
     },
     retry: 1,
@@ -499,7 +494,7 @@ export default function SystemContentPage() {
   const upsertMutation = useMutation({
     mutationFn: (body: {
       id: number;
-      systemContentCategoryId: number;
+      systemContentLookupId: number;
       content: string;
     }) => apiRequest("POST", API_CONFIG.systemContent.upsert, body),
     onSuccess: () => {
@@ -519,8 +514,8 @@ export default function SystemContentPage() {
   const handleSave = () => {
     if (!selectedLookupId) return;
     upsertMutation.mutate({
-      id: contentRecord?.id ?? Number(selectedLookupId),
-      systemContentCategoryId: SYSTEM_CONTENT_CATEGORY_ID,
+      id: contentRecord?.id ?? 0,
+      systemContentLookupId: contentRecord?.systemContentLookupId ?? Number(selectedLookupId),
       content: editorContent,
     });
   };
@@ -617,9 +612,9 @@ export default function SystemContentPage() {
                       </span>
                     </span>
                     <span>
-                      {isRTL ? "رقم الفئة:" : "Category ID:"}{" "}
+                      {isRTL ? "رقم الرابط:" : "Lookup ID:"}{" "}
                       <span className="font-mono font-semibold">
-                        {contentRecord.systemContentCategoryId}
+                        {contentRecord.systemContentLookupId}
                       </span>
                     </span>
                   </div>
