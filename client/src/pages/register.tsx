@@ -17,6 +17,9 @@ import {
   Mail,
   Lock,
   User,
+  Calendar,
+  MapPin,
+  Users,
 } from "lucide-react";
 import logoImage from "@assets/logo01_1767784684828.png";
 import { motion, AnimatePresence } from "framer-motion";
@@ -121,7 +124,10 @@ export default function RegisterPage() {
 
         const response = await fetch("/api/Auth/register", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "Accept-Language": language,
+          },
           body: JSON.stringify({ ...data, recaptchaToken }),
         });
         const result = await response.json();
@@ -291,6 +297,60 @@ export default function RegisterPage() {
                 </div>
 
                 <motion.div custom={2} variants={formItemVariants} initial="hidden" animate="visible">
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="Birthday"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-sm font-medium flex items-center gap-2">
+                            <Calendar className="h-3.5 w-3.5 text-primary" />
+                            {t("auth.birthday")}
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              type="date"
+                              className={inputClasses}
+                              data-testid="input-birthday"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="gender"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-2 text-sm font-medium">
+                            <Users className="h-3.5 w-3.5 text-primary" />
+                            {t("auth.gender")}
+                          </FormLabel>
+                          <Select
+                            dir={isRTL ? "rtl" : "ltr"}
+                            onValueChange={(val) => field.onChange(parseInt(val))}
+                            value={field.value !== undefined ? String(field.value) : ""}
+                          >
+                            <FormControl>
+                              <SelectTrigger className={inputClasses} data-testid="select-gender">
+                                <SelectValue placeholder={t("auth.selectGender")} />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="1">{t("auth.male")}</SelectItem>
+                              <SelectItem value="2">{t("auth.female")}</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </motion.div>
+
+                <motion.div custom={2} variants={formItemVariants} initial="hidden" animate="visible">
                   <FormField
                     control={form.control}
                     name="email"
@@ -437,6 +497,77 @@ export default function RegisterPage() {
                               {...makeFocusHandlers("passport", field.onBlur)}
                             />
                           </motion.div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </motion.div>
+
+                <motion.div custom={6} variants={formItemVariants} initial="hidden" animate="visible">
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="city"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-2 text-sm font-medium">
+                            <MapPin className="h-3.5 w-3.5 text-primary" />
+                            {t("auth.city")}
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder={t("auth.cityPlaceholder")}
+                              className={inputClasses}
+                              data-testid="input-city"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="area"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-2 text-sm font-medium">
+                            <MapPin className="h-3.5 w-3.5 text-primary" />
+                            {t("auth.area")}
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder={t("auth.areaPlaceholder")}
+                              className={inputClasses}
+                              data-testid="input-area"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </motion.div>
+
+                <motion.div custom={6} variants={formItemVariants} initial="hidden" animate="visible">
+                  <FormField
+                    control={form.control}
+                    name="Address"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center gap-2 text-sm font-medium">
+                          <MapPin className="h-3.5 w-3.5 text-primary" />
+                          {t("auth.address")}
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder={t("auth.addressPlaceholder")}
+                            className={inputClasses}
+                            data-testid="input-address"
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
