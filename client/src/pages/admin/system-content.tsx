@@ -52,12 +52,13 @@ import { API_CONFIG } from "@/lib/api-config";
 
 type Raw = Record<string, unknown>;
 
+type LookupCategory = { id: number; nameEn: string; nameAr: string };
+type LookupItem    = { id: number; nameEn: string; nameAr: string };
+
 type ContentRecord = {
   id: number;
   systemContentCategoryId: number;
   content: string;
-  labelAr: string;
-  labelEn: string;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -89,14 +90,39 @@ function unwrapArray(payload: unknown, ...keys: string[]): Raw[] {
   return [];
 }
 
-function normRecord(r: Raw): ContentRecord {
+function normCategory(r: Raw): LookupCategory {
+  return {
+    id:     asNum(r.id ?? r.lookupCategoryId ?? r.categoryId),
+    nameEn: asStr(r.nameEn ?? r.lookupCategoryEn ?? r.name),
+    nameAr: asStr(r.nameAr ?? r.lookupCategoryAr ?? r.name),
+  };
+}
+
+function normLookup(r: Raw): LookupItem {
+  return {
+    id:     asNum(r.id ?? r.lookupId),
+    nameEn: asStr(r.nameEn ?? r.lookupEn ?? r.name),
+    nameAr: asStr(r.nameAr ?? r.lookupAr ?? r.name),
+  };
+}
+
+function normContent(r: Raw): ContentRecord {
   return {
     id:                      asNum(r.id ?? r.systemContentId),
     systemContentCategoryId: asNum(r.systemContentCategoryId ?? r.categoryId),
     content:                 asStr(r.content ?? r.contentAr ?? r.body),
-    labelAr:                 asStr(r.titleAr ?? r.nameAr ?? r.labelAr ?? r.lookupAr ?? r.title ?? r.name),
-    labelEn:                 asStr(r.titleEn ?? r.nameEn ?? r.labelEn ?? r.lookupEn ?? r.title ?? r.name),
   };
+}
+
+// Find the category whose English name contains "system content" (case-insensitive)
+function findSysContentCategory(cats: LookupCategory[]): LookupCategory | undefined {
+  const needle = "system content";
+  return cats.find(
+    (c) =>
+      c.nameEn.toLowerCase().includes(needle) ||
+      c.nameAr.includes("محتوى") ||
+      c.nameAr.includes("نظام"),
+  );
 }
 
 // ─── Rich Text Editor ─────────────────────────────────────────────────────────
@@ -166,44 +192,83 @@ export default function SystemContentPage() {
   const isRTL = dir === "rtl";
   const { toast } = useToast();
 
-  const [selectedId, setSelectedId] = useState<string>("");
-  const [editorContent, setEditorContent] = useState("");
+  const [selectedLookupId, setSelectedLookupId] = useState<string>("");
+  const [editorContent, setEditorContent]       = useState("");
 
-  // ── Fetch all system content records directly ─────────────────────────────
+  // ── Step 1: fetch all lookup categories, find the "System Content" one ─────
   const {
-    data: records = [],
-    isLoading,
-    isError,
-    error,
-  } = useQuery<ContentRecord[]>({
-    queryKey: [API_CONFIG.systemContent.list],
+    data: allCategories = [],
+    isLoading: catsLoading,
+    isError: catsError,
+  } = useQuery<LookupCategory[]>({
+    queryKey: [API_CONFIG.lookupCategory.list],
     queryFn: async () => {
-      const res = await apiRequest("GET", API_CONFIG.systemContent.list);
-      if (!res.ok) {
-        const text = await res.text().catch(() => "");
-        throw new Error(`${res.status}${text ? ": " + text : ""}`);
-      }
+      const res = await apiRequest("GET", API_CONFIG.lookupCategory.list);
+      if (!res.ok) throw new Error(`${res.status}`);
       const payload = await res.json();
-      return unwrapArray(payload, "systemContents", "contents", "data", "items", "result")
-        .map(normRecord)
-        .filter((r) => r.id > 0);
+      return unwrapArray(payload, "lookupCategories", "categories", "data", "items")
+        .map(normCategory)
+        .filter((c) => c.id > 0);
     },
     retry: 1,
   });
 
-  const selectedRecord = records.find((r) => String(r.id) === selectedId) ?? null;
+  const sysCategory = findSysContentCategory(allCategories);
+  const sysCategoryId = sysCategory?.id ?? null;
 
-  // Populate editor when selection changes
+  // ── Step 2: fetch lookups for that category ────────────────────────────────
+  const {
+    data: lookupItems = [],
+    isLoading: lookupsLoading,
+    isError: lookupsError,
+  } = useQuery<LookupItem[]>({
+    queryKey: [API_CONFIG.lookup.byCategory(sysCategoryId ?? 0)],
+    enabled: sysCategoryId !== null,
+    queryFn: async () => {
+      const res = await apiRequest("GET", API_CONFIG.lookup.byCategory(sysCategoryId!));
+      if (!res.ok) throw new Error(`${res.status}`);
+      const payload = await res.json();
+      return unwrapArray(payload, "lookups", "data", "items")
+        .map(normLookup)
+        .filter((l) => l.id > 0);
+    },
+    retry: 1,
+  });
+
+  // ── Step 3: fetch content for the selected lookup ──────────────────────────
+  const {
+    data: contentRecord,
+    isLoading: contentLoading,
+    isError: contentError,
+  } = useQuery<ContentRecord | null>({
+    queryKey: [API_CONFIG.systemContent.byLookupId(selectedLookupId)],
+    enabled: !!selectedLookupId,
+    queryFn: async () => {
+      const res = await apiRequest("GET", API_CONFIG.systemContent.byLookupId(selectedLookupId));
+      if (!res.ok) {
+        if (res.status === 404) return null;
+        throw new Error(`${res.status}`);
+      }
+      const payload = await res.json();
+      if (!payload || (Array.isArray(payload) && payload.length === 0)) return null;
+      const arr = unwrapArray(payload, "systemContents", "contents", "data", "items", "result");
+      const raw = arr.length > 0 ? arr[0] : (payload as Raw);
+      return normContent(raw);
+    },
+    retry: 1,
+  });
+
+  // Populate editor when content loads or selection changes
   useEffect(() => {
-    setEditorContent(selectedRecord?.content ?? "");
-  }, [selectedId, selectedRecord?.id]);
+    setEditorContent(contentRecord?.content ?? "");
+  }, [selectedLookupId, contentRecord?.id]);
 
   // ── Upsert mutation ────────────────────────────────────────────────────────
   const upsertMutation = useMutation({
     mutationFn: (body: { id: number; systemContentCategoryId: number; content: string }) =>
       apiRequest("POST", API_CONFIG.systemContent.upsert, body),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [API_CONFIG.systemContent.list] });
+      queryClient.invalidateQueries({ queryKey: [API_CONFIG.systemContent.byLookupId(selectedLookupId)] });
       toast({ title: isRTL ? "تم الحفظ بنجاح" : "Saved successfully" });
     },
     onError: () => {
@@ -212,16 +277,19 @@ export default function SystemContentPage() {
   });
 
   const handleSave = () => {
-    if (!selectedRecord) return;
+    if (!selectedLookupId) return;
     upsertMutation.mutate({
-      id:                      selectedRecord.id,
-      systemContentCategoryId: selectedRecord.systemContentCategoryId,
+      id:                      contentRecord?.id ?? 0,
+      systemContentCategoryId: Number(selectedLookupId),
       content:                 editorContent,
     });
   };
 
-  const label = (r: ContentRecord) =>
-    isRTL ? (r.labelAr || r.labelEn || `#${r.id}`) : (r.labelEn || r.labelAr || `#${r.id}`);
+  const lookupLabel = (item: LookupItem) =>
+    isRTL ? (item.nameAr || item.nameEn || `#${item.id}`) : (item.nameEn || item.nameAr || `#${item.id}`);
+
+  const isLoadingAny = catsLoading || (sysCategoryId !== null && lookupsLoading);
+  const isErrorAny   = catsError || lookupsError;
 
   return (
     <AdminLayout>
@@ -239,32 +307,36 @@ export default function SystemContentPage() {
             <div className="max-w-sm space-y-2">
               <Label>{isRTL ? "اختر المحتوى" : "Select Content"}</Label>
 
-              {isLoading ? (
+              {isLoadingAny ? (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   {isRTL ? "جارٍ التحميل..." : "Loading..."}
                 </div>
-              ) : isError ? (
+              ) : isErrorAny ? (
                 <p className="text-sm text-destructive">
-                  {(error as Error)?.message || (isRTL ? "فشل في التحميل" : "Failed to load")}
+                  {isRTL ? "فشل في تحميل القوائم" : "Failed to load content list"}
+                </p>
+              ) : !sysCategory ? (
+                <p className="text-sm text-muted-foreground">
+                  {isRTL ? "لم يتم العثور على تصنيف محتوى النظام" : "System Content category not found in lookup categories"}
                 </p>
               ) : (
                 <Select
-                  value={selectedId}
-                  onValueChange={(val) => { setSelectedId(val); setEditorContent(""); }}
+                  value={selectedLookupId}
+                  onValueChange={(val) => { setSelectedLookupId(val); setEditorContent(""); }}
                 >
                   <SelectTrigger data-testid="select-content">
                     <SelectValue placeholder={isRTL ? "اختر المحتوى..." : "Select content..."} />
                   </SelectTrigger>
                   <SelectContent>
-                    {records.length === 0 ? (
+                    {lookupItems.length === 0 ? (
                       <SelectItem value="__empty" disabled>
-                        {isRTL ? "لا يوجد محتوى" : "No content found"}
+                        {isRTL ? "لا يوجد محتوى" : "No items in this category"}
                       </SelectItem>
                     ) : (
-                      records.map((r) => (
-                        <SelectItem key={r.id} value={String(r.id)} data-testid={`option-content-${r.id}`}>
-                          {label(r)}
+                      lookupItems.map((item) => (
+                        <SelectItem key={item.id} value={String(item.id)} data-testid={`option-content-${item.id}`}>
+                          {lookupLabel(item)}
                         </SelectItem>
                       ))
                     )}
@@ -274,29 +346,42 @@ export default function SystemContentPage() {
             </div>
 
             {/* Editor */}
-            {selectedRecord && (
+            {selectedLookupId && (
               <>
                 <Separator />
-                <RichTextEditor
-                  editorKey={selectedId}
-                  content={editorContent}
-                  onChange={setEditorContent}
-                />
-                <div className="flex justify-end">
-                  <Button onClick={handleSave} disabled={upsertMutation.isPending} data-testid="button-save-content">
-                    {upsertMutation.isPending
-                      ? <Loader2 className="h-4 w-4 ltr:mr-2 rtl:ml-2 animate-spin" />
-                      : <Save className="h-4 w-4 ltr:mr-2 rtl:ml-2" />}
-                    {upsertMutation.isPending
-                      ? (isRTL ? "جارٍ الحفظ..." : "Saving...")
-                      : (isRTL ? "حفظ التغييرات" : "Save Changes")}
-                  </Button>
-                </div>
+                {contentLoading ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    {isRTL ? "جارٍ تحميل المحتوى..." : "Loading content..."}
+                  </div>
+                ) : contentError ? (
+                  <p className="text-sm text-destructive">
+                    {isRTL ? "فشل في تحميل المحتوى" : "Failed to load content"}
+                  </p>
+                ) : (
+                  <>
+                    <RichTextEditor
+                      editorKey={selectedLookupId}
+                      content={editorContent}
+                      onChange={setEditorContent}
+                    />
+                    <div className="flex justify-end">
+                      <Button onClick={handleSave} disabled={upsertMutation.isPending} data-testid="button-save-content">
+                        {upsertMutation.isPending
+                          ? <Loader2 className="h-4 w-4 ltr:mr-2 rtl:ml-2 animate-spin" />
+                          : <Save className="h-4 w-4 ltr:mr-2 rtl:ml-2" />}
+                        {upsertMutation.isPending
+                          ? (isRTL ? "جارٍ الحفظ..." : "Saving...")
+                          : (isRTL ? "حفظ التغييرات" : "Save Changes")}
+                      </Button>
+                    </div>
+                  </>
+                )}
               </>
             )}
 
             {/* Empty state */}
-            {!isLoading && !isError && !selectedId && (
+            {!isLoadingAny && !isErrorAny && sysCategory && !selectedLookupId && (
               <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
                 <FileText className="h-12 w-12 mb-4 opacity-40" />
                 <p className="text-lg font-medium">
