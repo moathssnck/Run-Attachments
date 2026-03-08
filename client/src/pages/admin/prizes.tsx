@@ -506,15 +506,15 @@ export default function PrizesPage() {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className={`h-8 w-8 rounded-lg ${prize.active ? "text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 dark:hover:bg-emerald-950/30" : "text-muted-foreground hover:bg-muted"}`}
+                                  className="h-9 w-9 rounded-lg"
                                   onClick={() => toggleMutation.mutate(prize)}
                                   disabled={toggleMutation.isPending}
                                   data-testid={`button-toggle-prize-${prize.id}`}
                                 >
                                   {prize.active ? (
-                                    <ToggleRight className="h-4 w-4" />
+                                    <ToggleRight className="h-4.5 w-4.5 text-emerald-600" />
                                   ) : (
-                                    <ToggleLeft className="h-4 w-4" />
+                                    <ToggleLeft className="h-4.5 w-4.5 text-muted-foreground" />
                                   )}
                                 </Button>
                               </TooltipTrigger>
@@ -527,11 +527,11 @@ export default function PrizesPage() {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-8 w-8 rounded-lg text-amber-600 hover:bg-amber-50 hover:text-amber-700 dark:hover:bg-amber-950/30"
+                                  className="h-9 w-9 rounded-lg"
                                   onClick={() => openEditDialog(prize)}
                                   data-testid={`button-edit-prize-${prize.id}`}
                                 >
-                                  <Pencil className="h-4 w-4" />
+                                  <Pencil className="h-4.5 w-4.5 text-amber-600" />
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>{t("common.edit")}</TooltipContent>
@@ -541,14 +541,14 @@ export default function PrizesPage() {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-8 w-8 rounded-lg text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30"
+                                  className="h-9 w-9 rounded-lg"
                                   onClick={() => {
                                     setSelectedPrize(prize);
                                     setIsDeleteDialogOpen(true);
                                   }}
                                   data-testid={`button-delete-prize-${prize.id}`}
                                 >
-                                  <Trash2 className="h-4 w-4" />
+                                  <Trash2 className="h-4.5 w-4.5 text-red-600" />
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>{t("common.delete")}</TooltipContent>

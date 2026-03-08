@@ -258,13 +258,13 @@ export default function LotteryBooksPage() {
 
   const getStatusBadge = (isActive: boolean) => {
     return isActive ? (
-      <Badge variant="success" className="gap-1 font-semibold">
-        <CheckCircle2 className="h-3 w-3" />
+      <Badge className="bg-primary text-muted hover:bg-primary/70 font-semibold">
+        <CheckCircle2 className="h-3 w-3 me-1" />
         فعال
       </Badge>
     ) : (
-      <Badge variant="danger" className="gap-1 font-semibold">
-        <XCircle className="h-3 w-3" />
+      <Badge className="bg-red-700 text-red-100 hover:text-red-300 hover:bg-red-700/70 font-semibold">
+        <XCircle className="h-3 w-3 me-1" />
         غير فعال
       </Badge>
     );
@@ -581,13 +581,13 @@ export default function LotteryBooksPage() {
                                     <Button
                                       variant="ghost"
                                       size="icon"
-                                      className="h-8 w-8 rounded-lg text-blue-600 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950/30"
+                                      className="h-9 w-9 opacity-0 group-hover:opacity-100 transition-all text-primary hover:bg-primary hover:text-primary-foreground shadow-sm hover:shadow-md rounded-lg"
                                       onClick={() => {
                                         setSelectedBook(book);
                                         setIsViewDialogOpen(true);
                                       }}
                                     >
-                                      <Eye className="h-4 w-4" />
+                                      <Eye className="h-4.5 w-4.5" />
                                       <span className="sr-only">عرض</span>
                                     </Button>
                                   </TooltipTrigger>
@@ -600,9 +600,9 @@ export default function LotteryBooksPage() {
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted"
+                                    className="h-9 w-9 opacity-0 group-hover:opacity-100 transition-all text-muted-foreground hover:text-foreground hover:bg-muted shadow-sm hover:shadow-md rounded-lg"
                                   >
-                                    <MoreHorizontal className="h-4 w-4" />
+                                    <MoreHorizontal className="h-4.5 w-4.5" />
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent

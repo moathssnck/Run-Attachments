@@ -211,7 +211,7 @@ function Router() {
         </ProtectedRoute>
       </Route>
       <Route path="/admin/roles">
-        <ProtectedRoute allowedRoles={["admin", "system_admin"]}>
+        <ProtectedRoute allowedRoles={["system_admin"]}>
           <AdminRoles />
         </ProtectedRoute>
       </Route>
@@ -259,7 +259,7 @@ function Router() {
       </Route>
 
       <Route path="/admin/permissions">
-        <ProtectedRoute allowedRoles={["admin", "system_admin"]}>
+        <ProtectedRoute allowedRoles={["system_admin"]}>
           <AdminPermissions />
         </ProtectedRoute>
       </Route>
