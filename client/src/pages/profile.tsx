@@ -220,6 +220,14 @@ export default function ProfilePage() {
   };
 
   const handleChangePassword = async () => {
+    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+      toast({
+        title: t("common.error"),
+        description: t("profile.fillAllFields") || "Please fill in all password fields",
+        variant: "destructive",
+      });
+      return;
+    }
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
       toast({
         title: t("common.error"),
@@ -229,17 +237,36 @@ export default function ProfilePage() {
       return;
     }
     setIsSaving(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    toast({
-      title: t("profile.changesSaved"),
-      description: t("profile.changesSavedDesc"),
-    });
-    setPasswordForm({
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: "",
-    });
-    setIsSaving(false);
+    try {
+      const res = await apiRequest("POST", "/api/Auth/change-password", {
+        userId: parseInt(user?.id || "0"),
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword,
+        confirmPassword: passwordForm.confirmPassword,
+      });
+      const result = await res.json();
+      if (result.success === false) {
+        toast({
+          title: t("common.error"),
+          description: result.message || t("profile.passwordChangeFailed") || "Failed to change password",
+          variant: "destructive",
+        });
+        return;
+      }
+      toast({
+        title: t("profile.changesSaved"),
+        description: t("profile.passwordChangedSuccess") || "Password changed successfully",
+      });
+      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+    } catch (err: any) {
+      toast({
+        title: t("common.error"),
+        description: err?.message || t("profile.passwordChangeFailed") || "Failed to change password",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const initials = user

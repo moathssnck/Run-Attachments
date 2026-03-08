@@ -95,4 +95,7 @@ export const userTranslations: { [key: string]: { ar: string; en: string } } = {
     en: "Current application theme",
   },
   "profile.themeAuto": { ar: "تلقائي", en: "Auto" },
+  "profile.fillAllFields": { ar: "يرجى ملء جميع حقول كلمة المرور", en: "Please fill in all password fields" },
+  "profile.passwordChangedSuccess": { ar: "تم تغيير كلمة المرور بنجاح", en: "Password changed successfully" },
+  "profile.passwordChangeFailed": { ar: "فشل تغيير كلمة المرور", en: "Failed to change password" },
 };
