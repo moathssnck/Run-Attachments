@@ -475,6 +475,7 @@ export const adminTranslations: { [key: string]: { ar: string; en: string } } = 
     en: "Click on any role to view and modify its permissions",
   },
   "permissions.permissionsCount": { ar: "صلاحية", en: "permissions" },
+  "permissions.saveChanges": { ar: "حفظ التغييرات", en: "Save Changes" },
   "permissions.selectRole": { ar: "اختر الدور", en: "Select a role" },
   "permissions.selectRolePrompt": {
     ar: "اختر دوراً لعرض صلاحياته",

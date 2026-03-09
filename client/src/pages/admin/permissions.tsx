@@ -1,7 +1,6 @@
 "use client";
 
-import React from "react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import {
   Shield,
   ChevronDown,
@@ -26,6 +25,7 @@ import {
   CreditCard,
   RotateCcw,
   FileText,
+  ClipboardList,
 } from "lucide-react";
 import {
   Card,
@@ -82,11 +82,13 @@ interface RolePermission {
   permissionId: string;
 }
 
-const moduleIcons: Record<string, React.ReactNode> = {
+const moduleIcons: Record<string, ReactNode> = {
   users: <Users className="h-4 w-4" />,
   roles: <UserCog className="h-4 w-4" />,
   draws: <Ticket className="h-4 w-4" />,
   tickets: <Ticket className="h-4 w-4" />,
+  card: <CreditCard className="h-4 w-4" />,
+  issue: <ClipboardList className="h-4 w-4" />,
   reports: <BarChart3 className="h-4 w-4" />,
   settings: <Settings className="h-4 w-4" />,
   general: <FolderTree className="h-4 w-4" />,
@@ -99,144 +101,6 @@ const moduleIcons: Record<string, React.ReactNode> = {
 };
 
 
-const mockPermissions: Permission[] = [
-  // Users module
-  {
-    id: "u1",
-    nameEn: "User Management",
-    nameAr: "إدارة المستخدمين",
-    module: "users",
-    name: "User Management",
-  },
-  {
-    id: "u1.1",
-    nameEn: "View Users",
-    nameAr: "عرض المستخدمين",
-    module: "users",
-    parentId: "u1",
-    name: "View Users",
-  },
-  {
-    id: "u1.2",
-    nameEn: "Create Users",
-    nameAr: "إنشاء المستخدمين",
-    module: "users",
-    parentId: "u1",
-    name: "Create Users",
-  },
-  {
-    id: "u1.3",
-    nameEn: "Edit Users",
-    nameAr: "تعديل المستخدمين",
-    module: "users",
-    parentId: "u1",
-    name: "Edit Users",
-  },
-  {
-    id: "u1.4",
-    nameEn: "Delete Users",
-    nameAr: "حذف المستخدمين",
-    module: "users",
-    parentId: "u1",
-    name: "Delete Users",
-  },
-  // Roles module
-  {
-    id: "r1",
-    nameEn: "Role Management",
-    nameAr: "إدارة الأدوار",
-    module: "roles",
-    name: "Role Management",
-  },
-  {
-    id: "r1.1",
-    nameEn: "View Roles",
-    nameAr: "عرض الأدوار",
-    module: "roles",
-    parentId: "r1",
-    name: "View Roles",
-  },
-  {
-    id: "r1.2",
-    nameEn: "Create Roles",
-    nameAr: "إنشاء الأدوار",
-    module: "roles",
-    parentId: "r1",
-    name: "Create Roles",
-  },
-  {
-    id: "r1.3",
-    nameEn: "Edit Roles",
-    nameAr: "تعديل الأدوار",
-    module: "roles",
-    parentId: "r1",
-    name: "Edit Roles",
-  },
-  {
-    id: "r1.3.1",
-    nameEn: "Edit Role Name",
-    nameAr: "تعديل اسم الدور",
-    module: "roles",
-    parentId: "r1.3",
-    name: "Edit Role Name",
-  },
-  {
-    id: "r1.3.2",
-    nameEn: "Edit Role Permissions",
-    nameAr: "تعديل صلاحيات الدور",
-    module: "roles",
-    parentId: "r1.3",
-    name: "Edit Role Permissions",
-  },
-  // Reports module
-  {
-    id: "rp1",
-    nameEn: "Reports Access",
-    nameAr: "الوصول للتقارير",
-    module: "reports",
-    name: "Reports Access",
-  },
-  {
-    id: "rp1.1",
-    nameEn: "View Reports",
-    nameAr: "عرض التقارير",
-    module: "reports",
-    parentId: "rp1",
-    name: "View Reports",
-  },
-  {
-    id: "rp1.2",
-    nameEn: "Export Reports",
-    nameAr: "تصدير التقارير",
-    module: "reports",
-    parentId: "rp1",
-    name: "Export Reports",
-  },
-  // Settings module
-  {
-    id: "s1",
-    nameEn: "System Settings",
-    nameAr: "إعدادات النظام",
-    module: "settings",
-    name: "System Settings",
-  },
-  {
-    id: "s1.1",
-    nameEn: "View Settings",
-    nameAr: "عرض الإعدادات",
-    module: "settings",
-    parentId: "s1",
-    name: "View Settings",
-  },
-  {
-    id: "s1.2",
-    nameEn: "Edit Settings",
-    nameAr: "تعديل الإعدادات",
-    module: "settings",
-    parentId: "s1",
-    name: "Edit Settings",
-  },
-];
 
 
 export default function PermissionsPage() {
@@ -279,26 +143,42 @@ export default function PermissionsPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const rolesRes = await apiRequest("GET", "/api/Roles?includeDeleted=false");
+      const [rolesRes, permsRes] = await Promise.all([
+        apiRequest("GET", "/api/Roles?includeDeleted=false"),
+        apiRequest("GET", "/api/Permissions"),
+      ]);
+
       const rolesPayload = await rolesRes.json();
       const rolesData = extractArray<any>(rolesPayload).map((role) => ({
         id: String(role.roleId ?? role.id ?? ""),
         name: String(role.roleNameEn ?? role.nameEn ?? role.name ?? ""),
         nameEn: String(role.roleNameEn ?? role.nameEn ?? role.name ?? ""),
         nameAr: String(role.roleNameAr ?? role.nameAr ?? role.name ?? ""),
-        description: role.description,
-        descriptionEn: role.description ?? role.descriptionEn,
-        descriptionAr: role.description ?? role.descriptionAr,
+        description: role.description ?? "",
         isSystem: Boolean(role.isSystem),
         status: role.status === true || role.status === "active" ? "active" : "inactive",
       }));
       setRoles(rolesData);
-      setPermissions(mockPermissions);
+
+      const permsPayload = await permsRes.json();
+      const rawPerms: any[] = Array.isArray(permsPayload?.permissions)
+        ? permsPayload.permissions
+        : extractArray<any>(permsPayload);
+      const permsData: Permission[] = rawPerms.map((p) => ({
+        id: String(p.id),
+        name: p.permissionNameEn ?? p.name ?? "",
+        nameEn: p.permissionNameEn ?? p.name ?? "",
+        nameAr: p.permissionNameAr ?? p.name ?? "",
+        module: (p.module ?? "general").toLowerCase(),
+        parentId: p.parent && p.parent !== 0 ? String(p.parent) : undefined,
+        description: p.description ?? "",
+      }));
+      setPermissions(permsData);
       setRolePermissions([]);
     } catch (error) {
-      console.error("Failed to fetch roles:", error);
+      console.error("Failed to fetch data:", error);
       setRoles([]);
-      setPermissions(mockPermissions);
+      setPermissions([]);
       setRolePermissions([]);
     } finally {
       setLoading(false);
@@ -310,13 +190,18 @@ export default function PermissionsPage() {
       const res = await apiRequest("GET", `/api/RolePermission/role/${roleId}/permissions`);
       const data = await res.json();
       const arr = extractArray<any>(data);
-      const rps: RolePermission[] = arr.map((p: any) => {
-        const permId = String(p.permissionId ?? p.id ?? p.code ?? "");
-        return {
-          id: String(p.id ?? `${roleId}::${permId}`),
-          roleId,
-          permissionId: permId,
-        };
+      const rps: RolePermission[] = [];
+      arr.forEach((item: any) => {
+        if (Array.isArray(item.permissionIds)) {
+          item.permissionIds.forEach((pid: number) => {
+            if (pid != null) {
+              rps.push({ id: `${roleId}::${pid}`, roleId, permissionId: String(pid) });
+            }
+          });
+        } else if (item.permissionId != null) {
+          const permId = String(item.permissionId);
+          rps.push({ id: String(item.id ?? `${roleId}::${permId}`), roleId, permissionId: permId });
+        }
       });
       setRolePermissions(rps);
       setPendingChanges(new Map());
@@ -556,25 +441,10 @@ export default function PermissionsPage() {
     }, {} as Record<string, Permission[]>);
   };
 
-  const moduleLabels: Record<string, { en: string; ar: string }> = {
-    users: { en: "User Management", ar: "إدارة المستخدمين" },
-    roles: { en: "Role Management", ar: "إدارة الأدوار" },
-    draws: { en: "Draw Management", ar: "إدارة السحوبات" },
-    tickets: { en: "Ticket Management", ar: "إدارة التذاكر" },
-    payments: { en: "Payment Management", ar: "إدارة المدفوعات" },
-    refunds: { en: "Refund Management", ar: "إدارة الاستردادات" },
-    audit: { en: "Audit Logs", ar: "سجلات التدقيق" },
-    reports: { en: "Reports & Analytics", ar: "التقارير والتحليلات" },
-    settings: { en: "System Settings", ar: "إعدادات النظام" },
-    general: { en: "General", ar: "عام" },
-    wallet: { en: "Wallet Management", ar: "إدارة المحفظة" },
-    notifications: { en: "Notifications", ar: "الإشعارات" },
-    dashboard: { en: "Dashboard", ar: "لوحة التحكم" },
-  };
-
   const getModuleLabel = (module: string) => {
-    const label = moduleLabels[module];
-    return label ? (isRTL ? label.ar : label.en) : module;
+    const rootPerm = permissions.find((p) => p.module === module && !p.parentId);
+    if (rootPerm) return isRTL ? rootPerm.nameAr : rootPerm.nameEn;
+    return module.charAt(0).toUpperCase() + module.slice(1);
   };
 
   // Vertical Tree Node Component - flips tree location based on RTL
@@ -585,11 +455,11 @@ export default function PermissionsPage() {
     level,
     content,
   }: {
-    children?: React.ReactNode;
+    children?: ReactNode;
     isLast: boolean;
     isChecked: boolean;
     level: number;
-    content: React.ReactNode;
+    content: ReactNode;
   }) => {
     const lineColor = isChecked ? "bg-emerald-500" : "bg-border";
     const dotSize = level === 0 ? 10 : level === 1 ? 8 : 6;
@@ -1025,6 +895,48 @@ export default function PermissionsPage() {
                                 {t("permissions.permissionsCount")}
                               </div>
                             </div>
+                          </div>
+
+                          {/* Toolbar: expand/collapse + save */}
+                          <div className="flex items-center justify-between gap-2 flex-wrap">
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={expandAll}
+                                className="h-8 gap-1.5 text-xs"
+                                data-testid="button-expand-all"
+                              >
+                                <ChevronsUpDown className="h-3.5 w-3.5" />
+                                {t("permissions.expandAll")}
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={collapseAll}
+                                className="h-8 gap-1.5 text-xs"
+                                data-testid="button-collapse-all"
+                              >
+                                <ChevronsUpDown className="h-3.5 w-3.5 rotate-90" />
+                                {t("permissions.collapseAll")}
+                              </Button>
+                            </div>
+                            {pendingChanges.size > 0 && !selectedRole!.isSystem && (
+                              <Button
+                                onClick={handleSubmitChanges}
+                                disabled={saving}
+                                size="sm"
+                                className="h-8 gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+                                data-testid="button-save-permissions"
+                              >
+                                {saving ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <Save className="h-3.5 w-3.5" />
+                                )}
+                                {t("permissions.saveChanges")} ({pendingChanges.size})
+                              </Button>
+                            )}
                           </div>
 
                           {/* Vertical Permissions Tree - tree lines always on left, labels flow RTL when Arabic */}
