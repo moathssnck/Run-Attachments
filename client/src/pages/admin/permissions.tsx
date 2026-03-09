@@ -50,6 +50,7 @@ import { AdminLayout } from "@/components/admin-layout";
 import { useLanguage } from "@/lib/language-context";
 import { PageHeader } from "@/components/page-header";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/lib/auth-context";
 
 interface Permission {
   id: string;
@@ -240,6 +241,7 @@ const mockPermissions: Permission[] = [
 
 export default function PermissionsPage() {
   const { t, dir } = useLanguage();
+  const { user } = useAuth();
   const isRTL = dir === "rtl";
 
   const [roles, setRoles] = useState<Role[]>([]);
@@ -305,7 +307,7 @@ export default function PermissionsPage() {
 
   const loadRolePermissions = async (roleId: string) => {
     try {
-      const res = await apiRequest("GET", `/api/Roles/${roleId}/permissions`);
+      const res = await apiRequest("GET", `/api/RolePermission/role/${roleId}/permissions`);
       const data = await res.json();
       const arr = extractArray<any>(data);
       const rps: RolePermission[] = arr.map((p: any) => {
@@ -502,20 +504,36 @@ export default function PermissionsPage() {
     if (pendingChanges.size === 0 || !selectedRoleId) return;
     setSaving(true);
     try {
-      const operations = Array.from(pendingChanges.entries()).map(([key, shouldAssign]) => {
-        const [roleId, permissionId] = key.split("::");
-        return { roleId, permissionId, shouldAssign };
+      const assignedByUserId = user?.id ? Number(user.id) : 0;
+      const toAssign: number[] = [];
+      const toRemove: number[] = [];
+
+      Array.from(pendingChanges.entries()).forEach(([key, shouldAssign]) => {
+        const [, permissionId] = key.split("::");
+        const permIdNum = Number(permissionId);
+        if (shouldAssign) {
+          toAssign.push(permIdNum);
+        } else {
+          toRemove.push(permIdNum);
+        }
       });
 
-      await Promise.all(
-        operations.map(async ({ roleId, permissionId, shouldAssign }) => {
-          if (shouldAssign) {
-            await apiRequest("POST", `/api/Roles/${roleId}/permissions`, { permissionId });
-          } else {
-            await apiRequest("DELETE", `/api/Roles/${roleId}/permissions/${permissionId}`);
-          }
-        }),
-      );
+      const roleIdNum = Number(selectedRoleId);
+
+      if (toAssign.length > 0) {
+        await apiRequest("POST", "/api/RolePermission/bulk-assign", {
+          roleId: roleIdNum,
+          permissionIds: toAssign,
+          assignedByUserId,
+        });
+      }
+
+      if (toRemove.length > 0) {
+        await apiRequest("DELETE", "/api/RolePermission/bulk-remove", {
+          roleId: roleIdNum,
+          permissionIds: toRemove,
+        });
+      }
 
       await loadRolePermissions(selectedRoleId);
       setPendingChanges(new Map());
