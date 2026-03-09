@@ -132,6 +132,15 @@ export default function PermissionsPage() {
     else setRolePermissions([]);
   }, [selectedRoleId]);
 
+  const extractRolesArray = (payload: any): any[] => {
+    if (Array.isArray(payload)) return payload;
+    if (Array.isArray(payload?.roles)) return payload.roles;
+    if (Array.isArray(payload?.data)) return payload.data;
+    if (Array.isArray(payload?.data?.items)) return payload.data.items;
+    if (Array.isArray(payload?.items)) return payload.items;
+    return [];
+  };
+
   const extractArray = <T,>(payload: any): T[] => {
     if (Array.isArray(payload)) return payload as T[];
     if (payload?.data && Array.isArray(payload.data)) return payload.data as T[];
@@ -140,16 +149,50 @@ export default function PermissionsPage() {
     return [];
   };
 
+  const mapPermission = (p: any): Permission => ({
+    id: String(p.id),
+    name: p.permissionNameEn ?? p.name ?? "",
+    nameEn: p.permissionNameEn ?? p.name ?? "",
+    nameAr: p.permissionNameAr ?? p.name ?? "",
+    module: (p.module ?? "general").toLowerCase(),
+    parentId: p.parent && p.parent !== 0 ? String(p.parent) : undefined,
+    description: p.description ?? "",
+  });
+
+  const fetchAllPermissions = async (): Promise<Permission[]> => {
+    const firstRes = await apiRequest("GET", "/api/Permissions?pageNumber=1&pageSize=100");
+    const firstPayload = await firstRes.json();
+    const firstPage: any[] = Array.isArray(firstPayload?.permissions)
+      ? firstPayload.permissions
+      : extractArray<any>(firstPayload);
+
+    const totalCount: number = firstPayload?.totalCount ?? firstPage.length;
+    const pageSize = 100;
+
+    if (totalCount <= pageSize) {
+      return firstPage.map(mapPermission);
+    }
+
+    const totalPages = Math.ceil(totalCount / pageSize);
+    const remaining = await Promise.all(
+      Array.from({ length: totalPages - 1 }, (_, i) =>
+        apiRequest("GET", `/api/Permissions?pageNumber=${i + 2}&pageSize=${pageSize}`)
+          .then((r) => r.json())
+          .then((payload) =>
+            (Array.isArray(payload?.permissions) ? payload.permissions : extractArray<any>(payload)) as any[]
+          )
+      )
+    );
+
+    return [...firstPage, ...remaining.flat()].map(mapPermission);
+  };
+
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [rolesRes, permsRes] = await Promise.all([
-        apiRequest("GET", "/api/Roles?includeDeleted=false"),
-        apiRequest("GET", "/api/Permissions"),
-      ]);
-
+      const rolesRes = await apiRequest("GET", "/api/Roles?includeDeleted=false");
       const rolesPayload = await rolesRes.json();
-      const rolesData = extractArray<any>(rolesPayload).map((role) => ({
+      const rolesData = extractRolesArray(rolesPayload).map((role) => ({
         id: String(role.roleId ?? role.id ?? ""),
         name: String(role.roleNameEn ?? role.nameEn ?? role.name ?? ""),
         nameEn: String(role.roleNameEn ?? role.nameEn ?? role.name ?? ""),
@@ -160,19 +203,7 @@ export default function PermissionsPage() {
       }));
       setRoles(rolesData);
 
-      const permsPayload = await permsRes.json();
-      const rawPerms: any[] = Array.isArray(permsPayload?.permissions)
-        ? permsPayload.permissions
-        : extractArray<any>(permsPayload);
-      const permsData: Permission[] = rawPerms.map((p) => ({
-        id: String(p.id),
-        name: p.permissionNameEn ?? p.name ?? "",
-        nameEn: p.permissionNameEn ?? p.name ?? "",
-        nameAr: p.permissionNameAr ?? p.name ?? "",
-        module: (p.module ?? "general").toLowerCase(),
-        parentId: p.parent && p.parent !== 0 ? String(p.parent) : undefined,
-        description: p.description ?? "",
-      }));
+      const permsData = await fetchAllPermissions();
       setPermissions(permsData);
       setRolePermissions([]);
     } catch (error) {
