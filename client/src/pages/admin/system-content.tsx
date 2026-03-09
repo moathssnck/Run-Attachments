@@ -52,6 +52,7 @@ import { API_CONFIG } from "@/lib/api-config";
 
 type Raw = Record<string, unknown>;
 
+type LookupCategory = { id: number; labelAr: string; labelEn: string };
 type LookupItem = { id: number; labelAr: string; labelEn: string };
 type ContentRecord  = { id: number; systemContentCategoryId: number; content: string };
 
@@ -85,6 +86,14 @@ function unwrapArray(payload: unknown, ...keys: string[]): Raw[] {
 }
 
 // ─── Normalisers ──────────────────────────────────────────────────────────────
+
+function normCategory(r: Raw): LookupCategory {
+  return {
+    id:      asNum(r.id ?? r.lookupCategoryId),
+    labelAr: asStr(r.lookupCategoryAr ?? r.nameAr ?? r.name),
+    labelEn: asStr(r.lookupCategoryEn ?? r.nameEn ?? r.name),
+  };
+}
 
 function normLookup(r: Raw): LookupItem {
   return {
@@ -181,8 +190,6 @@ function RichTextEditor({ content, onChange, editorKey }: { content: string; onC
   );
 }
 
-const SYSTEM_CONTENT_CATEGORY_ID = 12;
-
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function SystemContentPage() {
@@ -190,23 +197,42 @@ export default function SystemContentPage() {
   const isRTL = dir === "rtl";
   const { toast } = useToast();
 
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number>(0);
   const [selectedLookupId, setSelectedLookupId] = useState<string>("");
   const [editorContent, setEditorContent] = useState("");
 
-  // ── Fetch Lookups for system content category (ID 12) ─────────────────────
+  // ── Fetch all Lookup Categories ────────────────────────────────────────────
+  const {
+    data: categories = [],
+    isLoading: isCatsLoading,
+    isError: isCatsError,
+  } = useQuery<LookupCategory[]>({
+    queryKey: [API_CONFIG.lookupCategory.list],
+    queryFn: async () => {
+      const res = await apiRequest("GET", API_CONFIG.lookupCategory.list);
+      if (!res.ok) throw new Error(`${res.status}`);
+      const payload = await res.json();
+      const rows = unwrapArray(payload, "lookupCategories", "categories", "data", "items");
+      return rows.map(normCategory);
+    },
+    retry: 1,
+  });
+
+  // ── Fetch Lookups for selected category ───────────────────────────────────
   const {
     data: lookups = [],
     isLoading: isLookupsLoading,
     isError: isLookupsError,
   } = useQuery<LookupItem[]>({
-    queryKey: [API_CONFIG.lookup.byCategory(SYSTEM_CONTENT_CATEGORY_ID)],
+    queryKey: [API_CONFIG.lookup.byCategory(selectedCategoryId)],
     queryFn: async () => {
-      const res = await apiRequest("GET", API_CONFIG.lookup.byCategory(SYSTEM_CONTENT_CATEGORY_ID));
+      const res = await apiRequest("GET", API_CONFIG.lookup.byCategory(selectedCategoryId));
       if (!res.ok) throw new Error(`${res.status}`);
       const payload = await res.json();
       const rows = unwrapArray(payload, "lookups", "data", "items", "result");
       return rows.map(normLookup);
     },
+    enabled: selectedCategoryId > 0,
     retry: 1,
   });
 
@@ -250,10 +276,10 @@ export default function SystemContentPage() {
   });
 
   const handleSave = () => {
-    if (!selectedLookupId) return;
+    if (!selectedLookupId || selectedCategoryId === 0) return;
     upsertMutation.mutate({
       id:                      contentRecord?.id ?? Number(selectedLookupId),
-      systemContentCategoryId: SYSTEM_CONTENT_CATEGORY_ID,
+      systemContentCategoryId: selectedCategoryId,
       content:                 editorContent,
     });
   };
@@ -272,12 +298,60 @@ export default function SystemContentPage() {
         <Card>
           <CardContent className="p-6 space-y-6">
 
-            {/* Dropdown */}
-            <div className="w-full sm:w-80 space-y-2">
-              <Label>{isRTL ? "اختر المحتوى" : "Select Content"}</Label>
-              <Select value={selectedLookupId} onValueChange={setSelectedLookupId}>
+            {/* Category + Content selectors row */}
+            <div className="flex flex-col sm:flex-row gap-4">
+              {/* Category Dropdown */}
+              <div className="flex-1 space-y-2">
+                <Label>{isRTL ? "الفئة" : "Category"}</Label>
+                <Select
+                  value={selectedCategoryId > 0 ? String(selectedCategoryId) : ""}
+                  onValueChange={(v) => {
+                    setSelectedCategoryId(Number(v));
+                    setSelectedLookupId("");
+                    setEditorContent("");
+                  }}
+                >
+                  <SelectTrigger data-testid="select-category">
+                    <SelectValue
+                      placeholder={
+                        isCatsLoading
+                          ? isRTL ? "جارٍ التحميل..." : "Loading..."
+                          : isRTL ? "اختر الفئة..." : "Select category..."
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {isCatsLoading ? (
+                      <SelectItem value="__loading" disabled>{isRTL ? "جارٍ التحميل..." : "Loading..."}</SelectItem>
+                    ) : isCatsError ? (
+                      <SelectItem value="__error" disabled>{isRTL ? "فشل في التحميل" : "Failed to load"}</SelectItem>
+                    ) : categories.length === 0 ? (
+                      <SelectItem value="__empty" disabled>{isRTL ? "لا توجد فئات" : "No categories"}</SelectItem>
+                    ) : (
+                      categories.map((cat) => (
+                        <SelectItem key={cat.id} value={String(cat.id)} data-testid={`option-category-${cat.id}`}>
+                          {isRTL ? cat.labelAr || cat.labelEn : cat.labelEn || cat.labelAr}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Content Dropdown */}
+              <div className="flex-1 space-y-2">
+                <Label>{isRTL ? "اختر المحتوى" : "Select Content"}</Label>
+                <Select
+                  value={selectedLookupId}
+                  onValueChange={setSelectedLookupId}
+                  disabled={selectedCategoryId === 0}
+                >
                 <SelectTrigger data-testid="select-content">
-                  <SelectValue placeholder={isRTL ? "اختر المحتوى للتعديل..." : "Choose content to edit..."} />
+                  <SelectValue placeholder={
+                    selectedCategoryId === 0
+                      ? isRTL ? "اختر الفئة أولاً..." : "Select a category first..."
+                      : isRTL ? "اختر المحتوى للتعديل..." : "Choose content to edit..."
+                  } />
                 </SelectTrigger>
                 <SelectContent>
                   {isLookupsLoading ? (
@@ -295,6 +369,7 @@ export default function SystemContentPage() {
                   )}
                 </SelectContent>
               </Select>
+              </div>
             </div>
 
             {/* Loading spinner while fetching content */}
