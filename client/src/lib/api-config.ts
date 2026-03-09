@@ -55,6 +55,8 @@ export const API_CONFIG = {
     base: "/api/Mixture",
     list: "/api/Mixture",
     availableNotebooks: "/api/Mixture/available-notebooks",
+    availableNotebooksByIssue: (issueId: ApiEntityId) =>
+      `/api/Mixture/available-notebooks/${issueId}`,
     activate: (id: ApiEntityId) => `/api/Mixture/${id}/activate`,
     changeStatus: (id: ApiEntityId) => `/api/Mixture/${id}/change-status`,
     byNotebook: (notebookNo: ApiEntityId, issueId: ApiEntityId) =>

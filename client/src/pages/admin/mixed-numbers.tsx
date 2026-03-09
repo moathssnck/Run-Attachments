@@ -187,19 +187,28 @@ export default function MixedNumbersPage() {
     retry: 1,
   });
 
+  const notebooksUrl =
+    selectedIssueId > 0
+      ? API_CONFIG.mixture.availableNotebooksByIssue(selectedIssueId)
+      : API_CONFIG.mixture.availableNotebooks;
+
   const {
     data: availableNotebooks = [],
     isLoading: isLoadingNotebooks,
     refetch: refetchNotebooks,
   } = useQuery<AvailableNotebook[]>({
-    queryKey: [API_CONFIG.mixture.availableNotebooks],
+    queryKey: [notebooksUrl],
     queryFn: async () => {
-      const res = await apiRequest("GET", API_CONFIG.mixture.availableNotebooks);
+      const res = await apiRequest("GET", notebooksUrl);
       if (!res.ok) return [];
       const payload = await res.json();
-      return extractList(payload, "notebooks", "notebookGroups", "availableNotebooks").map(
-        normalizeNotebook
-      );
+      return extractList(
+        payload,
+        "notebooks",
+        "notebookGroups",
+        "availableNotebooks",
+        "groups"
+      ).map(normalizeNotebook);
     },
     retry: 1,
   });
@@ -413,7 +422,10 @@ export default function MixedNumbersPage() {
                     </Label>
                     <Select
                       value={selectedIssueId > 0 ? String(selectedIssueId) : ""}
-                      onValueChange={(v) => setSelectedIssueId(Number(v))}
+                      onValueChange={(v) => {
+                        setSelectedIssueId(Number(v));
+                        setSelectedNotebooks(new Set());
+                      }}
                     >
                       <SelectTrigger
                         className="h-9 text-sm"
