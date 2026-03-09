@@ -93,8 +93,7 @@ const roleFormSchema = z.object({
     .string()
     .min(1, "الاسم بالعربية مطلوب")
     .max(50, "الاسم يجب أن لا يتجاوز 50 حرف"),
-  descriptionEn: z.string().optional(),
-  descriptionAr: z.string().optional(),
+  description: z.string().optional(),
   status: z.enum(["active", "inactive"]),
 });
 
@@ -104,8 +103,7 @@ interface Role {
   id: number;
   nameEn: string;
   nameAr: string;
-  descriptionEn: string;
-  descriptionAr: string;
+  description: string;
   isSystem: boolean;
   status: "active" | "inactive";
   usersCount: number;
@@ -117,8 +115,7 @@ function mapApiRole(r: any): Role {
     id: r.roleId ?? r.id,
     nameEn: r.roleNameEn ?? r.nameEn ?? r.name ?? "",
     nameAr: r.roleNameAr ?? r.nameAr ?? r.name ?? "",
-    descriptionEn: r.description ?? r.descriptionEn ?? "",
-    descriptionAr: r.description ?? r.descriptionAr ?? "",
+    description: r.description ?? "",
     isSystem: r.isSystem ?? false,
     status: r.status === true || r.status === "active" ? "active" : "inactive",
     usersCount: r.usersCount ?? 0,
@@ -137,10 +134,8 @@ const translations = {
     inactive: "Inactive",
     roleName: "Role Name",
     roleNameEn: "Role Name (English)",
-    roleNameAr: "Role Name ",
+    roleNameAr: "Role Name (Arabic)",
     description: "Description",
-    descriptionEn: "Description (English)",
-    descriptionAr: "Description ",
     users: "Users",
     status: "Status",
     enabled: "Enabled",
@@ -170,8 +165,7 @@ const translations = {
     roles: "roles",
     enterNameEn: "Enter role name in English",
     enterNameAr: "أدخل اسم الدور بالعربية",
-    enterDescEn: "Enter description in English",
-    enterDescAr: "أدخل الوصف بالعربية",
+    enterDesc: "Enter description",
     assignUsers: "Assign Users",
     assignUsersToRole: "Assign Users to Role",
     assignUsersDesc: "Select users to assign to this role",
@@ -189,11 +183,9 @@ const translations = {
     active: "نشط",
     inactive: "غير نشط",
     roleName: "اسم الدور",
-    roleNameEn: "اسم الدور (بالc�نجليزية)",
+    roleNameEn: "اسم الدور (بالإنجليزية)",
     roleNameAr: "اسم الدور (بالعربية)",
     description: "الوصف",
-    descriptionEn: "الوصف (بالإنجليزية)",
-    descriptionAr: "الوصف (بالعربية)",
     users: "المستخدمين",
     status: "الحالة",
     enabled: "مفعّل",
@@ -223,8 +215,7 @@ const translations = {
     roles: "دور",
     enterNameEn: "أدخل اسم الدور بالإنجليزية",
     enterNameAr: "أدخل اسم الدور بالعربية",
-    enterDescEn: "أدخل الوصف بالإنجليزية",
-    enterDescAr: "أدخل الوصف بالعربية",
+    enterDesc: "أدخل الوصف",
     assignUsers: "تعيين المستخدمين",
     assignUsersToRole: "تعيين المستخدمين للدور",
     assignUsersDesc: "اختر المستخدمين لتعيينهم لهذا الدور",
@@ -294,12 +285,12 @@ export default function RolesPage() {
 
   const createForm = useForm<RoleFormValues>({
     resolver: zodResolver(roleFormSchema),
-    defaultValues: { nameEn: "", nameAr: "", descriptionEn: "", descriptionAr: "", status: "active" },
+    defaultValues: { nameEn: "", nameAr: "", description: "", status: "active" },
   });
 
   const editForm = useForm<RoleFormValues>({
     resolver: zodResolver(roleFormSchema),
-    defaultValues: { nameEn: "", nameAr: "", descriptionEn: "", descriptionAr: "", status: "active" },
+    defaultValues: { nameEn: "", nameAr: "", description: "", status: "active" },
   });
 
   const filteredRoles = useMemo(() => {
@@ -309,8 +300,7 @@ export default function RolesPage() {
       (role) =>
         role.nameEn.toLowerCase().includes(searchLower) ||
         role.nameAr.includes(roleSearch) ||
-        role.descriptionEn.toLowerCase().includes(searchLower) ||
-        role.descriptionAr.includes(roleSearch),
+        role.description.toLowerCase().includes(searchLower),
     );
   }, [roles, roleSearch]);
 
@@ -336,7 +326,7 @@ export default function RolesPage() {
       const res = await apiRequest("POST", "/api/Roles", {
         roleNameEn: data.nameEn,
         roleNameAr: data.nameAr,
-        description: data.descriptionAr || data.descriptionEn || "",
+        description: data.description || "",
         isSystem: false,
         status: data.status === "active",
       });
@@ -360,7 +350,7 @@ export default function RolesPage() {
         roleId: role.id,
         roleNameEn: data.nameEn,
         roleNameAr: data.nameAr,
-        description: data.descriptionAr || data.descriptionEn || "",
+        description: data.description || "",
         status: data.status === "active",
       });
       return res.json();
@@ -384,7 +374,7 @@ export default function RolesPage() {
         roleId: role.id,
         roleNameEn: role.nameEn,
         roleNameAr: role.nameAr,
-        description: role.descriptionAr || role.descriptionEn || "",
+        description: role.description || "",
         status: role.status !== "active",
       });
       return res.json();
@@ -416,8 +406,7 @@ export default function RolesPage() {
     editForm.reset({
       nameEn: role.nameEn,
       nameAr: role.nameAr,
-      descriptionEn: role.descriptionEn || "",
-      descriptionAr: role.descriptionAr || "",
+      description: role.description || "",
       status: role.status,
     });
   };
@@ -517,8 +506,7 @@ export default function RolesPage() {
   };
 
   const getRoleName = (role: Role) => (isRTL ? role.nameAr : role.nameEn);
-  const getRoleDescription = (role: Role) =>
-    isRTL ? role.descriptionAr : role.descriptionEn;
+  const getRoleDescription = (role: Role) => role.description;
   return (
     <AdminLayout>
       <div
@@ -601,7 +589,7 @@ export default function RolesPage() {
                             {isRTL ? role.nameAr : role.nameEn}
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            {isRTL ? role.descriptionAr : role.descriptionEn}
+                            {role.description}
                           </div>
                         </button>
                       ))}
@@ -644,14 +632,7 @@ export default function RolesPage() {
                           </div>
                         </TableCell>
                         <TableCell className="text-muted-foreground">
-                          <div>
-                            <span className="block">
-                              {getRoleDescription(role)}
-                            </span>
-                            <span className="text-xs opacity-70">
-                              {isRTL ? role.descriptionEn : role.descriptionAr}
-                            </span>
-                          </div>
+                          {getRoleDescription(role)}
                         </TableCell>
                         <TableCell className="text-center">
                           <Badge variant="outline">{role.usersCount}</Badge>
@@ -852,27 +833,24 @@ export default function RolesPage() {
                     )}
                   />
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
-                  <FormField
-                    control={createForm.control}
-                    name="descriptionAr"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t.descriptionAr}</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            {...field}
-                            placeholder={t.enterDescAr}
-                            data-testid="input-role-description-ar"
-                            dir="rtl"
-                            rows={3}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                <FormField
+                  control={createForm.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t.description}</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          {...field}
+                          placeholder={t.enterDesc}
+                          data-testid="input-role-description"
+                          rows={3}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <FormField
                   control={createForm.control}
                   name="status"
@@ -975,46 +953,24 @@ export default function RolesPage() {
                     )}
                   />
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={editForm.control}
-                    name="descriptionEn"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t.descriptionEn}</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            {...field}
-                            placeholder={t.enterDescEn}
-                            data-testid="input-edit-role-description-en"
-                            dir="ltr"
-                            rows={3}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={editForm.control}
-                    name="descriptionAr"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t.descriptionAr}</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            {...field}
-                            placeholder={t.enterDescAr}
-                            data-testid="input-edit-role-description-ar"
-                            dir="rtl"
-                            rows={3}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                <FormField
+                  control={editForm.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t.description}</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          {...field}
+                          placeholder={t.enterDesc}
+                          data-testid="input-edit-role-description"
+                          rows={3}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <FormField
                   control={editForm.control}
                   name="status"
