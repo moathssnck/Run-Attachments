@@ -55,6 +55,7 @@ type NormalizedLookupCategory = {
   id: number;
   lookupCategoryAr: string;
   lookupCategoryEn: string;
+  active: boolean;
 };
 
 type NormalizedLookup = {
@@ -114,6 +115,7 @@ function normalizeCategory(raw: RawApiRecord, i: number): NormalizedLookupCatego
     id: asNum(raw.id ?? raw.lookupCategoryId, i + 1),
     lookupCategoryAr: asStr(raw.lookupCategoryAr ?? raw.nameAr ?? raw.name),
     lookupCategoryEn: asStr(raw.lookupCategoryEn ?? raw.nameEn ?? raw.name),
+    active: asBool(raw.active ?? raw.isActive, true),
   };
 }
 
@@ -265,6 +267,28 @@ export default function SettingsCategoriesPage() {
       }),
   });
 
+  const toggleCatMutation = useMutation({
+    mutationFn: (cat: NormalizedLookupCategory) =>
+      apiRequest("PUT", API_CONFIG.lookupCategory.byId(cat.id), {
+        id: cat.id,
+        lookupCategoryAr: cat.lookupCategoryAr,
+        lookupCategoryEn: cat.lookupCategoryEn,
+        active: !cat.active,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [API_CONFIG.lookupCategory.list] });
+      toast({
+        title: isRTL ? "تم التحديث" : "Updated",
+        description: isRTL ? "تم تغيير حالة التفعيل" : "Activation status changed",
+      });
+    },
+    onError: () =>
+      toast({
+        title: t("common.error"),
+        description: isRTL ? "فشل في تغيير الحالة" : "Failed to change status",
+        variant: "destructive",
+      }),
+  });
 
   // ── Lookup mutations ──────────────────────────────────────────────────────
 
@@ -425,6 +449,7 @@ export default function SettingsCategoriesPage() {
                   <TableRow>
                     <TableHead>{t("systemCategories.nameAr")}</TableHead>
                     <TableHead>{t("systemCategories.nameEn")}</TableHead>
+                    <TableHead className="text-center">{t("common.status")}</TableHead>
                     <TableHead className="text-center">{t("common.actions")}</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -433,6 +458,11 @@ export default function SettingsCategoriesPage() {
                     <TableRow key={cat.id} data-testid={`row-category-${cat.id}`}>
                       <TableCell className="font-medium">{cat.lookupCategoryAr}</TableCell>
                       <TableCell>{cat.lookupCategoryEn}</TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant={cat.active ? "default" : "secondary"}>
+                          {cat.active ? t("common.active") : t("common.inactive")}
+                        </Badge>
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center justify-center gap-1">
                           <Button
@@ -443,6 +473,19 @@ export default function SettingsCategoriesPage() {
                             className="h-8 w-8 text-amber-600 hover:bg-amber-50 hover:text-amber-700"
                           >
                             <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => toggleCatMutation.mutate(cat)}
+                            disabled={toggleCatMutation.isPending}
+                            data-testid={`button-toggle-category-${cat.id}`}
+                            className={`h-8 w-8 ${cat.active ? "text-green-600 hover:bg-green-50 hover:text-green-700" : "text-muted-foreground hover:bg-muted"}`}
+                            title={cat.active ? (isRTL ? "تعطيل" : "Deactivate") : (isRTL ? "تفعيل" : "Activate")}
+                          >
+                            {cat.active
+                              ? <Power className="h-4 w-4" />
+                              : <PowerOff className="h-4 w-4" />}
                           </Button>
                         </div>
                       </TableCell>
