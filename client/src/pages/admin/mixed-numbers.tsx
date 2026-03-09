@@ -602,22 +602,6 @@ export default function MixedNumbersPage() {
                                   </Tooltip>
                                 )}
 
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/5"
-                                      onClick={() => deleteSet(set.id)}
-                                      data-testid={`button-delete-mix-${set.id}`}
-                                    >
-                                      <X className="h-3.5 w-3.5" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    {isRTL ? "حذف الدفتر" : "Delete book"}
-                                  </TooltipContent>
-                                </Tooltip>
                               </div>
                             </TableCell>
                           </TableRow>

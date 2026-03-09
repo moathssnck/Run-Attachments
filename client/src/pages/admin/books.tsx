@@ -1,13 +1,5 @@
 "use client";
 
-import { AlertDialogAction } from "@/components/ui/alert-dialog";
-import { AlertDialogCancel } from "@/components/ui/alert-dialog";
-import { AlertDialogFooter } from "@/components/ui/alert-dialog";
-import { AlertDialogDescription } from "@/components/ui/alert-dialog";
-import { AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { AlertDialogHeader } from "@/components/ui/alert-dialog";
-import { AlertDialogContent } from "@/components/ui/alert-dialog";
-import { AlertDialog } from "@/components/ui/alert-dialog";
 import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -25,7 +17,8 @@ import {
   Edit,
   CheckCircle2,
   XCircle,
-  Trash2,
+  Power,
+  PowerOff,
 } from "lucide-react";
 import {
   Card,
@@ -111,7 +104,6 @@ export default function LotteryBooksPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedBook, setSelectedBook] = useState<LotteryBook | null>(null);
 
   // Search states
@@ -174,16 +166,6 @@ export default function LotteryBooksPage() {
     mutationFn: async ({ id, isActive }: { id: number; isActive: boolean }) => {
       console.log("Toggling active status:", id, isActive);
       await new Promise((resolve) => setTimeout(resolve, 500));
-    },
-  });
-
-  const deleteBookMutation = useMutation({
-    mutationFn: async (id: number) => {
-      console.log("Deleting book:", id);
-      await new Promise((resolve) => setTimeout(resolve, 500));
-    },
-    onSuccess: () => {
-      setIsDeleteDialogOpen(false);
     },
   });
 
@@ -638,11 +620,19 @@ export default function LotteryBooksPage() {
 
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    <span className="sr-only">
-                                      {book.isActive
-                                        ? t("lotteryBooks.deactivate")
-                                        : t("lotteryBooks.activate")}
-                                    </span>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className={`h-9 w-9 shadow-sm hover:shadow-md rounded-lg ${book.isActive ? "text-green-600 hover:bg-green-50 hover:text-green-700" : "text-red-500 hover:bg-red-50 hover:text-red-600"}`}
+                                      onClick={() => toggleActiveMutation.mutate({ id: book.id, isActive: !book.isActive })}
+                                      disabled={toggleActiveMutation.isPending}
+                                      data-testid={`button-toggle-book-${book.id}`}
+                                    >
+                                      {book.isActive ? <Power className="h-4.5 w-4.5" /> : <PowerOff className="h-4.5 w-4.5" />}
+                                      <span className="sr-only">
+                                        {book.isActive ? t("lotteryBooks.deactivate") : t("lotteryBooks.activate")}
+                                      </span>
+                                    </Button>
                                   </TooltipTrigger>
                                   <TooltipContent>
                                     {book.isActive ? t("lotteryBooks.deactivate") : t("lotteryBooks.activate")}
@@ -898,40 +888,6 @@ export default function LotteryBooksPage() {
           </DialogContent>
         </Dialog>
 
-        {/* Delete Confirmation */}
-        <AlertDialog
-          open={isDeleteDialogOpen}
-          onOpenChange={setIsDeleteDialogOpen}
-        >
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-destructive/10 mb-3">
-                <Trash2 className="h-6 w-6 text-destructive" />
-              </div>
-              <AlertDialogTitle className="text-xl font-bold">
-                {t("lotteryBooks.deleteTitle")}
-              </AlertDialogTitle>
-              <AlertDialogDescription className="leading-relaxed text-base">
-                {t("lotteryBooks.deleteConfirm")} "{selectedBook?.bookNumber}"؟ {t("lotteryBooks.deleteWarning")}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter className="gap-2 sm:gap-2">
-              <AlertDialogCancel className="font-semibold gap-2">
-                <X className="h-4 w-4" />
-                {t("common.cancel")}
-              </AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() =>
-                  selectedBook && deleteBookMutation.mutate(selectedBook.id)
-                }
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90 gap-2 font-semibold"
-              >
-                <Trash2 className="h-4 w-4" />
-                {t("common.delete")}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
       </div>
     </AdminLayout>
   );

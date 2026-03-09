@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Cog, Plus, Pencil, Trash2, Power, PowerOff, Search, Filter } from "lucide-react";
+import { Cog, Plus, Pencil, Power, PowerOff, Search, Filter } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,16 +36,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import type { SystemDefinition } from "@shared/schema";
 import { usePagination, paginate, TablePagination } from "@/components/ui/table-pagination";
 
@@ -66,7 +56,6 @@ export default function SystemSettingsPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedDefinition, setSelectedDefinition] = useState<SystemDefinition | null>(null);
 
   const [formData, setFormData] = useState({
@@ -168,27 +157,6 @@ export default function SystemSettingsPage() {
     },
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) =>
-      apiRequest("DELETE", `/api/admin/system-definitions/${id}`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/system-definitions"] });
-      setIsDeleteDialogOpen(false);
-      setSelectedDefinition(null);
-      toast({
-        title: isRTL ? "تم الحذف" : "Deleted",
-        description: isRTL ? "تم حذف التعريف بنجاح" : "Definition has been deleted",
-      });
-    },
-    onError: () => {
-      toast({
-        title: isRTL ? "خطأ" : "Error",
-        description: isRTL ? "فشل حذف التعريف" : "Failed to delete definition",
-        variant: "destructive",
-      });
-    },
-  });
-
   const resetForm = () => {
     setFormData({
       category: "",
@@ -222,11 +190,6 @@ export default function SystemSettingsPage() {
     setIsEditDialogOpen(true);
   };
 
-  const handleDelete = (definition: SystemDefinition) => {
-    setSelectedDefinition(definition);
-    setIsDeleteDialogOpen(true);
-  };
-
   const handleSubmitAdd = () => {
     if (!formData.category || !formData.code || !formData.nameAr || !formData.nameEn) {
       toast({
@@ -242,11 +205,6 @@ export default function SystemSettingsPage() {
   const handleSubmitEdit = () => {
     if (!selectedDefinition) return;
     updateMutation.mutate({ id: selectedDefinition.id, data: formData });
-  };
-
-  const handleConfirmDelete = () => {
-    if (!selectedDefinition) return;
-    deleteMutation.mutate(selectedDefinition.id);
   };
 
   const getCategoryLabel = (code: string) => {
@@ -396,10 +354,14 @@ export default function SystemSettingsPage() {
                             <Button
                               size="icon"
                               variant="ghost"
-                              onClick={() => handleDelete(def)}
-                              data-testid={`button-delete-${def.id}`}
+                              onClick={() => toggleMutation.mutate(def)}
+                              disabled={toggleMutation.isPending}
+                              data-testid={`button-toggle-${def.id}`}
+                              title={def.isActive ? (isRTL ? "تعطيل" : "Deactivate") : (isRTL ? "تفعيل" : "Activate")}
                             >
-                              <Trash2 className="h-4 w-4 text-destructive" />
+                              {def.isActive
+                                ? <Power className="h-4 w-4 text-green-600" />
+                                : <PowerOff className="h-4 w-4 text-muted-foreground" />}
                             </Button>
                           </div>
                         </TableCell>
@@ -642,29 +604,6 @@ export default function SystemSettingsPage() {
           </DialogContent>
         </Dialog>
 
-        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-          <AlertDialogContent dir={dir}>
-            <AlertDialogHeader>
-              <AlertDialogTitle>{isRTL ? "تأكيد الحذف" : "Confirm Delete"}</AlertDialogTitle>
-              <AlertDialogDescription>
-                {isRTL
-                  ? `هل أنت متأكد من حذف "${selectedDefinition?.nameAr}"؟ لا يمكن التراجع عن هذا الإجراء.`
-                  : `Are you sure you want to delete "${selectedDefinition?.nameEn}"? This action cannot be undone.`}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>{isRTL ? "إلغاء" : "Cancel"}</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleConfirmDelete}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                {deleteMutation.isPending
-                  ? isRTL ? "جاري الحذف..." : "Deleting..."
-                  : isRTL ? "حذف" : "Delete"}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
       </div>
     </AdminLayout>
   );
