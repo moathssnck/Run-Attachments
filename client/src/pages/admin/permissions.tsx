@@ -358,8 +358,7 @@ export default function PermissionsPage() {
   const selectedRole = roles.find((r) => r.id === selectedRoleId);
 
   const getRoleName = (role: Role) => (isRTL ? role.nameAr : role.nameEn);
-  const getRoleDescription = (role: Role) =>
-    isRTL ? role.descriptionAr : role.descriptionEn;
+  const getRoleDescription = (role: Role) => role.description || "";
   const getPermissionName = (perm: Permission) =>
     isRTL ? perm.nameAr : perm.nameEn;
 
@@ -368,10 +367,7 @@ export default function PermissionsPage() {
         (role) =>
           role.nameEn.toLowerCase().includes(roleSearchQuery.toLowerCase()) ||
           role.nameAr.includes(roleSearchQuery) ||
-          (role.descriptionEn || "")
-            .toLowerCase()
-            .includes(roleSearchQuery.toLowerCase()) ||
-          (role.descriptionAr || "").includes(roleSearchQuery)
+          (role.description || "").toLowerCase().includes(roleSearchQuery.toLowerCase())
       )
     : roles;
 
