@@ -492,68 +492,56 @@ export default function PermissionsPage() {
     level: number;
     content: ReactNode;
   }) => {
-    const lineColor = isChecked ? "bg-emerald-500" : "bg-border";
-    const dotSize = level === 0 ? 10 : level === 1 ? 8 : 6;
-    const lineWidth = level === 0 ? 20 : level === 1 ? 16 : 14;
-    const indent = level === 0 ? 28 : level === 1 ? 24 : 20;
+    const checkedColor = "#10b981";
+    const uncheckedColor = "hsl(var(--border))";
+    const lineColor = isChecked ? checkedColor : uncheckedColor;
 
-    // In RTL: tree lines on RIGHT side
-    // In LTR: tree lines on LEFT side
-    const treeSide = isRTL ? "right" : "left";
+    const dotSize   = level === 0 ? 11 : level === 1 ? 9 : 7;
+    const hLineLen  = level === 0 ? 22 : level === 1 ? 18 : 14;
+    const indent    = level === 0 ? 34 : level === 1 ? 28 : 22;
+
+    const treeSide          = isRTL ? "right" : "left";
     const contentMarginSide = isRTL ? "marginRight" : "marginLeft";
+    const dotOffset         = hLineLen - dotSize / 2;
 
     return (
       <div className="relative">
-        {/* Horizontal connector line */}
+        {/* Horizontal connector */}
         <div
-          className={cn("absolute top-4 h-0.5", lineColor)}
+          className="absolute top-[18px] h-px transition-colors duration-300"
+          style={{ width: `${hLineLen}px`, [treeSide]: 0, backgroundColor: lineColor }}
+        />
+
+        {/* Junction dot */}
+        <div
+          className="absolute z-10 rounded-full transition-all duration-300"
           style={{
-            width: `${lineWidth}px`,
-            [treeSide]: "0px",
+            width: dotSize,
+            height: dotSize,
+            top: 18 - dotSize / 2,
+            [treeSide]: dotOffset,
+            backgroundColor: isChecked ? checkedColor : "hsl(var(--background))",
+            border: `2px solid ${isChecked ? checkedColor : "hsl(var(--border))"}`,
+            boxShadow: isChecked ? `0 0 0 3px rgba(16,185,129,0.18)` : "none",
           }}
         />
 
-        {/* Dot connector */}
-        <div
-          className={cn(
-            "absolute rounded-full border-2 z-10 transition-all",
-            isChecked
-              ? "bg-emerald-500 border-emerald-500"
-              : "bg-background border-muted-foreground/40"
-          )}
-          style={{
-            width: `${dotSize}px`,
-            height: `${dotSize}px`,
-            top: `${16 - dotSize / 2}px`,
-            [treeSide]: `-${dotSize / 2}px`,
-          }}
-        />
-
-        {/* Vertical line to children/siblings */}
+        {/* Vertical downward line (to next sibling) */}
         {!isLast && (
           <div
-            className={cn("absolute w-0.5", lineColor)}
-            style={{
-              top: "20px",
-              bottom: "0px",
-              [treeSide]: "0px",
-            }}
+            className="absolute w-px transition-colors duration-300"
+            style={{ top: 30, bottom: 0, [treeSide]: 0, backgroundColor: lineColor }}
           />
         )}
 
-        {/* Content with proper indent */}
-        <div style={{ [contentMarginSide]: `${indent}px` }}>
+        {/* Content */}
+        <div style={{ [contentMarginSide]: indent }}>
           {content}
           {children && (
             <div className="relative">
-              {/* Vertical line for children */}
               <div
-                className={cn("absolute w-0.5", lineColor)}
-                style={{
-                  top: "0px",
-                  bottom: "20px",
-                  [treeSide]: "0px",
-                }}
+                className="absolute w-px transition-colors duration-300"
+                style={{ top: 0, bottom: 18, [treeSide]: 0, backgroundColor: lineColor }}
               />
               {children}
             </div>
@@ -606,11 +594,11 @@ export default function PermissionsPage() {
         content={
           <div
             className={cn(
-              "flex items-center gap-3 p-2.5 rounded-lg transition-all duration-200 mb-1",
+              "flex items-center gap-2.5 px-3 py-2 rounded-lg border transition-all duration-200 mb-0.5 group",
               isChecked
-                ? "bg-emerald-50/80 dark:bg-emerald-950/20"
-                : "hover:bg-muted/50",
-              hasChange && "ring-2 ring-primary/50 ring-offset-1",
+                ? "bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-200/60 dark:border-emerald-800/30"
+                : "border-transparent hover:bg-muted/40 hover:border-border/60",
+              hasChange && "ring-2 ring-amber-400/50 ring-offset-1 border-amber-300/50",
               selectedRole!.isSystem && "opacity-60"
             )}
           >
@@ -624,20 +612,38 @@ export default function PermissionsPage() {
             />
             <div
               className={cn(
-                "min-w-0 flex-1",
-                hasChildren && "cursor-pointer",
-                isRTL && "text-right"
+                "min-w-0 flex-1 flex items-center gap-2",
+                hasChildren && "cursor-pointer"
               )}
               onClick={hasChildren ? togglePermExpand : undefined}
             >
-              <span className="text-sm font-medium block">
-                <span className="font-bold text-primary/80">{permNumber}</span>
-                <span className="mx-2">{getPermissionName(perm)}</span>
+              <span
+                className={cn(
+                  "text-[11px] font-mono font-bold px-1.5 py-0.5 rounded shrink-0 tabular-nums",
+                  isChecked
+                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400"
+                    : "bg-muted text-muted-foreground"
+                )}
+              >
+                {permNumber}
+              </span>
+              <span className={cn("text-sm font-medium", isRTL && "text-right")}>
+                {getPermissionName(perm)}
               </span>
             </div>
             {hasChildren && (
-              <div className={cn("flex items-center gap-2")}>
-                <Badge variant="secondary" className="text-xs tabular-nums">
+              <div className="flex items-center gap-2 shrink-0">
+                <Badge
+                  variant="secondary"
+                  className={cn(
+                    "text-xs tabular-nums transition-colors",
+                    permGranted === permTotal && permTotal > 0
+                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 border-0"
+                      : permGranted > 0
+                      ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 border-0"
+                      : ""
+                  )}
+                >
                   {permGranted}/{permTotal}
                 </Badge>
                 <div
@@ -676,17 +682,40 @@ export default function PermissionsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <div className="relative">
-            <div className="w-16 h-16 rounded-full border-4 border-muted animate-pulse" />
-            <Loader2 className="h-8 w-8 animate-spin text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+      <AdminLayout>
+        <div className="p-4 md:p-6 lg:p-8 space-y-6" dir={dir}>
+          <div className="space-y-1.5">
+            <div className="h-8 w-52 rounded-lg bg-muted animate-pulse" />
+            <div className="h-4 w-80 rounded bg-muted/50 animate-pulse" />
           </div>
-          <p className="text-muted-foreground animate-pulse">
-            Loading permissions...
-          </p>
+          <div className="rounded-2xl border bg-card shadow-sm overflow-hidden">
+            <div className="p-5 border-b flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-muted animate-pulse shrink-0" />
+                <div className="space-y-2">
+                  <div className="h-5 w-36 rounded bg-muted animate-pulse" />
+                  <div className="h-3.5 w-52 rounded bg-muted/50 animate-pulse" />
+                </div>
+              </div>
+              <div className="h-11 w-64 rounded-xl bg-muted animate-pulse hidden sm:block" />
+            </div>
+            <div className="p-6 space-y-2.5">
+              {[1, 0.88, 0.76, 0.92, 0.68, 0.82].map((w, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-3 p-3 rounded-xl border border-muted/60 animate-pulse"
+                  style={{ animationDelay: `${i * 70}ms` }}
+                >
+                  <div className="h-5 w-5 rounded bg-muted shrink-0" />
+                  <div className="h-8 w-8 rounded-lg bg-muted shrink-0" />
+                  <div className="h-4 rounded bg-muted" style={{ width: `${w * 100}%` }} />
+                  <div className="h-5 w-12 rounded-full bg-muted shrink-0 ms-auto" />
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
+      </AdminLayout>
     );
   }
 
@@ -1008,12 +1037,25 @@ export default function PermissionsPage() {
                                     content={
                                       <div
                                         className={cn(
-                                          "flex items-center gap-3 p-3 rounded-xl border transition-all duration-200 mb-1",
+                                          "relative flex items-center gap-3 p-3 rounded-xl border transition-all duration-200 mb-2 overflow-hidden",
                                           isModuleExpanded
-                                            ? "bg-muted/60 border-primary/30 shadow-sm"
-                                            : "hover:bg-muted/40 border-transparent hover:border-muted"
+                                            ? "bg-muted/50 border-primary/20 shadow-sm"
+                                            : "hover:bg-muted/30 border-transparent hover:border-border/70"
                                         )}
                                       >
+                                        {/* Colored left/right indicator bar */}
+                                        <div
+                                          className={cn(
+                                            "absolute top-0 bottom-0 w-1 rounded-sm transition-colors duration-300",
+                                            isRTL ? "right-0" : "left-0",
+                                            isAllModuleChecked
+                                              ? "bg-emerald-500"
+                                              : isSomeModuleChecked
+                                              ? "bg-amber-400"
+                                              : "bg-muted-foreground/20"
+                                          )}
+                                        />
+
                                         <Checkbox
                                           checked={isAllModuleChecked}
                                           ref={(el) => {
@@ -1034,50 +1076,57 @@ export default function PermissionsPage() {
                                           onClick={(e) => e.stopPropagation()}
                                         />
                                         <div
-                                          className={cn(
-                                            "flex items-center gap-3 flex-1 cursor-pointer select-none"
-                                          )}
-                                          onClick={() =>
-                                            toggleModuleExpand(module)
-                                          }
+                                          className="flex items-center gap-3 flex-1 cursor-pointer select-none min-w-0"
+                                          onClick={() => toggleModuleExpand(module)}
                                         >
                                           <div
                                             className={cn(
-                                              "flex items-center justify-center h-8 w-8 rounded-lg shrink-0 transition-colors",
+                                              "flex items-center justify-center h-9 w-9 rounded-lg shrink-0 transition-colors shadow-sm",
                                               isAllModuleChecked
-                                                ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400"
+                                                ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400"
                                                 : isSomeModuleChecked
-                                                ? "bg-amber-100 text-amber-600 dark:bg-amber-950/50 dark:text-amber-400"
+                                                ? "bg-amber-100 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400"
                                                 : "bg-muted text-muted-foreground"
                                             )}
                                           >
-                                            {moduleIcons[module] || (
-                                              <FolderTree className="h-4 w-4" />
+                                            {moduleIcons[module] || <FolderTree className="h-4 w-4" />}
+                                          </div>
+                                          <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-1.5">
+                                              <span className="text-xs font-mono font-bold text-primary/70 tabular-nums shrink-0">
+                                                {moduleNumber}.
+                                              </span>
+                                              <span className="font-semibold text-sm truncate">
+                                                {getModuleLabel(module)}
+                                              </span>
+                                            </div>
+                                            {/* Progress bar */}
+                                            {total > 0 && (
+                                              <div className="mt-1 h-1 rounded-full bg-muted overflow-hidden w-24">
+                                                <div
+                                                  className={cn(
+                                                    "h-full rounded-full transition-all duration-500",
+                                                    isAllModuleChecked
+                                                      ? "bg-emerald-500"
+                                                      : isSomeModuleChecked
+                                                      ? "bg-amber-400"
+                                                      : "bg-muted-foreground/30"
+                                                  )}
+                                                  style={{ width: `${(granted / total) * 100}%` }}
+                                                />
+                                              </div>
                                             )}
                                           </div>
-                                          <div className={cn("flex-1 min-w-0")}>
-                                            <span className="font-bold text-primary/80 text-sm">
-                                              {moduleNumber}.
-                                            </span>
-                                            <span className="font-semibold text-sm mx-2">
-                                              {getModuleLabel(module)}
-                                            </span>
-                                          </div>
-                                          <div
-                                            className={cn(
-                                              "flex items-center gap-2"
-                                            )}
-                                          >
+                                          <div className="flex items-center gap-2 shrink-0">
                                             <Badge
-                                              variant={
-                                                isAllModuleChecked
-                                                  ? "default"
-                                                  : "secondary"
-                                              }
+                                              variant="secondary"
                                               className={cn(
-                                                "tabular-nums transition-colors",
-                                                isAllModuleChecked &&
-                                                  "bg-emerald-600 hover:bg-emerald-600"
+                                                "tabular-nums text-xs transition-colors",
+                                                isAllModuleChecked
+                                                  ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 border-0"
+                                                  : isSomeModuleChecked
+                                                  ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 border-0"
+                                                  : ""
                                               )}
                                             >
                                               {granted}/{total}
