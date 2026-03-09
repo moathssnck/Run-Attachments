@@ -51,6 +51,15 @@ export const API_CONFIG = {
     byCategory: (id: ApiEntityId) => `/api/Prize/category/${id}`,
     byLevel: (level: ApiEntityId) => `/api/Prize/level/${level}`,
   },
+  mixture: {
+    base: "/api/Mixture",
+    list: "/api/Mixture",
+    availableNotebooks: "/api/Mixture/available-notebooks",
+    activate: (id: ApiEntityId) => `/api/Mixture/${id}/activate`,
+    changeStatus: (id: ApiEntityId) => `/api/Mixture/${id}/change-status`,
+    byNotebook: (notebookNo: ApiEntityId, issueId: ApiEntityId) =>
+      `/api/Mixture/notebook/${notebookNo}?issueId=${issueId}`,
+  },
   roles: {
     list: "/api/Roles?includeDeleted=false",
     base: "/api/Roles",

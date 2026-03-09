@@ -1,0 +1,275 @@
+{
+  "info": {
+    "_postman_id": "227465a4-59b7-43ca-bf80-9267148edf94",
+    "name": "Mixture",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "51925085",
+    "_collection_link": "https://go.postman.co/collection/29386686-227465a4-59b7-43ca-bf80-9267148edf94?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Add Mixture",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "accept",
+            "value": "text/plain"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"notebookGroups\": [8, 9, 6],\r\n  \"name\": \"خلطة  4\",\r\n  \"issueId\": 1,\r\n  \"active\": true\r\n}\r\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "https://ithink-71db.onrender.com/api/Mixture",
+          "protocol": "https",
+          "host": [
+            "ithink-71db",
+            "onrender",
+            "com"
+          ],
+          "path": [
+            "api",
+            "Mixture"
+          ]
+        },
+        "description": "Generated from cURL: curl -X 'POST' \\\r\n  'http://localhost:8080/api/Mixture' \\\r\n  -H 'accept: text/plain' \\\r\n  -H 'Content-Type: application/json' \\\r\n  -d '{\r\n  \"notebookGroups\": {\r\n    \"1\": [],             \r\n    \"2\": [101, 115],     \r\n    \"3\": []               \r\n  },\r\n  \"name\": \"خلطة رقم 2\",\r\n  \"issueId\": 1,\r\n  \"active\": true\r\n}\r\n'"
+      },
+      "response": []
+    },
+    {
+      "name": "Get Mixture",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "accept",
+            "value": "text/plain"
+          },
+          {
+            "key": "Accept-Language",
+            "value": "en",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8080/api/Mixture",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "Mixture"
+          ]
+        },
+        "description": "Generated from cURL: curl -X 'GET' \\\r\n  'http://localhost:8080/api/Mixture?issueId=1&activeOnly=true' \\\r\n  -H 'accept: text/plain'"
+      },
+      "response": []
+    },
+    {
+      "name": "Activate",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "accept",
+            "value": "text/plain"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"mixtureId\": 20,\r\n  \"limitPerGroup\": 100\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{URL}}/api/Mixture/20/activate",
+          "host": [
+            "{{URL}}"
+          ],
+          "path": [
+            "api",
+            "Mixture",
+            "20",
+            "activate"
+          ]
+        },
+        "description": "Generated from cURL: curl -X 'POST' \\\r\n  'http://localhost:8080/api/Mixture/4/activate' \\\r\n  -H 'accept: text/plain' \\\r\n  -H 'Content-Type: application/json' \\\r\n  -d '{\r\n  \"mixtureId\": 4,\r\n  \"limitPerGroup\": 100\r\n}'"
+      },
+      "response": []
+    },
+    {
+      "name": "Change-status",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "accept",
+            "value": "text/plain"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"mixtureId\": 19,\r\n  \"notebookNumbers\": [\r\n    310 ,317\r\n  ],\r\n  \"newStatusId\": 67\r\n  }",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/Mixture/19/change-status",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "Mixture",
+            "19",
+            "change-status"
+          ]
+        },
+        "description": "Generated from cURL: curl -X 'POST' \\\r\n  'http://localhost:8080/api/Mixture/19/change-status' \\\r\n  -H 'accept: text/plain' \\\r\n  -H 'Content-Type: application/json' \\\r\n  -d '{\r\n  \"mixtureId\": 19,\r\n  \"notebookNumbers\": [\r\n    310 ,317\r\n  ],\r\n  \"newStatusId\": 9}' 310\"\r\n  ]\r\n}"
+      },
+      "response": []
+    },
+    {
+      "name": "Get Available Notebooks Per Issue",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "sec-ch-ua-platform",
+            "value": "\"Windows\""
+          },
+          {
+            "key": "Referer",
+            "value": "http://localhost:8080/swagger/index.html"
+          },
+          {
+            "key": "User-Agent",
+            "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36 Edg/145.0.0.0"
+          },
+          {
+            "key": "accept",
+            "value": "text/plain"
+          },
+          {
+            "key": "sec-ch-ua",
+            "value": "\"Not:A-Brand\";v=\"99\", \"Microsoft Edge\";v=\"145\", \"Chromium\";v=\"145\""
+          },
+          {
+            "key": "sec-ch-ua-mobile",
+            "value": "?0"
+          }
+        ],
+        "url": {
+          "raw": "{{URL}}/api/Mixture/available-notebooks",
+          "host": [
+            "{{URL}}"
+          ],
+          "path": [
+            "api",
+            "Mixture",
+            "available-notebooks"
+          ]
+        },
+        "description": "Generated from cURL: curl 'http://localhost:8080/api/Mixture/available-notebooks/1' \\\r\n  -H 'sec-ch-ua-platform: \"Windows\"' \\\r\n  -H 'Referer: http://localhost:8080/swagger/index.html' \\\r\n  -H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36 Edg/145.0.0.0' \\\r\n  -H 'accept: text/plain' \\\r\n  -H 'sec-ch-ua: \"Not:A-Brand\";v=\"99\", \"Microsoft Edge\";v=\"145\", \"Chromium\";v=\"145\"' \\\r\n  -H 'sec-ch-ua-mobile: ?0'"
+      },
+      "response": []
+    },
+    {
+      "name": "Get Mixture By Notebook No",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "accept",
+            "value": "text/plain"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8080/api/Mixture/notebook/201?issueId=1",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "Mixture",
+            "notebook",
+            "201"
+          ],
+          "query": [
+            {
+              "key": "issueId",
+              "value": "1"
+            }
+          ]
+        },
+        "description": "Generated from cURL: curl -X 'GET' \\\r\n  'http://localhost:8080/api/Mixture/notebook/3500?issueId=1' \\\r\n  -H 'accept: text/plain'"
+      },
+      "response": []
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{Token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ]
+}
