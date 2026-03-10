@@ -166,8 +166,10 @@ export default function UsersPage() {
         id:                   String(u.userId ?? u.id ?? u.userID ?? u.user_id ?? ""),
         email:                u.email ?? u.emailAddress ?? u.userEmail ?? "",
         passwordHash:         "",
-        firstName:            u.firstName ?? u.fName ?? u.first_name ?? u.firstNameEn ?? u.fname ?? "",
-        lastName:             u.lastName  ?? u.lName  ?? u.last_name  ?? u.lastNameEn  ?? u.lname  ?? "",
+        firstName:            u.firstName ?? u.fName ?? u.first_name ?? u.firstNameEn ?? u.fname
+                              ?? (u.fullName ? String(u.fullName).split(" ")[0] : "") ?? "",
+        lastName:             u.lastName  ?? u.lName  ?? u.last_name  ?? u.lastNameEn  ?? u.lname
+                              ?? (u.fullName ? String(u.fullName).split(" ").slice(1).join(" ") : "") ?? "",
         mobile:               u.mobile ?? u.phone ?? u.phoneNumber ?? u.mobileNumber ?? u.mobile_number ?? "",
         status:               u.status ?? u.userStatus ?? u.accountStatus ?? "active",
         role:                 u.role ?? u.roleName ?? u.userRole ?? u.roleNameEn ?? "end_user",
