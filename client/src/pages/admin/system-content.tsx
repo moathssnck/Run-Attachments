@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -218,6 +218,36 @@ export default function SystemContentPage() {
     retry: 1,
   });
 
+  // ── Fetch SystemContent list to know which category IDs are in use ─────────
+  const { data: sysContentList = [] } = useQuery<{ systemContentCategoryId: number }[]>({
+    queryKey: [API_CONFIG.systemContent.list],
+    queryFn: async () => {
+      const res = await apiRequest("GET", API_CONFIG.systemContent.list);
+      if (!res.ok) throw new Error(`${res.status}`);
+      const payload = await res.json();
+      const rows = unwrapArray(payload, "systemContents", "data", "items", "result");
+      return rows.map((r: Raw) => ({
+        systemContentCategoryId: asNum(r.systemContentCategoryId ?? r.categoryId),
+      }));
+    },
+    retry: 1,
+  });
+
+  // ── Derive which category IDs actually have system content ─────────────────
+  const sysContentCategoryIds = useMemo(
+    () => new Set(sysContentList.map((c) => c.systemContentCategoryId).filter((id) => id > 0)),
+    [sysContentList]
+  );
+
+  // ── Filter to only categories used in system content ──────────────────────
+  const filteredCategories = useMemo(
+    () =>
+      sysContentCategoryIds.size > 0
+        ? categories.filter((cat) => sysContentCategoryIds.has(cat.id))
+        : categories,
+    [categories, sysContentCategoryIds]
+  );
+
   // ── Fetch Lookups for selected category ───────────────────────────────────
   const {
     data: lookups = [],
@@ -325,10 +355,10 @@ export default function SystemContentPage() {
                       <SelectItem value="__loading" disabled>{isRTL ? "جارٍ التحميل..." : "Loading..."}</SelectItem>
                     ) : isCatsError ? (
                       <SelectItem value="__error" disabled>{isRTL ? "فشل في التحميل" : "Failed to load"}</SelectItem>
-                    ) : categories.length === 0 ? (
+                    ) : filteredCategories.length === 0 ? (
                       <SelectItem value="__empty" disabled>{isRTL ? "لا توجد فئات" : "No categories"}</SelectItem>
                     ) : (
-                      categories.map((cat) => (
+                      filteredCategories.map((cat) => (
                         <SelectItem key={cat.id} value={String(cat.id)} data-testid={`option-category-${cat.id}`}>
                           {isRTL ? cat.labelAr || cat.labelEn : cat.labelEn || cat.labelAr}
                         </SelectItem>
