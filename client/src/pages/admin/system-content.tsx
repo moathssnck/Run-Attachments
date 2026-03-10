@@ -218,8 +218,8 @@ export default function SystemContentPage() {
     retry: 1,
   });
 
-  // ── Fetch SystemContent list to know which category IDs are in use ─────────
-  const { data: sysContentList = [] } = useQuery<{ systemContentCategoryId: number }[]>({
+  // ── Fetch SystemContent list to know which category + lookup IDs are in use ─
+  const { data: sysContentList = [] } = useQuery<{ systemContentCategoryId: number; lookupId: number }[]>({
     queryKey: [API_CONFIG.systemContent.list],
     queryFn: async () => {
       const res = await apiRequest("GET", API_CONFIG.systemContent.list);
@@ -228,6 +228,7 @@ export default function SystemContentPage() {
       const rows = unwrapArray(payload, "systemContents", "data", "items", "result");
       return rows.map((r: Raw) => ({
         systemContentCategoryId: asNum(r.systemContentCategoryId ?? r.categoryId),
+        lookupId:                asNum(r.id ?? r.systemContentId ?? r.lookupId),
       }));
     },
     retry: 1,
@@ -239,6 +240,17 @@ export default function SystemContentPage() {
     [sysContentList]
   );
 
+  // ── Derive which lookup IDs have content for the selected category ──────────
+  const sysContentLookupIds = useMemo(
+    () =>
+      new Set(
+        sysContentList
+          .filter((c) => c.systemContentCategoryId === selectedCategoryId && c.lookupId > 0)
+          .map((c) => c.lookupId)
+      ),
+    [sysContentList, selectedCategoryId]
+  );
+
   // ── Filter to only categories used in system content ──────────────────────
   const filteredCategories = useMemo(
     () =>
@@ -246,6 +258,15 @@ export default function SystemContentPage() {
         ? categories.filter((cat) => sysContentCategoryIds.has(cat.id))
         : categories,
     [categories, sysContentCategoryIds]
+  );
+
+  // ── Filter lookups to only those that have system content ──────────────────
+  const filteredLookups = useMemo(
+    () =>
+      sysContentLookupIds.size > 0
+        ? lookups.filter((lk) => sysContentLookupIds.has(lk.id))
+        : lookups,
+    [lookups, sysContentLookupIds]
   );
 
   // ── Fetch Lookups for selected category ───────────────────────────────────
@@ -388,10 +409,10 @@ export default function SystemContentPage() {
                     <SelectItem value="__loading" disabled>{isRTL ? "جارٍ التحميل..." : "Loading..."}</SelectItem>
                   ) : isLookupsError ? (
                     <SelectItem value="__error" disabled>{isRTL ? "فشل في التحميل" : "Failed to load"}</SelectItem>
-                  ) : lookups.length === 0 ? (
+                  ) : filteredLookups.length === 0 ? (
                     <SelectItem value="__empty" disabled>{isRTL ? "لا توجد عناصر" : "No items found"}</SelectItem>
                   ) : (
-                    lookups.map((item) => (
+                    filteredLookups.map((item) => (
                       <SelectItem key={item.id} value={String(item.id)} data-testid={`option-content-${item.id}`}>
                         {isRTL ? item.labelAr : item.labelEn}
                       </SelectItem>
