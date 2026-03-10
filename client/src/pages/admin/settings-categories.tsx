@@ -146,6 +146,7 @@ export default function SettingsCategoriesPage() {
     lookupCategoryEn: "",
   });
   const [categorySearch, setCategorySearch] = useState("");
+  const [pendingToggleCatId, setPendingToggleCatId] = useState<number | null>(null);
 
   // ── Lookup (Definition) state ─────────────────────────────────────────────
   const [isAddLookupOpen, setIsAddLookupOpen] = useState(false);
@@ -158,6 +159,7 @@ export default function SettingsCategoriesPage() {
     active: true,
   });
   const [lookupCategoryFilter, setLookupCategoryFilter] = useState("all");
+  const [pendingToggleLookupId, setPendingToggleLookupId] = useState<number | null>(null);
 
   // ── Queries ───────────────────────────────────────────────────────────────
 
@@ -268,26 +270,31 @@ export default function SettingsCategoriesPage() {
   });
 
   const toggleCatMutation = useMutation({
-    mutationFn: (cat: NormalizedLookupCategory) =>
-      apiRequest("PUT", API_CONFIG.lookupCategory.byId(cat.id), {
+    mutationFn: (cat: NormalizedLookupCategory) => {
+      setPendingToggleCatId(cat.id);
+      return apiRequest("PUT", API_CONFIG.lookupCategory.byId(cat.id), {
         id: cat.id,
         lookupCategoryAr: cat.lookupCategoryAr,
         lookupCategoryEn: cat.lookupCategoryEn,
         active: !cat.active,
-      }),
+      });
+    },
     onSuccess: () => {
+      setPendingToggleCatId(null);
       queryClient.invalidateQueries({ queryKey: [API_CONFIG.lookupCategory.list] });
       toast({
         title: isRTL ? "تم التحديث" : "Updated",
         description: isRTL ? "تم تغيير حالة التفعيل" : "Activation status changed",
       });
     },
-    onError: () =>
+    onError: () => {
+      setPendingToggleCatId(null);
       toast({
         title: t("common.error"),
         description: isRTL ? "فشل في تغيير الحالة" : "Failed to change status",
         variant: "destructive",
-      }),
+      });
+    },
   });
 
   // ── Lookup mutations ──────────────────────────────────────────────────────
@@ -346,27 +353,32 @@ export default function SettingsCategoriesPage() {
   });
 
   const toggleLookupMutation = useMutation({
-    mutationFn: (lookup: NormalizedLookup) =>
-      apiRequest("PUT", API_CONFIG.lookup.byId(lookup.id), {
+    mutationFn: (lookup: NormalizedLookup) => {
+      setPendingToggleLookupId(lookup.id);
+      return apiRequest("PUT", API_CONFIG.lookup.byId(lookup.id), {
         id: lookup.id,
         lookupAr: lookup.lookupAr,
         lookupEn: lookup.lookupEn,
         lookupCategoryId: lookup.lookupCategoryId,
         active: !lookup.active,
-      }),
+      });
+    },
     onSuccess: () => {
+      setPendingToggleLookupId(null);
       queryClient.invalidateQueries({ queryKey: [API_CONFIG.lookup.list] });
       toast({
         title: isRTL ? "تم التحديث" : "Updated",
         description: isRTL ? "تم تغيير حالة التفعيل" : "Activation status changed",
       });
     },
-    onError: () =>
+    onError: () => {
+      setPendingToggleLookupId(null);
       toast({
         title: t("common.error"),
         description: isRTL ? "فشل في تغيير الحالة" : "Failed to change status",
         variant: "destructive",
-      }),
+      });
+    },
   });
 
   // ── Handlers ──────────────────────────────────────────────────────────────
@@ -478,12 +490,14 @@ export default function SettingsCategoriesPage() {
                             variant="ghost"
                             size="icon"
                             onClick={() => toggleCatMutation.mutate(cat)}
-                            disabled={toggleCatMutation.isPending}
+                            disabled={pendingToggleCatId === cat.id}
                             data-testid={`button-toggle-category-${cat.id}`}
                             className={`h-8 w-8 ${cat.active ? "text-green-600 hover:bg-green-50 hover:text-green-700" : "text-muted-foreground hover:bg-muted"}`}
                             title={cat.active ? (isRTL ? "تعطيل" : "Deactivate") : (isRTL ? "تفعيل" : "Activate")}
                           >
-                            {cat.active
+                            {pendingToggleCatId === cat.id
+                              ? <Loader2 className="h-4 w-4 animate-spin" />
+                              : cat.active
                               ? <Power className="h-4 w-4" />
                               : <PowerOff className="h-4 w-4" />}
                           </Button>
@@ -599,12 +613,14 @@ export default function SettingsCategoriesPage() {
                             variant="ghost"
                             size="icon"
                             onClick={() => toggleLookupMutation.mutate(lookup)}
-                            disabled={toggleLookupMutation.isPending}
+                            disabled={pendingToggleLookupId === lookup.id}
                             data-testid={`button-toggle-definition-${lookup.id}`}
                             className={`h-8 w-8 ${lookup.active ? "text-green-600 hover:bg-green-50 hover:text-green-700" : "text-muted-foreground hover:bg-muted"}`}
                             title={lookup.active ? (isRTL ? "تعطيل" : "Deactivate") : (isRTL ? "تفعيل" : "Activate")}
                           >
-                            {lookup.active
+                            {pendingToggleLookupId === lookup.id
+                              ? <Loader2 className="h-4 w-4 animate-spin" />
+                              : lookup.active
                               ? <Power className="h-4 w-4" />
                               : <PowerOff className="h-4 w-4" />}
                           </Button>
