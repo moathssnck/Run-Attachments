@@ -260,15 +260,6 @@ export default function SystemContentPage() {
     [categories, sysContentCategoryIds]
   );
 
-  // ── Filter lookups to only those that have system content ──────────────────
-  const filteredLookups = useMemo(
-    () =>
-      sysContentLookupIds.size > 0
-        ? lookups.filter((lk) => sysContentLookupIds.has(lk.id))
-        : lookups,
-    [lookups, sysContentLookupIds]
-  );
-
   // ── Fetch Lookups for selected category ───────────────────────────────────
   const {
     data: lookups = [],
@@ -286,6 +277,15 @@ export default function SystemContentPage() {
     enabled: selectedCategoryId > 0,
     retry: 1,
   });
+
+  // ── Filter lookups to only those that have system content ──────────────────
+  const filteredLookups = useMemo(
+    () =>
+      sysContentLookupIds.size > 0
+        ? lookups.filter((lk) => sysContentLookupIds.has(lk.id))
+        : lookups,
+    [lookups, sysContentLookupIds]
+  );
 
   // ── Fetch SystemContent by selected lookup ID ──────────────────────────────
   const {
