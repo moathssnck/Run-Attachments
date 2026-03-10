@@ -154,6 +154,14 @@ function AdminSidebar() {
   const [settingsOpen, setSettingsOpen] = useState(isSettingsActive);
 
   useEffect(() => {
+    if (isRolesPermissionsActive) setRolesOpen(true);
+  }, [isRolesPermissionsActive]);
+
+  useEffect(() => {
+    if (isSettingsActive) setSettingsOpen(true);
+  }, [isSettingsActive]);
+
+  useEffect(() => {
     const timer = setTimeout(() => {
       const activeEl = document.querySelector<HTMLElement>(
         '[data-sidebar="content"] [data-active="true"]'
@@ -162,7 +170,7 @@ function AdminSidebar() {
         activeEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
         activeEl.focus({ preventScroll: true });
       }
-    }, 120);
+    }, 200);
     return () => clearTimeout(timer);
   }, [location]);
 
