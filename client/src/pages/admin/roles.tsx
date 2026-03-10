@@ -276,7 +276,7 @@ export default function RolesPage() {
       : (usersData as any).data ?? (usersData as any).users ?? [];
     return arr.map((u: any) => ({
       id: String(u.id ?? u.userId),
-      name: [u.firstName, u.lastName].filter(Boolean).join(" ") || u.email || "",
+      name: (u.fullName ?? u.fullNameEn ?? u.fullNameAr ?? u.fullNameArabic ?? [u.firstName, u.lastName].filter(Boolean).join(" ")) || u.email || "",
       email: u.email ?? "",
     }));
   }, [usersData]);
