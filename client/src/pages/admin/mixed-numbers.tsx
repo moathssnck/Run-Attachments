@@ -52,6 +52,7 @@ import {
   RefreshCw,
   Zap,
   Hash,
+  Eye,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -173,6 +174,9 @@ export default function MixedNumbersPage() {
   // Activate dialog state
   const [activateDialogMixture, setActivateDialogMixture] = useState<Mixture | null>(null);
   const [limitPerGroup, setLimitPerGroup] = useState<number>(100);
+
+  // Number box dialog state
+  const [numberBoxMixture, setNumberBoxMixture] = useState<Mixture | null>(null);
 
   // ── Queries ────────────────────────────────────────────────────────────────
 
@@ -726,30 +730,45 @@ export default function MixedNumbersPage() {
                                 )}
                               </TableCell>
                               <TableCell className="text-center">
-                                {!mix.active && (
+                                <div className="flex items-center justify-center gap-1">
                                   <Tooltip>
                                     <TooltipTrigger asChild>
                                       <Button
                                         variant="ghost"
                                         size="icon"
-                                        className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
-                                        onClick={() => {
-                                          setActivateDialogMixture(mix);
-                                          setLimitPerGroup(100);
-                                        }}
-                                        data-testid={`button-activate-${mix.id}`}
+                                        className="h-8 w-8 text-primary hover:text-primary/80 hover:bg-primary/10"
+                                        onClick={() => setNumberBoxMixture(mix)}
+                                        data-testid={`button-numberbox-${mix.id}`}
                                       >
-                                        <Zap className="h-3.5 w-3.5" />
+                                        <Eye className="h-3.5 w-3.5" />
                                       </Button>
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                      {isRTL ? "تفعيل الخلطة" : "Activate mixture"}
+                                      {isRTL ? "عرض الأرقام" : "View numbers"}
                                     </TooltipContent>
                                   </Tooltip>
-                                )}
-                                {mix.active && (
-                                  <span className="text-xs text-muted-foreground">—</span>
-                                )}
+                                  {!mix.active && (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+                                          onClick={() => {
+                                            setActivateDialogMixture(mix);
+                                            setLimitPerGroup(100);
+                                          }}
+                                          data-testid={`button-activate-${mix.id}`}
+                                        >
+                                          <Zap className="h-3.5 w-3.5" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        {isRTL ? "تفعيل الخلطة" : "Activate mixture"}
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  )}
+                                </div>
                               </TableCell>
                             </TableRow>
                           ))}
@@ -825,6 +844,102 @@ export default function MixedNumbersPage() {
                 )}
                 {isRTL ? "تفعيل" : "Activate"}
               </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        {/* ── Number Box Dialog ─────────────────────────────────────────────── */}
+        <Dialog
+          open={numberBoxMixture !== null}
+          onOpenChange={(open) => !open && setNumberBoxMixture(null)}
+        >
+          <DialogContent className="max-w-lg" dir={dir}>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-primary/10">
+                  <Shuffle className="h-4 w-4 text-primary" />
+                </div>
+                {numberBoxMixture?.name || (isRTL ? "الخلطة" : "Mixture")}
+              </DialogTitle>
+              <DialogDescription className="flex items-center gap-2 flex-wrap">
+                <Badge variant="outline" className="text-xs font-mono">
+                  {getIssueName(numberBoxMixture?.issueId ?? 0)}
+                </Badge>
+                {numberBoxMixture?.active ? (
+                  <Badge className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 text-xs gap-1">
+                    <CheckCircle2 className="h-3 w-3" />
+                    {isRTL ? "مفعّل" : "Active"}
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary" className="text-xs gap-1 text-muted-foreground">
+                    <XCircle className="h-3 w-3" />
+                    {isRTL ? "غير مفعّل" : "Inactive"}
+                  </Badge>
+                )}
+                <span className="text-xs text-muted-foreground">
+                  {isRTL
+                    ? `${numberBoxMixture?.notebookGroups.length ?? 0} دفتر`
+                    : `${numberBoxMixture?.notebookGroups.length ?? 0} notebooks`}
+                </span>
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="py-2">
+              {numberBoxMixture && numberBoxMixture.notebookGroups.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground text-sm">
+                  <Hash className="h-10 w-10 mx-auto mb-2 opacity-20" />
+                  {isRTL ? "لا توجد أرقام في هذه الخلطة" : "No numbers in this mixture"}
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2 justify-center p-2 max-h-72 overflow-y-auto">
+                  {numberBoxMixture?.notebookGroups
+                    .slice()
+                    .sort((a, b) => a - b)
+                    .map((num) => (
+                      <div
+                        key={num}
+                        data-testid={`numberbox-chip-${num}`}
+                        className={cn(
+                          "flex items-center justify-center rounded-full font-bold tabular-nums select-none",
+                          "border-2 shadow-sm transition-colors",
+                          num <= 9
+                            ? "h-11 w-11 text-base"
+                            : num <= 99
+                            ? "h-11 w-11 text-sm"
+                            : "h-12 w-12 text-xs",
+                          numberBoxMixture.active
+                            ? "bg-emerald-500/10 border-emerald-400 text-emerald-700 dark:text-emerald-300 dark:border-emerald-500"
+                            : "bg-primary/10 border-primary/40 text-primary"
+                        )}
+                      >
+                        {num}
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setNumberBoxMixture(null)}
+                data-testid="button-close-numberbox"
+              >
+                {isRTL ? "إغلاق" : "Close"}
+              </Button>
+              {numberBoxMixture && !numberBoxMixture.active && (
+                <Button
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+                  onClick={() => {
+                    setActivateDialogMixture(numberBoxMixture);
+                    setLimitPerGroup(100);
+                    setNumberBoxMixture(null);
+                  }}
+                  data-testid="button-numberbox-activate"
+                >
+                  <Zap className="h-4 w-4" />
+                  {isRTL ? "تفعيل" : "Activate"}
+                </Button>
+              )}
             </DialogFooter>
           </DialogContent>
         </Dialog>
