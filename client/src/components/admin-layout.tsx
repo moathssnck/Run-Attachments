@@ -2,7 +2,7 @@
 
 import React from "react";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import {
   LayoutDashboard,
@@ -152,6 +152,19 @@ function AdminSidebar() {
     settingsSubItems.some((item) => location === item.href) ||
     location === "/admin/settings";
   const [settingsOpen, setSettingsOpen] = useState(isSettingsActive);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const activeEl = document.querySelector<HTMLElement>(
+        '[data-sidebar="content"] [data-active="true"]'
+      );
+      if (activeEl) {
+        activeEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        activeEl.focus({ preventScroll: true });
+      }
+    }, 120);
+    return () => clearTimeout(timer);
+  }, [location]);
 
   const initials = user
     ? `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}`.toUpperCase()
