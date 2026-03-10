@@ -22,10 +22,8 @@ import {
   KeyRound,
   BookOpen,
   BookCopy,
-  Cog,
   Wallet,
   Palette,
-  Heart,
   Trophy,
   FolderTree,
   ArrowLeftRight,
@@ -101,16 +99,10 @@ const systemNavItems = [
 ];
 
 const settingsSubItems = [
-  { href: "/admin/settings/system", labelKey: "nav.settingsSystem", icon: Cog },
   {
     href: "/admin/settings/custom",
     labelKey: "nav.settingsCustom",
     icon: Palette,
-  },
-  {
-    href: "/admin/settings/preferences",
-    labelKey: "nav.settingsPreferences",
-    icon: Heart,
   },
   {
     href: "/admin/settings/categories",

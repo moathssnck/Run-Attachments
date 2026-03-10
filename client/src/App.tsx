@@ -29,9 +29,7 @@ import AdminPayments from "@/pages/admin/payments";
 import AdminRoles from "@/pages/admin/roles";
 import AdminAuditLogs from "@/pages/admin/audit-logs";
 import AdminSettings from "@/pages/admin/settings";
-import AdminSettingsSystem from "@/pages/admin/settings-system";
 import AdminSettingsCustom from "@/pages/admin/settings-custom";
-import AdminSettingsPreferences from "@/pages/admin/settings-preferences";
 import AdminSettingsCategories from "@/pages/admin/settings-categories";
 import AdminSettingsCard from "@/pages/admin/settings-card";
 import AdminPermissions from "@/pages/admin/permissions";
@@ -228,21 +226,9 @@ function Router() {
         </ProtectedRoute>
       </Route>
 
-      <Route path="/admin/settings/system">
-        <ProtectedRoute allowedRoles={["admin", "system_admin"]}>
-          <AdminSettingsSystem />
-        </ProtectedRoute>
-      </Route>
-
       <Route path="/admin/settings/custom">
         <ProtectedRoute allowedRoles={["admin", "system_admin"]}>
           <AdminSettingsCustom />
-        </ProtectedRoute>
-      </Route>
-
-      <Route path="/admin/settings/preferences">
-        <ProtectedRoute allowedRoles={["admin", "system_admin"]}>
-          <AdminSettingsPreferences />
         </ProtectedRoute>
       </Route>
 
