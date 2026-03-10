@@ -89,6 +89,8 @@ import type { User } from "@shared/schema";
 import { format } from "date-fns";
 import { arSA, enUS } from "date-fns/locale";
 
+type UserWithFullName = User & { fullName: string };
+
 function getStatusBadgeVariant(
   status: string,
 ): "success" | "warning" | "danger" | "outline" {
@@ -115,7 +117,7 @@ export default function UsersPage() {
   const [roleFilter, setRoleFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editingUser, setEditingUser] = useState<UserWithFullName | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editFormData, setEditFormData] = useState({
     status: "",
@@ -142,11 +144,11 @@ export default function UsersPage() {
     role: "end_user",
     status: "active",
   });
-  const [rolesPermissionsUser, setRolesPermissionsUser] = useState<User | null>(null);
+  const [rolesPermissionsUser, setRolesPermissionsUser] = useState<UserWithFullName | null>(null);
   const [selectedRoleId, setSelectedRoleId] = useState<string>("");
   const [pendingPermissions, setPendingPermissions] = useState<Map<string, boolean>>(new Map());
 
-  const { data: users, isLoading } = useQuery<User[]>({
+  const { data: users, isLoading } = useQuery<UserWithFullName[]>({
     queryKey: ["/api/UserManagement/get-all-users"],
     queryFn: async () => {
       const res = await apiRequest("GET", "/api/UserManagement/get-all-users");
@@ -162,20 +164,29 @@ export default function UsersPage() {
         : Array.isArray(payload?.items)
         ? payload.items
         : [];
-      return arr.map((u: any): User => ({
+      return arr.map((u: any): UserWithFullName => {
+        const firstName: string =
+          u.firstName ?? u.fName ?? u.first_name ?? u.firstNameEn ?? u.fname
+          ?? (u.fullNameEn     ? String(u.fullNameEn).split(" ")[0]     : undefined)
+          ?? (u.fullNameAr     ? String(u.fullNameAr).split(" ")[0]     : undefined)
+          ?? (u.fullNameArabic ? String(u.fullNameArabic).split(" ")[0] : undefined)
+          ?? (u.fullName       ? String(u.fullName).split(" ")[0]       : "");
+        const lastName: string =
+          u.lastName  ?? u.lName  ?? u.last_name  ?? u.lastNameEn  ?? u.lname
+          ?? (u.fullNameEn     ? String(u.fullNameEn).split(" ").slice(1).join(" ")     : undefined)
+          ?? (u.fullNameAr     ? String(u.fullNameAr).split(" ").slice(1).join(" ")     : undefined)
+          ?? (u.fullNameArabic ? String(u.fullNameArabic).split(" ").slice(1).join(" ") : undefined)
+          ?? (u.fullName       ? String(u.fullName).split(" ").slice(1).join(" ")       : "");
+        const fullName: string =
+          u.fullName ?? u.fullNameEn ?? u.fullNameAr ?? u.fullNameArabic
+          ?? `${firstName} ${lastName}`.trim();
+        return ({
         id:                   String(u.userId ?? u.id ?? u.userID ?? u.user_id ?? ""),
         email:                u.email ?? u.emailAddress ?? u.userEmail ?? "",
         passwordHash:         "",
-        firstName:            u.firstName ?? u.fName ?? u.first_name ?? u.firstNameEn ?? u.fname
-                              ?? (u.fullNameEn     ? String(u.fullNameEn).split(" ")[0]     : undefined)
-                              ?? (u.fullNameAr     ? String(u.fullNameAr).split(" ")[0]     : undefined)
-                              ?? (u.fullNameArabic ? String(u.fullNameArabic).split(" ")[0] : undefined)
-                              ?? (u.fullName       ? String(u.fullName).split(" ")[0]       : ""),
-        lastName:             u.lastName  ?? u.lName  ?? u.last_name  ?? u.lastNameEn  ?? u.lname
-                              ?? (u.fullNameEn     ? String(u.fullNameEn).split(" ").slice(1).join(" ")     : undefined)
-                              ?? (u.fullNameAr     ? String(u.fullNameAr).split(" ").slice(1).join(" ")     : undefined)
-                              ?? (u.fullNameArabic ? String(u.fullNameArabic).split(" ").slice(1).join(" ") : undefined)
-                              ?? (u.fullName       ? String(u.fullName).split(" ").slice(1).join(" ")       : ""),
+        firstName,
+        lastName,
+        fullName,
         mobile:               u.mobile ?? u.phone ?? u.phoneNumber ?? u.mobileNumber ?? u.mobile_number ?? "",
         status:               u.status ?? u.userStatus ?? u.accountStatus ?? "active",
         role:                 u.role ?? u.roleName ?? u.userRole ?? u.roleNameEn ?? "end_user",
@@ -200,7 +211,8 @@ export default function UsersPage() {
         emergencyPhone:       u.emergencyPhone       ?? u.emergency_phone       ?? null,
         passportOrIdNumber:   u.passportOrIdNumber   ?? u.documentOrPassportNumber ?? u.passportNumber ?? null,
         profilePhoto:         u.profilePhoto         ?? u.profileImage          ?? u.avatar ?? null,
-      }));
+        });
+      });
     },
   });
 
@@ -388,9 +400,7 @@ export default function UsersPage() {
     const matchesSearch =
       searchQuery === "" ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      `${user.firstName} ${user.lastName}`
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase());
+      user.fullName.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus =
       statusFilter === "all" || user.status === statusFilter;
     const matchesRole = roleFilter === "all" || user.role === roleFilter;
@@ -620,7 +630,7 @@ export default function UsersPage() {
                             </Avatar>
                             <div>
                               <p className="font-medium">
-                                {user.firstName} {user.lastName}
+                                {user.fullName}
                               </p>
                               <p className="text-sm text-muted-foreground">
                                 {user.email}
@@ -866,13 +876,12 @@ export default function UsersPage() {
               <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 mb-4">
                 <Avatar>
                   <AvatarFallback>
-                    {editingUser.firstName?.[0]}
-                    {editingUser.lastName?.[0]}
+                    {editingUser.fullName?.[0]?.toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <div>
                   <p className="font-medium">
-                    {editingUser.firstName} {editingUser.lastName}
+                    {editingUser.fullName}
                   </p>
                   <p className="text-sm text-muted-foreground">
                     {editingUser.email}
@@ -1352,7 +1361,7 @@ export default function UsersPage() {
             <DialogDescription>
               {rolesPermissionsUser && (
                 <span>
-                  {rolesPermissionsUser.firstName} {rolesPermissionsUser.lastName} — {rolesPermissionsUser.email}
+                  {rolesPermissionsUser.fullName} — {rolesPermissionsUser.email}
                 </span>
               )}
             </DialogDescription>
