@@ -1,0 +1,385 @@
+{
+  "info": {
+    "_postman_id": "765517a2-4c19-461b-b794-8dc3583dc7da",
+    "name": "UserRoles",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "51925085",
+    "_collection_link": "https://go.postman.co/collection/29386686-765517a2-4c19-461b-b794-8dc3583dc7da?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Get All User Role",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "accept",
+            "value": "text/plain"
+          }
+        ],
+        "url": {
+          "raw": "{{URL}}/api/UserRoles?pageNumber=1&pageSize=10",
+          "host": [
+            "{{URL}}"
+          ],
+          "path": [
+            "api",
+            "UserRoles"
+          ],
+          "query": [
+            {
+              "key": "pageNumber",
+              "value": "1"
+            },
+            {
+              "key": "pageSize",
+              "value": "10"
+            }
+          ]
+        },
+        "description": "Generated from cURL: curl -X 'GET' \\\r\n  'https://localhost:44345/api/UserRoles?pageNumber=1&pageSize=10' \\\r\n  -H 'accept: text/plain'"
+      },
+      "response": []
+    },
+    {
+      "name": "Assigned User Roles",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{Token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "accept",
+            "value": "text/plain"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"userId\": 13,\r\n  \"roleId\": 2,\r\n  \"assignedByUserId\": 1\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{URL}}/api/UserRoles",
+          "host": [
+            "{{URL}}"
+          ],
+          "path": [
+            "api",
+            "UserRoles"
+          ]
+        },
+        "description": "Generated from cURL: curl -X 'POST' \\\r\n  'https://localhost:44345/api/UserRoles' \\\r\n  -H 'accept: text/plain' \\\r\n  -H 'Content-Type: application/json' \\\r\n  -d '{\r\n  \"userId\": 1,\r\n  \"roleId\": 1,\r\n  \"assignedByUserId\": 1\r\n}'"
+      },
+      "response": []
+    },
+    {
+      "name": "Get All User Roles By Id",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "accept",
+            "value": "text/plain"
+          }
+        ],
+        "url": {
+          "raw": "{{URL}}/api/UserRoles/user/10012",
+          "host": [
+            "{{URL}}"
+          ],
+          "path": [
+            "api",
+            "UserRoles",
+            "user",
+            "10012"
+          ]
+        },
+        "description": "Generated from cURL: curl -X 'GET' \\\r\n  'https://localhost:44345/api/UserRoles/user/1' \\\r\n  -H 'accept: text/plain'"
+      },
+      "response": []
+    },
+    {
+      "name": "Delete UserRoles By Id",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "accept",
+            "value": "text/plain"
+          }
+        ],
+        "url": {
+          "raw": "https://localhost:44345/api/UserRoles/1/1",
+          "protocol": "https",
+          "host": [
+            "localhost"
+          ],
+          "port": "44345",
+          "path": [
+            "api",
+            "UserRoles",
+            "1",
+            "1"
+          ]
+        },
+        "description": "Generated from cURL: curl -X 'DELETE' \\\r\n  'https://localhost:44345/api/UserRoles/1/1' \\\r\n  -H 'accept: text/plain'"
+      },
+      "response": []
+    },
+    {
+      "name": "Get User By Role Id",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "accept",
+            "value": "text/plain"
+          }
+        ],
+        "url": {
+          "raw": "{{URL}}/api/UserRoles/role/2",
+          "host": [
+            "{{URL}}"
+          ],
+          "path": [
+            "api",
+            "UserRoles",
+            "role",
+            "2"
+          ]
+        },
+        "description": "Generated from cURL: curl -X 'GET' \\\r\n  'https://localhost:44345/api/UserRoles/role/1' \\\r\n  -H 'accept: text/plain'"
+      },
+      "response": []
+    },
+    {
+      "name": "check if User have Roles",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "accept",
+            "value": "text/plain"
+          }
+        ],
+        "url": {
+          "raw": "{{URL}}/api/UserRoles/check/1/1",
+          "host": [
+            "{{URL}}"
+          ],
+          "path": [
+            "api",
+            "UserRoles",
+            "check",
+            "1",
+            "1"
+          ]
+        },
+        "description": "Generated from cURL: curl -X 'GET' \\\r\n  'https://localhost:44345/api/UserRoles/check/1/1' \\\r\n  -H 'accept: text/plain'"
+      },
+      "response": []
+    },
+    {
+      "name": "assign-roles-to-user",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "accept",
+            "value": "*/*"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"userId\": 1,\r\n  \"roleIds\": [\r\n    1,2\r\n  ]\r\n}       /// <summary>\r\n       /// Assign multiple roles to ONE user\r\n       /// Example: { \"userId\": 1, \"roleIds\": [1, 2, 3] }\r\n       /// </summary>",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{URL}}/api/UserRoles/assign-roles-to-user",
+          "host": [
+            "{{URL}}"
+          ],
+          "path": [
+            "api",
+            "UserRoles",
+            "assign-roles-to-user"
+          ]
+        },
+        "description": "Generated from cURL: curl -X 'POST' \\\r\n  'https://localhost:44345/api/UserRoles/assign-roles-to-user' \\\r\n  -H 'accept: */*' \\\r\n  -H 'Content-Type: application/json' \\\r\n  -d '{\r\n  \"userId\": 0,\r\n  \"roleIds\": [\r\n    0\r\n  ]\r\n}'"
+      },
+      "response": []
+    },
+    {
+      "name": "assign-role-to-users",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "accept",
+            "value": "*/*"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"roleId\": 1,\r\n  \"userIds\": [\r\n    1,2,3\r\n  ]\r\n}        /// <summary>\r\n        /// Assign ONE role to multiple users\r\n        /// Example: { \"roleId\": 1, \"userIds\": [1, 2, 3, 4, 5] }\r\n        /// </summary>",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{URL}}/api/UserRoles/assign-role-to-users",
+          "host": [
+            "{{URL}}"
+          ],
+          "path": [
+            "api",
+            "UserRoles",
+            "assign-role-to-users"
+          ]
+        },
+        "description": "Generated from cURL: curl -X 'POST' \\\r\n  'https://localhost:44345/api/UserRoles/assign-role-to-users' \\\r\n  -H 'accept: */*' \\\r\n  -H 'Content-Type: application/json' \\\r\n  -d '{\r\n  \"roleId\": 0,\r\n  \"userIds\": [\r\n    0\r\n  ]\r\n}'"
+      },
+      "response": []
+    },
+    {
+      "name": "bulk-assign",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "accept",
+            "value": "*/*"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"assignments\": [\r\n    {\r\n      \"userId\": 1,\r\n      \"roleId\": 1\r\n    }, {\r\n      \"userId\": 1,\r\n      \"roleId\": 2\r\n    }, {\r\n      \"userId\": 2,\r\n      \"roleId\": 1\r\n    }\r\n  ]\r\n}        /// <summary>\r\n        /// Bulk assign: multiple roles to multiple users\r\n        /// Example: \r\n        /// {\r\n        ///   \"assignments\": [\r\n        ///     { \"userId\": 1, \"roleId\": 1 },\r\n        ///     { \"userId\": 1, \"roleId\": 2 },\r\n        ///     { \"userId\": 2, \"roleId\": 1 },\r\n        ///     { \"userId\": 3, \"roleId\": 3 }\r\n        ///   ]\r\n        /// }\r\n        /// </summary>",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{URL}}/api/UserRoles/bulk-assign",
+          "host": [
+            "{{URL}}"
+          ],
+          "path": [
+            "api",
+            "UserRoles",
+            "bulk-assign"
+          ]
+        },
+        "description": "Generated from cURL: curl -X 'POST' \\\r\n  'https://localhost:44345/api/UserRoles/bulk-assign' \\\r\n  -H 'accept: */*' \\\r\n  -H 'Content-Type: application/json' \\\r\n  -d '{\r\n  \"assignments\": [\r\n    {\r\n      \"userId\": 0,\r\n      \"roleId\": 0\r\n    }\r\n  ]\r\n}'"
+      },
+      "response": []
+    },
+    {
+      "name": "Suspend-user",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "accept",
+            "value": "*/*"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"userId\": 1,\r\n  \"isActive\": false\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{URL}}/api/UserRoles/suspend-user",
+          "host": [
+            "{{URL}}"
+          ],
+          "path": [
+            "api",
+            "UserRoles",
+            "suspend-user"
+          ]
+        },
+        "description": "Generated from cURL: curl -X 'POST' \\\r\n  'http://localhost:8080/api/UserRoles/suspend-user' \\\r\n  -H 'accept: */*' \\\r\n  -H 'Content-Type: application/json' \\\r\n  -d '{\r\n  \"userId\": 1,\r\n  \"isActive\": true\r\n}'"
+      },
+      "response": []
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{Token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ]
+}

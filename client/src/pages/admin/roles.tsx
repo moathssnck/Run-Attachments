@@ -245,6 +245,7 @@ export default function RolesPage() {
   const [roleSearch, setRoleSearch] = useState("");
   const [showRoleSuggestions, setShowRoleSuggestions] = useState(false);
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
+  const [initialUserIds, setInitialUserIds] = useState<Set<string>>(new Set());
   const [loadingRoleUsers, setLoadingRoleUsers] = useState(false);
 
   const queryClient = useQueryClient();
@@ -416,14 +417,17 @@ export default function RolesPage() {
     setUserSearch("");
     setLoadingRoleUsers(true);
     try {
-      const res = await apiRequest("GET", `/api/Roles/${role.id}/users`);
+      const res = await apiRequest("GET", `/api/UserRoles/role/${role.id}`);
       const data = await res.json();
       const arr: any[] = Array.isArray(data)
         ? data
         : data?.data ?? data?.users ?? [];
-      setSelectedUserIds(new Set(arr.map((u: any) => String(u.id ?? u.userId ?? u))));
+      const ids = new Set(arr.map((u: any) => String(u.userId ?? u.id ?? u)));
+      setSelectedUserIds(ids);
+      setInitialUserIds(new Set(ids));
     } catch {
       setSelectedUserIds(new Set());
+      setInitialUserIds(new Set());
     } finally {
       setLoadingRoleUsers(false);
     }
@@ -438,9 +442,22 @@ export default function RolesPage() {
   };
 
   const assignUsersMutation = useMutation({
-    mutationFn: async ({ roleId, userIds }: { roleId: number; userIds: string[] }) => {
-      const res = await apiRequest("POST", `/api/Roles/${roleId}/users`, { userIds });
-      return res.json();
+    mutationFn: async ({ roleId, toAdd, toRemove }: { roleId: number; toAdd: number[]; toRemove: number[] }) => {
+      const ops: Promise<any>[] = [];
+      if (toAdd.length > 0) {
+        ops.push(
+          apiRequest("POST", "/api/UserRoles/assign-role-to-users", {
+            roleId,
+            userIds: toAdd,
+          }).then((r) => r.json())
+        );
+      }
+      for (const userId of toRemove) {
+        ops.push(
+          apiRequest("DELETE", `/api/UserRoles/${userId}/${roleId}`)
+        );
+      }
+      return Promise.all(ops);
     },
     onSuccess: () => {
       toast({ title: isRTL ? "تم الحفظ" : "Saved", description: isRTL ? "تم تعيين المستخدمين بنجاح" : "Users assigned successfully" });
@@ -453,9 +470,14 @@ export default function RolesPage() {
   });
 
   const handleSaveAssignments = () => {
-    if (assigningRole) {
-      assignUsersMutation.mutate({ roleId: assigningRole.id, userIds: Array.from(selectedUserIds) });
-    }
+    if (!assigningRole) return;
+    const toAdd = Array.from(selectedUserIds)
+      .filter((id) => !initialUserIds.has(id))
+      .map(Number);
+    const toRemove = Array.from(initialUserIds)
+      .filter((id) => !selectedUserIds.has(id))
+      .map(Number);
+    assignUsersMutation.mutate({ roleId: assigningRole.id, toAdd, toRemove });
   };
 
   const filteredUsers = useMemo(() => {
