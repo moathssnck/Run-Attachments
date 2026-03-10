@@ -261,6 +261,23 @@ export default function RolesPage() {
     queryKey: ["/api/Roles?includeDeleted=false"],
   });
 
+  // ── Fetch all user-role assignments to compute live counts ────────────────
+  const { data: userRolesRaw } = useQuery({
+    queryKey: ["/api/UserRoles?pageNumber=1&pageSize=1000"],
+  });
+
+  const userCountByRole = useMemo(() => {
+    const counts: Record<number, number> = {};
+    const arr: any[] = Array.isArray(userRolesRaw)
+      ? userRolesRaw
+      : (userRolesRaw as any)?.data ?? (userRolesRaw as any)?.items ?? [];
+    for (const entry of arr) {
+      const rid = entry.roleId ?? entry.RoleId;
+      if (rid != null) counts[rid] = (counts[rid] ?? 0) + 1;
+    }
+    return counts;
+  }, [userRolesRaw]);
+
   useEffect(() => {
     if (!rolesRaw) return;
     const arr: any[] = Array.isArray(rolesRaw)
@@ -268,6 +285,11 @@ export default function RolesPage() {
       : (rolesRaw as any).data ?? (rolesRaw as any).roles ?? [];
     setRoles(arr.map(mapApiRole));
   }, [rolesRaw]);
+
+  const rolesWithCounts = useMemo(
+    () => roles.map((r) => ({ ...r, usersCount: userCountByRole[r.id] ?? r.usersCount })),
+    [roles, userCountByRole],
+  );
 
   const allUsers: UserForAssign[] = useMemo(() => {
     if (!usersData) return [];
@@ -295,23 +317,23 @@ export default function RolesPage() {
   });
 
   const filteredRoles = useMemo(() => {
-    if (!roleSearch.trim()) return roles;
+    if (!roleSearch.trim()) return rolesWithCounts;
     const searchLower = roleSearch.toLowerCase();
-    return roles.filter(
+    return rolesWithCounts.filter(
       (role) =>
         role.nameEn.toLowerCase().includes(searchLower) ||
         role.nameAr.includes(roleSearch) ||
         role.description.toLowerCase().includes(searchLower),
     );
-  }, [roles, roleSearch]);
+  }, [rolesWithCounts, roleSearch]);
 
   const roleSuggestions = useMemo(() => {
     if (!roleSearch.trim() || roleSearch.length < 1) return [];
     const searchLower = roleSearch.toLowerCase();
-    return roles
+    return rolesWithCounts
       .filter((role) => role.nameEn.toLowerCase().includes(searchLower) || role.nameAr.includes(roleSearch))
       .slice(0, 5);
-  }, [roles, roleSearch]);
+  }, [rolesWithCounts, roleSearch]);
 
   const totalPages = Math.ceil(filteredRoles.length / ITEMS_PER_PAGE);
   const showPagination = filteredRoles.length >= 10;
@@ -462,6 +484,7 @@ export default function RolesPage() {
     onSuccess: () => {
       toast({ title: isRTL ? "تم الحفظ" : "Saved", description: isRTL ? "تم تعيين المستخدمين بنجاح" : "Users assigned successfully" });
       queryClient.invalidateQueries({ queryKey: ["/api/Roles?includeDeleted=false"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/UserRoles?pageNumber=1&pageSize=1000"] });
       setAssigningRole(null);
     },
     onError: (err: Error) => {
