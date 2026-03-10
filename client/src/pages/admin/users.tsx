@@ -148,6 +148,52 @@ export default function UsersPage() {
 
   const { data: users, isLoading } = useQuery<User[]>({
     queryKey: ["/api/UserManagement/get-all-users"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", "/api/UserManagement/get-all-users");
+      const payload = await res.json();
+      const arr: any[] = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.data?.data)
+        ? payload.data.data
+        : Array.isArray(payload?.data)
+        ? payload.data
+        : Array.isArray(payload?.users)
+        ? payload.users
+        : Array.isArray(payload?.items)
+        ? payload.items
+        : [];
+      return arr.map((u: any): User => ({
+        id:                   String(u.userId ?? u.id ?? u.userID ?? u.user_id ?? ""),
+        email:                u.email ?? u.emailAddress ?? u.userEmail ?? "",
+        passwordHash:         "",
+        firstName:            u.firstName ?? u.fName ?? u.first_name ?? u.firstNameEn ?? u.fname ?? "",
+        lastName:             u.lastName  ?? u.lName  ?? u.last_name  ?? u.lastNameEn  ?? u.lname  ?? "",
+        mobile:               u.mobile ?? u.phone ?? u.phoneNumber ?? u.mobileNumber ?? u.mobile_number ?? "",
+        status:               u.status ?? u.userStatus ?? u.accountStatus ?? "active",
+        role:                 u.role ?? u.roleName ?? u.userRole ?? u.roleNameEn ?? "end_user",
+        mfaEnabled:           Boolean(u.mfaEnabled ?? u.mfa_enabled ?? u.twoFactorEnabled ?? false),
+        failedLoginAttempts:  Number(u.failedLoginAttempts ?? u.failed_login_attempts ?? 0),
+        passwordExpiryDate:   u.passwordExpiryDate  ? new Date(u.passwordExpiryDate)  : null,
+        lastLogin:            u.lastLogin            ? new Date(u.lastLogin)            : null,
+        createdAt:            u.createdAt            ? new Date(u.createdAt)            : new Date(),
+        dateOfBirth:          u.dateOfBirth          ? new Date(u.dateOfBirth)          : null,
+        nationalId:           u.nationalId           ?? u.national_id           ?? null,
+        gender:               u.gender               ?? null,
+        address:              u.address              ?? null,
+        city:                 u.city                 ?? null,
+        country:              u.country              ?? "Jordan",
+        postalCode:           u.postalCode           ?? u.postal_code           ?? null,
+        region:               u.region               ?? null,
+        street:               u.street               ?? null,
+        phoneCode:            u.phoneCode            ?? u.phone_code            ?? null,
+        secondaryPhone:       u.secondaryPhone       ?? u.secondary_phone       ?? null,
+        workEmail:            u.workEmail            ?? u.work_email            ?? null,
+        emergencyContact:     u.emergencyContact     ?? u.emergency_contact     ?? null,
+        emergencyPhone:       u.emergencyPhone       ?? u.emergency_phone       ?? null,
+        passportOrIdNumber:   u.passportOrIdNumber   ?? u.documentOrPassportNumber ?? u.passportNumber ?? null,
+        profilePhoto:         u.profilePhoto         ?? u.profileImage          ?? u.avatar ?? null,
+      }));
+    },
   });
 
   const authHeader = (): Record<string, string> => {
