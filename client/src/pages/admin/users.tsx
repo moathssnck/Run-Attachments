@@ -167,9 +167,15 @@ export default function UsersPage() {
         email:                u.email ?? u.emailAddress ?? u.userEmail ?? "",
         passwordHash:         "",
         firstName:            u.firstName ?? u.fName ?? u.first_name ?? u.firstNameEn ?? u.fname
-                              ?? (u.fullName ? String(u.fullName).split(" ")[0] : "") ?? "",
+                              ?? (u.fullNameEn     ? String(u.fullNameEn).split(" ")[0]     : undefined)
+                              ?? (u.fullNameAr     ? String(u.fullNameAr).split(" ")[0]     : undefined)
+                              ?? (u.fullNameArabic ? String(u.fullNameArabic).split(" ")[0] : undefined)
+                              ?? (u.fullName       ? String(u.fullName).split(" ")[0]       : ""),
         lastName:             u.lastName  ?? u.lName  ?? u.last_name  ?? u.lastNameEn  ?? u.lname
-                              ?? (u.fullName ? String(u.fullName).split(" ").slice(1).join(" ") : "") ?? "",
+                              ?? (u.fullNameEn     ? String(u.fullNameEn).split(" ").slice(1).join(" ")     : undefined)
+                              ?? (u.fullNameAr     ? String(u.fullNameAr).split(" ").slice(1).join(" ")     : undefined)
+                              ?? (u.fullNameArabic ? String(u.fullNameArabic).split(" ").slice(1).join(" ") : undefined)
+                              ?? (u.fullName       ? String(u.fullName).split(" ").slice(1).join(" ")       : ""),
         mobile:               u.mobile ?? u.phone ?? u.phoneNumber ?? u.mobileNumber ?? u.mobile_number ?? "",
         status:               u.status ?? u.userStatus ?? u.accountStatus ?? "active",
         role:                 u.role ?? u.roleName ?? u.userRole ?? u.roleNameEn ?? "end_user",
