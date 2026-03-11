@@ -38,6 +38,7 @@ import AdminIssues from "@/pages/admin/issues";
 import AdminPrizes from "@/pages/admin/prizes";
 import PrizeResultsPage from "@/pages/admin/prize-results";
 import NotFound from "@/pages/not-found";
+import LandingPage from "@/pages/landing";
 import CardsPage from "./pages/admin/cards";
 import AdminWalletsPage from "./pages/admin/wallet";
 import TransfersPage from "./pages/admin/transfers";
@@ -104,7 +105,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/">
-        <Redirect to="/login" />
+        <LandingPage />
       </Route>
 
       <Route path="/login">
