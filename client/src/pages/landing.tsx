@@ -1,9 +1,8 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
-import { useQuery, useMutation, useInfiniteQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -20,7 +19,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Separator } from "@/components/ui/separator";
 import {
   Select,
   SelectContent,
@@ -36,7 +34,6 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
   Search,
   Ticket,
-  Phone,
   User,
   Star,
   Trophy,
@@ -45,23 +42,13 @@ import {
   Filter,
   X,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   ShoppingCart,
-  CircleDollarSign,
   Hash,
-  Award,
-  CheckCircle2,
   BadgeCheck,
   ArrowUpDown,
-  SlidersHorizontal,
   Calendar,
-  MapPin,
-  LayoutGrid,
   LogIn,
   LogOut,
-  Timer,
-  Info,
   UserPlus,
   Sun,
   Moon,
@@ -73,6 +60,11 @@ import carouselImg2 from "@assets/OIP_(1)_1770900372237.webp";
 import carouselImg3 from "@assets/OIP_(1)_1769413234343.webp";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/auth-context";
+import {
+  fetchCardApiRecords,
+  mapRawCardToLotteryCard,
+  CARD_PAGED_QUERY_KEY,
+} from "@/lib/card-api-adapters";
 
 type LotteryTicket = {
   id: string;
@@ -1156,34 +1148,34 @@ export default function LandingPage() {
   const [purchaseOpen, setPurchaseOpen] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
 
-  const PAGE_SIZE = 24;
+  const { isAuthenticated } = useAuth();
+  const { toast } = useToast();
 
-  const {
-    data,
-    isLoading,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useInfiniteQuery({
-    queryKey: ["/api/tickets"],
-    queryFn: async ({ pageParam = 1 }) => {
-      const res = await fetch(`/api/tickets?page=${pageParam}&pageSize=${PAGE_SIZE}`);
-      if (!res.ok) throw new Error("Failed to fetch tickets");
-      return res.json();
-    },
-    getNextPageParam: (lastPage: any) => {
-      if (lastPage.page < lastPage.totalPages) return lastPage.page + 1;
-      return undefined;
-    },
-    initialPageParam: 1,
+  const { data: rawCards, isLoading } = useQuery({
+    queryKey: [CARD_PAGED_QUERY_KEY],
+    queryFn: fetchCardApiRecords,
+    enabled: isAuthenticated,
+    retry: false,
   });
 
   const tickets: LotteryTicket[] = useMemo(() => {
-    if (!data?.pages) return [];
-    return data.pages.flatMap((page: any) => page.tickets || []);
-  }, [data]);
+    if (!rawCards) return [];
+    return rawCards.map((raw, i) => {
+      const mapped = mapRawCardToLotteryCard(raw, i);
+      const issueNum = Number(mapped.issueNumber) || 0;
+      const drawCategory =
+        issueNum % 3 === 1 ? "blue" : issueNum % 3 === 2 ? "gold" : "green";
+      return {
+        id: String(mapped.id),
+        ticketNumber: mapped.cardNumber,
+        status: (mapped.isActive ? "available" : "sold") as "available" | "sold",
+        price: "3",
+        drawCategory,
+      };
+    });
+  }, [rawCards]);
 
-  const totalCount = data?.pages?.[0]?.totalCount || 0;
+  const totalCount = tickets.length;
 
   const filteredTickets = useMemo(() => {
     let result = tickets.filter((ticket: any) => {
@@ -1227,9 +1219,6 @@ export default function LandingPage() {
     numberRange,
     sortOption,
   ]);
-
-  const { isAuthenticated } = useAuth();
-  const { toast } = useToast();
 
   const handlePurchase = (ticket: LotteryTicket) => {
     setSelectedTicket(ticket);
@@ -1290,7 +1279,32 @@ export default function LandingPage() {
           onDrawFilterChange={setDrawFilter}
         />
 
-        {isLoading ? (
+        {!isAuthenticated ? (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col items-center justify-center py-24 text-center bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-3xl border border-emerald-100 dark:border-emerald-800"
+          >
+            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center mb-6 shadow-xl shadow-emerald-500/30">
+              <Ticket className="w-12 h-12 text-white" />
+            </div>
+            <h3 className="text-2xl font-black mb-3 text-emerald-950 dark:text-white">
+              تصفح البطاقات المتاحة
+            </h3>
+            <p className="text-muted-foreground mb-8 max-w-md leading-relaxed">
+              سجّل دخولك لتتمكن من تصفح جميع البطاقات المتاحة واختيار رقم الحظ الذي تريده
+            </p>
+            <Button
+              size="lg"
+              className="bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 text-black font-bold rounded-full px-10 h-13 shadow-lg shadow-amber-500/30 text-base"
+              onClick={() => window.location.href = "/login"}
+              data-testid="button-login-to-browse"
+            >
+              <LogIn className="w-5 h-5 ml-2" />
+              تسجيل الدخول لتصفح البطاقات
+            </Button>
+          </motion.div>
+        ) : isLoading ? (
           <div className="flex flex-col items-center justify-center py-24">
             <div className="w-12 h-12 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin" />
             <p className="mt-4 text-muted-foreground text-sm">جاري تحميل البطاقات...</p>
@@ -1320,25 +1334,6 @@ export default function LandingPage() {
               </div>
             </AnimatePresence>
 
-            {hasNextPage && (
-              <div className="flex justify-center mt-16">
-                <Button
-                  variant="outline"
-                  size="lg"
-                  onClick={() => fetchNextPage()}
-                  disabled={isFetchingNextPage}
-                  className="rounded-full px-8 h-12 border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-900/50"
-                  data-testid="button-load-more"
-                >
-                  <ChevronDown className="w-4 h-4 ml-2" />
-                  {isFetchingNextPage ? (
-                    <div className="w-5 h-5 border-2 border-emerald-300 border-t-emerald-600 rounded-full animate-spin" />
-                  ) : (
-                    "عرض المزيد من البطاقات"
-                  )}
-                </Button>
-              </div>
-            )}
           </>
         )}
       </main>
