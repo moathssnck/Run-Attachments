@@ -1004,3 +1004,8 @@ body,
   height: 0;
   pointer-events: none;
 }
+
+/* Lock the main scroll container when a dialog/sheet is open */
+body[data-scroll-locked] [data-scroll-container] {
+  overflow: hidden !important;
+}

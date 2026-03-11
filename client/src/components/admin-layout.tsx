@@ -483,6 +483,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
             </div>
           </header>
           <main
+            data-scroll-container
             className="flex-1 overflow-auto bg-gradient-to-br from-muted/30 via-background to-muted/20 p-6"
             style={{ direction: isRtl ? "rtl" : "ltr" }}
           >
