@@ -1,12 +1,30 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link } from "wouter";
-import { Wallet, ArrowUpRight, ArrowDownLeft, Plus, History, TrendingUp, TrendingDown, CreditCard, Banknote, Building2, Loader2, Sparkles } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Wallet,
+  ArrowUpRight,
+  ArrowDownLeft,
+  Plus,
+  History,
+  TrendingUp,
+  TrendingDown,
+  CreditCard,
+  Banknote,
+  Building2,
+  Loader2,
+  Sparkles,
+} from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -30,12 +48,18 @@ function getTransactionIcon(type: string) {
   switch (type) {
     case "credit":
     case "prize":
-      return <ArrowDownLeft className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />;
+      return (
+        <ArrowDownLeft className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+      );
     case "debit":
     case "purchase":
-      return <ArrowUpRight className="h-4 w-4 text-red-500 dark:text-red-400" />;
+      return (
+        <ArrowUpRight className="h-4 w-4 text-red-500 dark:text-red-400" />
+      );
     case "refund":
-      return <ArrowDownLeft className="h-4 w-4 text-blue-600 dark:text-blue-400" />;
+      return (
+        <ArrowDownLeft className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+      );
     default:
       return <CreditCard className="h-4 w-4 text-muted-foreground" />;
   }
@@ -84,7 +108,10 @@ function getTransactionPrefix(type: string): string {
   }
 }
 
-function getTransactionLabel(type: string, description?: string | null): string {
+function getTransactionLabel(
+  type: string,
+  description?: string | null,
+): string {
   if (description) return description;
   switch (type) {
     case "credit":
@@ -125,11 +152,11 @@ export default function WalletPage() {
   const transactions = data?.transactions || [];
 
   const totalCredits = transactions
-    .filter(t => ["credit", "prize", "refund"].includes(t.type))
+    .filter((t) => ["credit", "prize", "refund"].includes(t.type))
     .reduce((sum, t) => sum + parseFloat(t.amount), 0);
 
   const totalDebits = transactions
-    .filter(t => ["debit", "purchase"].includes(t.type))
+    .filter((t) => ["debit", "purchase"].includes(t.type))
     .reduce((sum, t) => sum + parseFloat(t.amount), 0);
 
   const depositMutation = useMutation({
@@ -164,7 +191,11 @@ export default function WalletPage() {
   });
 
   const withdrawMutation = useMutation({
-    mutationFn: async (data: { amount: string; withdrawMethod: string; accountDetails: string }) => {
+    mutationFn: async (data: {
+      amount: string;
+      withdrawMethod: string;
+      accountDetails: string;
+    }) => {
       const response = await apiRequest("POST", "/api/wallet/withdraw", data);
       return response.json();
     },
@@ -197,7 +228,11 @@ export default function WalletPage() {
 
   const handleDeposit = () => {
     if (!depositAmount || parseFloat(depositAmount) <= 0) {
-      toast({ title: "خطأ", description: "يرجى إدخال مبلغ صحيح", variant: "destructive" });
+      toast({
+        title: "خطأ",
+        description: "يرجى إدخال مبلغ صحيح",
+        variant: "destructive",
+      });
       return;
     }
     depositMutation.mutate({ amount: depositAmount, paymentMethod });
@@ -205,18 +240,33 @@ export default function WalletPage() {
 
   const handleWithdraw = () => {
     if (!withdrawAmount || parseFloat(withdrawAmount) <= 0) {
-      toast({ title: "خطأ", description: "يرجى إدخال مبلغ صحيح", variant: "destructive" });
+      toast({
+        title: "خطأ",
+        description: "يرجى إدخال مبلغ صحيح",
+        variant: "destructive",
+      });
       return;
     }
     if (parseFloat(withdrawAmount) > parseFloat(wallet?.balance || "0")) {
-      toast({ title: "خطأ", description: "الرصيد غير كافٍ", variant: "destructive" });
+      toast({
+        title: "خطأ",
+        description: "الرصيد غير كافٍ",
+        variant: "destructive",
+      });
       return;
     }
-    withdrawMutation.mutate({ amount: withdrawAmount, withdrawMethod, accountDetails });
+    withdrawMutation.mutate({
+      amount: withdrawAmount,
+      withdrawMethod,
+      accountDetails,
+    });
   };
 
   const quickAmounts = [10, 25, 50, 100, 250, 500];
-  const balanceFormatted = parseFloat(wallet?.balance || "0").toLocaleString("en-US", { minimumFractionDigits: 2 });
+  const balanceFormatted = parseFloat(wallet?.balance || "0").toLocaleString(
+    "en-US",
+    { minimumFractionDigits: 2 },
+  );
 
   return (
     <UserLayout>
@@ -236,10 +286,14 @@ export default function WalletPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-
             {/* Premium Balance Card */}
-            <div className="relative overflow-hidden rounded-2xl text-white shadow-2xl"
-              style={{ background: "linear-gradient(135deg, #059669 0%, #047857 45%, #065f46 100%)" }}>
+            <div
+              className="relative overflow-hidden rounded-2xl text-white shadow-2xl"
+              style={{
+                background:
+                  "linear-gradient(135deg, #059669 0%, #047857 45%, #065f46 100%)",
+              }}
+            >
               {/* Decorative circles */}
               <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-white/10" />
               <div className="absolute -bottom-8 -left-8 w-32 h-32 rounded-full bg-white/8" />
@@ -248,7 +302,9 @@ export default function WalletPage() {
               <div className="relative z-10 p-6 sm:p-8">
                 <div className="flex items-start justify-between mb-6">
                   <div>
-                    <p className="text-emerald-100 text-sm font-medium mb-1">الرصيد المتاح</p>
+                    <p className="text-emerald-100 text-sm font-medium mb-1">
+                      الرصيد المتاح
+                    </p>
                     {isLoading ? (
                       <Skeleton className="h-12 w-48 bg-white/20" />
                     ) : (
@@ -256,7 +312,9 @@ export default function WalletPage() {
                         <span className="text-5xl font-bold tabular-nums tracking-tight">
                           {balanceFormatted}
                         </span>
-                        <span className="text-emerald-200 text-xl font-medium">JOD</span>
+                        <span className="text-emerald-200 text-xl font-medium">
+                          JOD
+                        </span>
                       </div>
                     )}
                   </div>
@@ -272,9 +330,14 @@ export default function WalletPage() {
                       <TrendingDown className="h-4 w-4 text-white" />
                     </div>
                     <div>
-                      <p className="text-emerald-200 text-xs">إجمالي الإيداعات</p>
+                      <p className="text-emerald-200 text-xs">
+                        إجمالي الإيداعات
+                      </p>
                       <p className="text-white font-bold tabular-nums text-sm">
-                        +{totalCredits.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                        +
+                        {totalCredits.toLocaleString("en-US", {
+                          minimumFractionDigits: 2,
+                        })}
                       </p>
                     </div>
                   </div>
@@ -283,9 +346,14 @@ export default function WalletPage() {
                       <TrendingUp className="h-4 w-4 text-white" />
                     </div>
                     <div>
-                      <p className="text-emerald-200 text-xs">إجمالي المصروفات</p>
+                      <p className="text-emerald-200 text-xs">
+                        إجمالي المصروفات
+                      </p>
                       <p className="text-white font-bold tabular-nums text-sm">
-                        -{totalDebits.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                        -
+                        {totalDebits.toLocaleString("en-US", {
+                          minimumFractionDigits: 2,
+                        })}
                       </p>
                     </div>
                   </div>
@@ -325,7 +393,10 @@ export default function WalletPage() {
                     </CardTitle>
                     <CardDescription>نشاط محفظتك الأخير</CardDescription>
                   </div>
-                  <Badge variant="secondary" className="tabular-nums font-medium">
+                  <Badge
+                    variant="secondary"
+                    className="tabular-nums font-medium"
+                  >
                     {transactions.length} معاملة
                   </Badge>
                 </div>
@@ -334,7 +405,10 @@ export default function WalletPage() {
                 {isLoading ? (
                   <div className="space-y-0 divide-y">
                     {[1, 2, 3, 4].map((i) => (
-                      <div key={i} className="flex items-center justify-between px-5 py-4">
+                      <div
+                        key={i}
+                        className="flex items-center justify-between px-5 py-4"
+                      >
                         <div className="flex items-center gap-3">
                           <Skeleton className="h-10 w-10 rounded-full" />
                           <div className="space-y-1.5">
@@ -349,22 +423,39 @@ export default function WalletPage() {
                 ) : transactions.length > 0 ? (
                   <div className="divide-y">
                     {transactions.map((transaction) => (
-                      <div key={transaction.id} className="flex items-center justify-between px-5 py-4 hover:bg-muted/30 transition-colors">
+                      <div
+                        key={transaction.id}
+                        className="flex items-center justify-between px-5 py-4 hover:bg-muted/30 transition-colors"
+                      >
                         <div className="flex items-center gap-3">
-                          <div className={`flex items-center justify-center w-10 h-10 rounded-full ${getTransactionBg(transaction.type)}`}>
+                          <div
+                            className={`flex items-center justify-center w-10 h-10 rounded-full ${getTransactionBg(transaction.type)}`}
+                          >
                             {getTransactionIcon(transaction.type)}
                           </div>
                           <div>
                             <p className="font-medium text-sm">
-                              {getTransactionLabel(transaction.type, transaction.description)}
+                              {getTransactionLabel(
+                                transaction.type,
+                                transaction.description,
+                              )}
                             </p>
                             <p className="text-xs text-muted-foreground mt-0.5">
-                              {toWesternNumerals(format(new Date(transaction.createdAt), "d MMMM yyyy - h:mm a", { locale: arSA }))}
+                              {toWesternNumerals(
+                                format(
+                                  new Date(transaction.createdAt),
+                                  "d MMMM yyyy - h:mm a",
+                                  { locale: arSA },
+                                ),
+                              )}
                             </p>
                           </div>
                         </div>
-                        <span className={`font-mono font-semibold text-sm ${getTransactionColor(transaction.type)}`}>
-                          {getTransactionPrefix(transaction.type)}{parseFloat(transaction.amount).toFixed(2)} JOD
+                        <span
+                          className={`font-mono font-semibold text-sm ${getTransactionColor(transaction.type)}`}
+                        >
+                          {getTransactionPrefix(transaction.type)}
+                          {parseFloat(transaction.amount).toFixed(2)} JOD
                         </span>
                       </div>
                     ))}
@@ -374,7 +465,9 @@ export default function WalletPage() {
                     <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-2xl bg-muted">
                       <History className="h-8 w-8 text-muted-foreground" />
                     </div>
-                    <h3 className="text-lg font-semibold mb-2">لا توجد معاملات بعد</h3>
+                    <h3 className="text-lg font-semibold mb-2">
+                      لا توجد معاملات بعد
+                    </h3>
                     <p className="text-muted-foreground mb-5 max-w-sm mx-auto text-sm">
                       ابدأ بإيداع رصيد في محفظتك لشراء تذاكر اليانصيب
                     </p>
@@ -392,10 +485,17 @@ export default function WalletPage() {
           <div className="space-y-4">
             <Card className="shadow-sm">
               <CardHeader className="pb-3">
-                <CardTitle className="text-base font-semibold">إجراءات سريعة</CardTitle>
+                <CardTitle className="text-base font-semibold">
+                  إجراءات سريعة
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 pt-0">
-                <Button className="w-full justify-start gap-3 h-11 rounded-xl" variant="outline" asChild data-testid="button-buy-tickets">
+                <Button
+                  className="w-full justify-start gap-3 h-11 rounded-xl"
+                  variant="outline"
+                  asChild
+                  data-testid="button-buy-tickets"
+                >
                   <Link href="/buy-ticket">
                     <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-primary/10">
                       <CreditCard className="h-3.5 w-3.5 text-primary" />
@@ -430,7 +530,9 @@ export default function WalletPage() {
 
             <Card className="shadow-sm">
               <CardHeader className="pb-3">
-                <CardTitle className="text-base font-semibold">طرق الدفع المتاحة</CardTitle>
+                <CardTitle className="text-base font-semibold">
+                  طرق الدفع المتاحة
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 pt-0">
                 <div className="flex items-center gap-3 p-3 rounded-xl border bg-muted/20">
@@ -448,7 +550,9 @@ export default function WalletPage() {
                   </div>
                   <div>
                     <p className="font-semibold text-sm">بطاقة ائتمان</p>
-                    <p className="text-xs text-muted-foreground">Visa / Mastercard</p>
+                    <p className="text-xs text-muted-foreground">
+                      Visa / Mastercard
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -462,13 +566,13 @@ export default function WalletPage() {
                   </div>
                   <div>
                     <p className="font-semibold text-sm">جرب حظك اليوم</p>
-                    <p className="text-xs text-muted-foreground">تذاكر بأسعار مميزة</p>
+                    <p className="text-xs text-muted-foreground">
+                      تذاكر بأسعار مميزة
+                    </p>
                   </div>
                 </div>
                 <Button className="w-full h-10 rounded-xl text-sm" asChild>
-                  <Link href="/buy-ticket">
-                    اشترِ تذكرة الآن
-                  </Link>
+                  <Link href="/buy-ticket">اشترِ تذكرة الآن</Link>
                 </Button>
               </CardContent>
             </Card>
@@ -519,28 +623,54 @@ export default function WalletPage() {
 
             <div className="space-y-2">
               <Label className="text-sm font-medium">طريقة الدفع</Label>
-              <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="space-y-2">
-                <div className={`flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${paymentMethod === "cliq" ? "border-primary bg-primary/5" : "hover:bg-muted/40"}`}>
-                  <RadioGroupItem value="cliq" id="cliq" data-testid="radio-cliq" />
-                  <Label htmlFor="cliq" className="flex items-center gap-3 cursor-pointer flex-1">
+              <RadioGroup
+                value={paymentMethod}
+                onValueChange={setPaymentMethod}
+                className="space-y-2"
+              >
+                <div
+                  className={`flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${paymentMethod === "cliq" ? "border-primary bg-primary/5" : "hover:bg-muted/40"}`}
+                >
+                  <RadioGroupItem
+                    value="cliq"
+                    id="cliq"
+                    data-testid="radio-cliq"
+                  />
+                  <Label
+                    htmlFor="cliq"
+                    className="flex items-center gap-3 cursor-pointer flex-1"
+                  >
                     <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
                       <Building2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                     </div>
                     <div>
                       <p className="font-semibold text-sm">Jordan CliQ</p>
-                      <p className="text-xs text-muted-foreground">تحويل فوري - بدون رسوم</p>
+                      <p className="text-xs text-muted-foreground">
+                        تحويل فوري - بدون رسوم
+                      </p>
                     </div>
                   </Label>
                 </div>
-                <div className={`flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${paymentMethod === "credit_card" ? "border-primary bg-primary/5" : "hover:bg-muted/40"}`}>
-                  <RadioGroupItem value="credit_card" id="credit_card" data-testid="radio-credit-card" />
-                  <Label htmlFor="credit_card" className="flex items-center gap-3 cursor-pointer flex-1">
+                <div
+                  className={`flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${paymentMethod === "credit_card" ? "border-primary bg-primary/5" : "hover:bg-muted/40"}`}
+                >
+                  <RadioGroupItem
+                    value="credit_card"
+                    id="credit_card"
+                    data-testid="radio-credit-card"
+                  />
+                  <Label
+                    htmlFor="credit_card"
+                    className="flex items-center gap-3 cursor-pointer flex-1"
+                  >
                     <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30">
                       <CreditCard className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                     </div>
                     <div>
                       <p className="font-semibold text-sm">بطاقة ائتمان</p>
-                      <p className="text-xs text-muted-foreground">Visa / Mastercard - رسوم 2.5%</p>
+                      <p className="text-xs text-muted-foreground">
+                        Visa / Mastercard - رسوم 2.5%
+                      </p>
                     </div>
                   </Label>
                 </div>
@@ -548,7 +678,11 @@ export default function WalletPage() {
             </div>
           </div>
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setDepositOpen(false)} className="rounded-xl">
+            <Button
+              variant="outline"
+              onClick={() => setDepositOpen(false)}
+              className="rounded-xl"
+            >
               إلغاء
             </Button>
             <Button
@@ -580,20 +714,25 @@ export default function WalletPage() {
               </div>
               سحب الأرباح
             </DialogTitle>
-            <DialogDescription>
-              أدخل المبلغ واختر طريقة السحب
-            </DialogDescription>
+            <DialogDescription>أدخل المبلغ واختر طريقة السحب</DialogDescription>
           </DialogHeader>
           <div className="space-y-5 py-2">
             <div className="p-4 rounded-xl bg-muted/40 border flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">الرصيد المتاح للسحب</p>
+              <p className="text-sm text-muted-foreground">
+                الرصيد المتاح للسحب
+              </p>
               <p className="text-xl font-bold tabular-nums">
-                {parseFloat(wallet?.balance || "0").toLocaleString("en-US", { minimumFractionDigits: 2 })} JOD
+                {parseFloat(wallet?.balance || "0").toLocaleString("en-US", {
+                  minimumFractionDigits: 2,
+                })}{" "}
+                JOD
               </p>
             </div>
 
             <div className="space-y-3">
-              <Label className="text-sm font-medium">المبلغ المراد سحبه (JOD)</Label>
+              <Label className="text-sm font-medium">
+                المبلغ المراد سحبه (JOD)
+              </Label>
               <Input
                 type="number"
                 placeholder="0.00"
@@ -615,28 +754,54 @@ export default function WalletPage() {
 
             <div className="space-y-2">
               <Label className="text-sm font-medium">طريقة السحب</Label>
-              <RadioGroup value={withdrawMethod} onValueChange={setWithdrawMethod} className="space-y-2">
-                <div className={`flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${withdrawMethod === "cliq" ? "border-primary bg-primary/5" : "hover:bg-muted/40"}`}>
-                  <RadioGroupItem value="cliq" id="w-cliq" data-testid="radio-withdraw-cliq" />
-                  <Label htmlFor="w-cliq" className="flex items-center gap-3 cursor-pointer flex-1">
+              <RadioGroup
+                value={withdrawMethod}
+                onValueChange={setWithdrawMethod}
+                className="space-y-2"
+              >
+                <div
+                  className={`flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${withdrawMethod === "cliq" ? "border-primary bg-primary/5" : "hover:bg-muted/40"}`}
+                >
+                  <RadioGroupItem
+                    value="cliq"
+                    id="w-cliq"
+                    data-testid="radio-withdraw-cliq"
+                  />
+                  <Label
+                    htmlFor="w-cliq"
+                    className="flex items-center gap-3 cursor-pointer flex-1"
+                  >
                     <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
                       <Building2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                     </div>
                     <div>
                       <p className="font-semibold text-sm">Jordan CliQ</p>
-                      <p className="text-xs text-muted-foreground">تحويل فوري</p>
+                      <p className="text-xs text-muted-foreground">
+                        تحويل فوري
+                      </p>
                     </div>
                   </Label>
                 </div>
-                <div className={`flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${withdrawMethod === "bank_transfer" ? "border-primary bg-primary/5" : "hover:bg-muted/40"}`}>
-                  <RadioGroupItem value="bank_transfer" id="w-bank" data-testid="radio-withdraw-bank" />
-                  <Label htmlFor="w-bank" className="flex items-center gap-3 cursor-pointer flex-1">
+                <div
+                  className={`flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${withdrawMethod === "bank_transfer" ? "border-primary bg-primary/5" : "hover:bg-muted/40"}`}
+                >
+                  <RadioGroupItem
+                    value="bank_transfer"
+                    id="w-bank"
+                    data-testid="radio-withdraw-bank"
+                  />
+                  <Label
+                    htmlFor="w-bank"
+                    className="flex items-center gap-3 cursor-pointer flex-1"
+                  >
                     <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30">
                       <Building2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                     </div>
                     <div>
                       <p className="font-semibold text-sm">تحويل بنكي</p>
-                      <p className="text-xs text-muted-foreground">1-2 أيام عمل</p>
+                      <p className="text-xs text-muted-foreground">
+                        1-2 أيام عمل
+                      </p>
                     </div>
                   </Label>
                 </div>
@@ -644,7 +809,9 @@ export default function WalletPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="account-details" className="text-sm font-medium">تفاصيل الحساب</Label>
+              <Label htmlFor="account-details" className="text-sm font-medium">
+                تفاصيل الحساب
+              </Label>
               <Input
                 id="account-details"
                 placeholder="رقم الحساب / معرف CliQ"
@@ -656,7 +823,11 @@ export default function WalletPage() {
             </div>
           </div>
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setWithdrawOpen(false)} className="rounded-xl">
+            <Button
+              variant="outline"
+              onClick={() => setWithdrawOpen(false)}
+              className="rounded-xl"
+            >
               إلغاء
             </Button>
             <Button

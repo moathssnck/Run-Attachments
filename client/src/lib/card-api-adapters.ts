@@ -237,11 +237,20 @@ export async function fetchCardPage({
 }: {
   pageParam: number;
 }): Promise<CardPage> {
-  const url = `/api/Card/paged?pageNumber=${pageParam}&pageSize=${CARD_PAGE_SIZE}`;
-  const response = await fetch(url, {
-    credentials: "include",
-    headers: authHeaders(),
-  });
+  const token = typeof window !== "undefined" ? localStorage.getItem("lottery_token") : null;
+
+  let url: string;
+  let headers: Record<string, string>;
+
+  if (token) {
+    url = `/api/Card/paged?pageNumber=${pageParam}&pageSize=${CARD_PAGE_SIZE}`;
+    headers = { Authorization: `Bearer ${token}` };
+  } else {
+    url = `/public/cards?page=${pageParam}&pageSize=${CARD_PAGE_SIZE}`;
+    headers = {};
+  }
+
+  const response = await fetch(url, { credentials: "include", headers });
   if (!response.ok) {
     throw new Error(`Failed to load cards (${response.status})`);
   }

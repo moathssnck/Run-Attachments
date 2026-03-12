@@ -1155,16 +1155,16 @@ export default function LandingPage() {
   const {
     data: pagedData,
     isLoading,
+    isError,
     isFetchingNextPage,
     fetchNextPage,
     hasNextPage,
   } = useInfiniteQuery({
-    queryKey: ["cards-paged"],
+    queryKey: ["cards-paged", isAuthenticated],
     queryFn: ({ pageParam }) => fetchCardPage({ pageParam: pageParam as number }),
     initialPageParam: 1,
     getNextPageParam: (lastPage) =>
       lastPage.hasNextPage ? lastPage.pageNumber + 1 : undefined,
-    enabled: isAuthenticated,
     retry: false,
   });
 
@@ -1305,9 +1305,14 @@ export default function LandingPage() {
           onDrawFilterChange={setDrawFilter}
         />
 
-        {!isAuthenticated ? (
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-24">
+            <div className="w-12 h-12 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin" />
+            <p className="mt-4 text-muted-foreground text-sm">جاري تحميل البطاقات...</p>
+          </div>
+        ) : isError && !isAuthenticated ? (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             className="flex flex-col items-center justify-center py-24 text-center bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-3xl border border-emerald-100 dark:border-emerald-800"
           >
@@ -1330,11 +1335,6 @@ export default function LandingPage() {
               تسجيل الدخول لتصفح البطاقات
             </Button>
           </motion.div>
-        ) : isLoading ? (
-          <div className="flex flex-col items-center justify-center py-24">
-            <div className="w-12 h-12 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin" />
-            <p className="mt-4 text-muted-foreground text-sm">جاري تحميل البطاقات...</p>
-          </div>
         ) : filteredTickets.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-slate-300 dark:border-slate-700">
             <div className="w-20 h-20 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-6">
