@@ -55,9 +55,9 @@ import {
 } from "lucide-react";
 import ticketImage from "@assets/OIP_(1)_1769413234343.webp";
 import logoImage from "@assets/logo01_1770900636718.png";
-import carouselImg1 from "@assets/photo_6032836494646512712_y_1769414240391.jpg";
-import carouselImg2 from "@assets/OIP_(1)_1770900372237.webp";
-import carouselImg3 from "@assets/OIP_(1)_1769413234343.webp";
+import carouselImg1 from "@assets/hands-reaching-out-help_1773309871425.jpg";
+import carouselImg2 from "@assets/home-image_1773309871434.jpg";
+import carouselImg3 from "@assets/footerimg_1773309954768.jpg";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/auth-context";
 import {
