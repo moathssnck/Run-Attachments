@@ -206,6 +206,56 @@ export type TicketBookView = {
   createdAt: string;
 };
 
+export const CARD_PAGE_SIZE = 24;
+
+export type CardPage = {
+  cards: RawApiCard[];
+  totalCount: number;
+  pageNumber: number;
+  hasNextPage: boolean;
+};
+
+function extractTotalCount(payload: unknown): number {
+  if (!payload || typeof payload !== "object") return 0;
+  const obj = payload as Record<string, unknown>;
+  const direct = asNumber(
+    obj.totalCount ?? obj.total ?? obj.count ?? obj.totalItems ?? obj.totalRecords,
+  );
+  if (direct !== null) return direct;
+  if (obj.data && typeof obj.data === "object") {
+    const data = obj.data as Record<string, unknown>;
+    const nested = asNumber(
+      data.totalCount ?? data.total ?? data.count ?? data.totalItems ?? data.totalRecords,
+    );
+    if (nested !== null) return nested;
+  }
+  return 0;
+}
+
+export async function fetchCardPage({
+  pageParam = 1,
+}: {
+  pageParam: number;
+}): Promise<CardPage> {
+  const url = `/api/Card/paged?pageNumber=${pageParam}&pageSize=${CARD_PAGE_SIZE}`;
+  const response = await fetch(url, {
+    credentials: "include",
+    headers: authHeaders(),
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to load cards (${response.status})`);
+  }
+  const payload = await response.json();
+  const cards = extractCardArray(payload);
+  const totalCount = extractTotalCount(payload) || cards.length;
+  return {
+    cards,
+    totalCount,
+    pageNumber: pageParam,
+    hasNextPage: cards.length === CARD_PAGE_SIZE,
+  };
+}
+
 export async function fetchCardApiRecords(): Promise<RawApiCard[]> {
   const response = await fetch(CARD_PAGED_QUERY_KEY, {
     credentials: "include",

@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
+import { useInfiniteQuery, useMutation } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -61,9 +61,9 @@ import carouselImg3 from "@assets/footerimg_1773309954768.jpg";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/auth-context";
 import {
-  fetchCardApiRecords,
+  fetchCardPage,
   mapRawCardToLotteryCard,
-  CARD_PAGED_QUERY_KEY,
+  CARD_PAGE_SIZE,
 } from "@/lib/card-api-adapters";
 
 type LotteryTicket = {
@@ -1150,16 +1150,44 @@ export default function LandingPage() {
 
   const { isAuthenticated } = useAuth();
   const { toast } = useToast();
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
-  const { data: rawCards, isLoading } = useQuery({
-    queryKey: [CARD_PAGED_QUERY_KEY],
-    queryFn: fetchCardApiRecords,
+  const {
+    data: pagedData,
+    isLoading,
+    isFetchingNextPage,
+    fetchNextPage,
+    hasNextPage,
+  } = useInfiniteQuery({
+    queryKey: ["cards-paged"],
+    queryFn: ({ pageParam }) => fetchCardPage({ pageParam: pageParam as number }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) =>
+      lastPage.hasNextPage ? lastPage.pageNumber + 1 : undefined,
     enabled: isAuthenticated,
     retry: false,
   });
 
+  const totalCount = pagedData?.pages[0]?.totalCount ?? 0;
+  const loadedCount = pagedData?.pages.reduce((sum, p) => sum + p.cards.length, 0) ?? 0;
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { threshold: 0.1 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
   const tickets: LotteryTicket[] = useMemo(() => {
-    if (!rawCards) return [];
+    const rawCards = pagedData?.pages.flatMap((p) => p.cards) ?? [];
     return rawCards.map((raw, i) => {
       const mapped = mapRawCardToLotteryCard(raw, i);
       const issueNum = Number(mapped.issueNumber) || 0;
@@ -1173,9 +1201,7 @@ export default function LandingPage() {
         drawCategory,
       };
     });
-  }, [rawCards]);
-
-  const totalCount = tickets.length;
+  }, [pagedData]);
 
   const filteredTickets = useMemo(() => {
     let result = tickets.filter((ticket: any) => {
@@ -1334,6 +1360,19 @@ export default function LandingPage() {
               </div>
             </AnimatePresence>
 
+            <div ref={sentinelRef} className="w-full py-6 flex flex-col items-center gap-3">
+              {isFetchingNextPage && (
+                <div className="flex items-center gap-3 text-muted-foreground">
+                  <div className="w-5 h-5 border-2 border-emerald-300 border-t-emerald-600 rounded-full animate-spin" />
+                  <span className="text-sm font-medium">جاري تحميل المزيد من البطاقات...</span>
+                </div>
+              )}
+              {!hasNextPage && loadedCount > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  تم عرض جميع البطاقات · {loadedCount} بطاقة
+                </p>
+              )}
+            </div>
           </>
         )}
       </main>
