@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   DndContext,
@@ -38,6 +38,7 @@ import {
   Activity,
   CreditCard,
   ListChecks,
+  SlidersHorizontal,
 } from "lucide-react";
 import {
   AreaChart,
@@ -68,6 +69,8 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -77,6 +80,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { AdminLayout } from "@/components/admin-layout";
 import { PageHeader } from "@/components/page-header";
 import { useLanguage } from "@/lib/language-context";
@@ -113,6 +118,43 @@ function extractCount(payload: unknown): number {
     }
   }
   return 0;
+}
+
+// ─── Card stats configuration ─────────────────────────────────────────────────
+
+const CARD_STATS_CONFIG_KEY = "card-stats-config";
+
+interface CardStatsConfig {
+  paidFilter: string;
+  availableFilter: string;
+}
+
+const defaultCardStatsConfig: CardStatsConfig = {
+  paidFilter: "isPaid=true",
+  availableFilter: "isAvailable=true",
+};
+
+function useCardStatsConfig() {
+  const [config, setConfig] = useState<CardStatsConfig>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem(CARD_STATS_CONFIG_KEY);
+      if (saved) {
+        try {
+          return { ...defaultCardStatsConfig, ...JSON.parse(saved) };
+        } catch {
+          return defaultCardStatsConfig;
+        }
+      }
+    }
+    return defaultCardStatsConfig;
+  });
+
+  const saveConfig = (next: CardStatsConfig) => {
+    setConfig(next);
+    localStorage.setItem(CARD_STATS_CONFIG_KEY, JSON.stringify(next));
+  };
+
+  return { config, saveConfig };
 }
 
 
@@ -307,16 +349,29 @@ export default function AdminDashboard() {
     queryKey: ["/api/NoteBook/paged?pageNumber=1&pageSize=1"],
   });
 
+  const { config: cardConfig, saveConfig: saveCardConfig } = useCardStatsConfig();
+  const [cardConfigOpen, setCardConfigOpen] = useState(false);
+  const [draftPaidFilter, setDraftPaidFilter] = useState(cardConfig.paidFilter);
+  const [draftAvailableFilter, setDraftAvailableFilter] = useState(cardConfig.availableFilter);
+
+  useEffect(() => {
+    setDraftPaidFilter(cardConfig.paidFilter);
+    setDraftAvailableFilter(cardConfig.availableFilter);
+  }, [cardConfig]);
+
+  const cardsPaidUrl      = `/api/Card/paged?pageNumber=1&pageSize=1&${cardConfig.paidFilter}`;
+  const cardsAvailableUrl = `/api/Card/paged?pageNumber=1&pageSize=1&${cardConfig.availableFilter}`;
+
   const { data: cardsTotalRaw, isLoading: isCardsTotalLoading } = useQuery({
     queryKey: ["/api/Card/paged?pageNumber=1&pageSize=1"],
     retry: 0,
   });
   const { data: cardsPaidRaw, isLoading: isCardsPaidLoading } = useQuery({
-    queryKey: ["/api/Card/paged?pageNumber=1&pageSize=1&isPaid=true"],
+    queryKey: [cardsPaidUrl],
     retry: 0,
   });
   const { data: cardsAvailableRaw, isLoading: isCardsAvailableLoading } = useQuery({
-    queryKey: ["/api/Card/paged?pageNumber=1&pageSize=1&isAvailable=true"],
+    queryKey: [cardsAvailableUrl],
     retry: 0,
   });
 
@@ -329,6 +384,11 @@ export default function AdminDashboard() {
   const totalCardsPaid = extractCount(cardsPaidRaw);
   const totalCardsAvailable = extractCount(cardsAvailableRaw);
   const totalCardsRemaining = Math.max(0, totalCards - totalCardsPaid - totalCardsAvailable);
+
+  const handleSaveCardConfig = () => {
+    saveCardConfig({ paidFilter: draftPaidFilter.trim(), availableFilter: draftAvailableFilter.trim() });
+    setCardConfigOpen(false);
+  };
 
   const { t, language, dir } = useLanguage();
   const {
@@ -894,7 +954,12 @@ export default function AdminDashboard() {
                             <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-emerald-500/10 shrink-0">
                               <CreditCard className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                             </div>
-                            {isCardsPaidLoading ? <Skeleton className="h-8 w-16" /> : <span className="text-3xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400">{totalCardsPaid.toLocaleString("en-US")}</span>}
+                            <div className="flex items-start gap-2">
+                              {isCardsPaidLoading ? <Skeleton className="h-8 w-16" /> : <span className="text-3xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400">{totalCardsPaid.toLocaleString("en-US")}</span>}
+                              <button onClick={() => setCardConfigOpen(true)} className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title={language === "ar" ? "إعدادات" : "Configure"} data-testid="button-card-stats-config">
+                                <SlidersHorizontal className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
                           </div>
                           <p className="text-sm font-medium text-muted-foreground mt-3">{language === "ar" ? "البطاقات المدفوعة" : "Cards Paid"}</p>
                         </CardContent>
@@ -911,7 +976,12 @@ export default function AdminDashboard() {
                             <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-orange-500/10 shrink-0">
                               <Ticket className="h-5 w-5 text-orange-600 dark:text-orange-400" />
                             </div>
-                            {(isCardsTotalLoading || isCardsPaidLoading || isCardsAvailableLoading) ? <Skeleton className="h-8 w-16" /> : <span className="text-3xl font-bold tabular-nums text-orange-600 dark:text-orange-400">{totalCardsRemaining.toLocaleString("en-US")}</span>}
+                            <div className="flex items-start gap-2">
+                              {(isCardsTotalLoading || isCardsPaidLoading || isCardsAvailableLoading) ? <Skeleton className="h-8 w-16" /> : <span className="text-3xl font-bold tabular-nums text-orange-600 dark:text-orange-400">{totalCardsRemaining.toLocaleString("en-US")}</span>}
+                              <button onClick={() => setCardConfigOpen(true)} className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title={language === "ar" ? "إعدادات" : "Configure"}>
+                                <SlidersHorizontal className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
                           </div>
                           <p className="text-sm font-medium text-muted-foreground mt-3">{language === "ar" ? "البطاقات المتبقية" : "Cards Remaining"}</p>
                         </CardContent>
@@ -928,7 +998,12 @@ export default function AdminDashboard() {
                             <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-sky-500/10 shrink-0">
                               <Activity className="h-5 w-5 text-sky-600 dark:text-sky-400" />
                             </div>
-                            {isCardsAvailableLoading ? <Skeleton className="h-8 w-16" /> : <span className="text-3xl font-bold tabular-nums text-sky-600 dark:text-sky-400">{totalCardsAvailable.toLocaleString("en-US")}</span>}
+                            <div className="flex items-start gap-2">
+                              {isCardsAvailableLoading ? <Skeleton className="h-8 w-16" /> : <span className="text-3xl font-bold tabular-nums text-sky-600 dark:text-sky-400">{totalCardsAvailable.toLocaleString("en-US")}</span>}
+                              <button onClick={() => setCardConfigOpen(true)} className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title={language === "ar" ? "إعدادات" : "Configure"}>
+                                <SlidersHorizontal className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
                           </div>
                           <p className="text-sm font-medium text-muted-foreground mt-3">{language === "ar" ? "البطاقات المتاحة" : "Cards Available"}</p>
                         </CardContent>
@@ -1181,6 +1256,96 @@ export default function AdminDashboard() {
               {language === "ar" ? "إغلاق" : "Close"}
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Card Stats Configuration Dialog ─────────────────────────── */}
+      <Dialog open={cardConfigOpen} onOpenChange={setCardConfigOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <SlidersHorizontal className="h-5 w-5 text-primary" />
+              {language === "ar" ? "إعدادات إحصائيات البطاقات" : "Card Stats Configuration"}
+            </DialogTitle>
+            <DialogDescription>
+              {language === "ar"
+                ? "حدّد معاملات تصفية واجهة البرمجة لكل نوع من أنواع البطاقات. يتم تخزين الإعدادات محلياً في المتصفح."
+                : "Define the API query filter for each card type. Settings are saved locally in your browser."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-5 py-2">
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold flex items-center gap-2">
+                <span className="inline-block w-3 h-3 rounded-full bg-emerald-500" />
+                {language === "ar" ? "فلتر البطاقات المدفوعة" : "Paid Cards Filter"}
+              </Label>
+              <Input
+                value={draftPaidFilter}
+                onChange={(e) => setDraftPaidFilter(e.target.value)}
+                placeholder="isPaid=true"
+                className="font-mono text-sm"
+                data-testid="input-card-paid-filter"
+                dir="ltr"
+              />
+              <p className="text-xs text-muted-foreground">
+                {language === "ar"
+                  ? "يُضاف إلى نهاية: /api/Card/paged?pageNumber=1&pageSize=1&"
+                  : "Appended to: /api/Card/paged?pageNumber=1&pageSize=1&"}
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold flex items-center gap-2">
+                <span className="inline-block w-3 h-3 rounded-full bg-sky-500" />
+                {language === "ar" ? "فلتر البطاقات المتاحة" : "Available Cards Filter"}
+              </Label>
+              <Input
+                value={draftAvailableFilter}
+                onChange={(e) => setDraftAvailableFilter(e.target.value)}
+                placeholder="isAvailable=true"
+                className="font-mono text-sm"
+                data-testid="input-card-available-filter"
+                dir="ltr"
+              />
+              <p className="text-xs text-muted-foreground">
+                {language === "ar"
+                  ? "يُضاف إلى نهاية: /api/Card/paged?pageNumber=1&pageSize=1&"
+                  : "Appended to: /api/Card/paged?pageNumber=1&pageSize=1&"}
+              </p>
+            </div>
+
+            <div className="rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800/50 p-3">
+              <p className="text-xs font-medium text-orange-700 dark:text-orange-400 flex items-center gap-2">
+                <span className="inline-block w-3 h-3 rounded-full bg-orange-500 shrink-0" />
+                {language === "ar" ? "البطاقات المتبقية" : "Remaining Cards"}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {language === "ar"
+                  ? "= الإجمالي − المدفوعة − المتاحة (محسوب تلقائياً)"
+                  : "= Total − Paid − Available (computed automatically)"}
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDraftPaidFilter(defaultCardStatsConfig.paidFilter);
+                setDraftAvailableFilter(defaultCardStatsConfig.availableFilter);
+              }}
+              data-testid="button-reset-card-config"
+            >
+              {language === "ar" ? "إعادة تعيين" : "Reset"}
+            </Button>
+            <Button
+              onClick={handleSaveCardConfig}
+              data-testid="button-save-card-config"
+            >
+              {language === "ar" ? "حفظ" : "Save"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </AdminLayout>
