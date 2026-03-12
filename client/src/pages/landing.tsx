@@ -84,7 +84,7 @@ type PurchaseTicket = z.infer<typeof purchaseTicketSchema>;
 type StatusFilter = "all" | "available" | "sold";
 type SortOption = "default" | "number-asc" | "number-desc";
 
-const DRAW_DATE = new Date("2026-03-20T20:00:00+03:00");
+const DRAW_DATE = new Date("2026-03-12T20:00:00+03:00");
 
 function useCountdown() {
   const [now, setNow] = useState(new Date());
@@ -252,12 +252,16 @@ function Navbar() {
                       />
                     ) : (
                       <span className="text-xs font-bold text-white">
-                        {user?.email?.charAt(0).toUpperCase() || (user as any)?.fullName?.charAt(0) || "م"}
+                        {user?.email?.charAt(0).toUpperCase() ||
+                          (user as any)?.fullName?.charAt(0) ||
+                          "م"}
                       </span>
                     )}
                   </div>
                   <span className="hidden sm:block text-xs font-bold text-white pr-2">
-                    {(user as any)?.fullName || (user as any)?.firstName || "مستخدم"}
+                    {(user as any)?.fullName ||
+                      (user as any)?.firstName ||
+                      "مستخدم"}
                   </span>
                   <Button
                     variant="ghost"
@@ -424,7 +428,7 @@ function HeroSection() {
                     </div>
                     <div className="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
                     <div className="flex justify-between items-center">
-                      <span className="text-white font-bold">3 دنانير  فقط</span>
+                      <span className="text-white font-bold">3 دنانير فقط</span>
                       <Button
                         size="sm"
                         className="bg-yellow-500 hover:bg-yellow-400 text-black font-bold rounded-full"
@@ -617,37 +621,111 @@ function TicketCard({
           <div className="absolute inset-0 opacity-[0.07] group-hover:opacity-[0.15] transition-opacity duration-500 pointer-events-none z-0">
             <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
               <defs>
-                <pattern id={`pat-${ticket.id}`} x="0" y="0" width="30" height="30" patternUnits="userSpaceOnUse" patternTransform="rotate(30)">
+                <pattern
+                  id={`pat-${ticket.id}`}
+                  x="0"
+                  y="0"
+                  width="30"
+                  height="30"
+                  patternUnits="userSpaceOnUse"
+                  patternTransform="rotate(30)"
+                >
                   <circle cx="5" cy="5" r="2" fill="currentColor" />
                   <circle cx="20" cy="20" r="1.5" fill="currentColor" />
-                  <line x1="0" y1="15" x2="30" y2="15" stroke="currentColor" strokeWidth="0.5" />
-                  <line x1="15" y1="0" x2="15" y2="30" stroke="currentColor" strokeWidth="0.5" />
+                  <line
+                    x1="0"
+                    y1="15"
+                    x2="30"
+                    y2="15"
+                    stroke="currentColor"
+                    strokeWidth="0.5"
+                  />
+                  <line
+                    x1="15"
+                    y1="0"
+                    x2="15"
+                    y2="30"
+                    stroke="currentColor"
+                    strokeWidth="0.5"
+                  />
                 </pattern>
               </defs>
-              <rect width="100%" height="100%" fill={`url(#pat-${ticket.id})`} className="text-white" />
+              <rect
+                width="100%"
+                height="100%"
+                fill={`url(#pat-${ticket.id})`}
+                className="text-white"
+              />
             </svg>
           </div>
 
           <div className="absolute -bottom-8 -right-8 w-32 h-32 opacity-[0.06] group-hover:opacity-[0.12] transition-opacity duration-500 pointer-events-none z-0">
             <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="50" cy="50" r="45" stroke="white" strokeWidth="1" fill="none" />
-              <circle cx="50" cy="50" r="35" stroke="white" strokeWidth="0.8" fill="none" />
-              <circle cx="50" cy="50" r="25" stroke="white" strokeWidth="0.6" fill="none" />
-              <circle cx="50" cy="50" r="15" stroke="white" strokeWidth="0.4" fill="none" />
+              <circle
+                cx="50"
+                cy="50"
+                r="45"
+                stroke="white"
+                strokeWidth="1"
+                fill="none"
+              />
+              <circle
+                cx="50"
+                cy="50"
+                r="35"
+                stroke="white"
+                strokeWidth="0.8"
+                fill="none"
+              />
+              <circle
+                cx="50"
+                cy="50"
+                r="25"
+                stroke="white"
+                strokeWidth="0.6"
+                fill="none"
+              />
+              <circle
+                cx="50"
+                cy="50"
+                r="15"
+                stroke="white"
+                strokeWidth="0.4"
+                fill="none"
+              />
             </svg>
           </div>
 
           <div className="absolute -top-4 -left-4 w-24 h-24 opacity-[0.05] group-hover:opacity-[0.1] transition-opacity duration-500 pointer-events-none z-0">
             <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
-              <path d="M40 0 L80 40 L40 80 L0 40 Z" stroke="white" strokeWidth="1" fill="none" />
-              <path d="M40 10 L70 40 L40 70 L10 40 Z" stroke="white" strokeWidth="0.7" fill="none" />
-              <path d="M40 20 L60 40 L40 60 L20 40 Z" stroke="white" strokeWidth="0.5" fill="none" />
+              <path
+                d="M40 0 L80 40 L40 80 L0 40 Z"
+                stroke="white"
+                strokeWidth="1"
+                fill="none"
+              />
+              <path
+                d="M40 10 L70 40 L40 70 L10 40 Z"
+                stroke="white"
+                strokeWidth="0.7"
+                fill="none"
+              />
+              <path
+                d="M40 20 L60 40 L40 60 L20 40 Z"
+                stroke="white"
+                strokeWidth="0.5"
+                fill="none"
+              />
             </svg>
           </div>
 
           {!isSold && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[5] opacity-0 group-hover:opacity-20 transition-opacity duration-500">
-              <img src={logoImage} alt="" className="w-20 h-20 object-contain drop-shadow-lg" />
+              <img
+                src={logoImage}
+                alt=""
+                className="w-20 h-20 object-contain drop-shadow-lg"
+              />
             </div>
           )}
 
@@ -1161,7 +1239,8 @@ export default function LandingPage() {
     hasNextPage,
   } = useInfiniteQuery({
     queryKey: ["cards-paged", isAuthenticated],
-    queryFn: ({ pageParam }) => fetchCardPage({ pageParam: pageParam as number }),
+    queryFn: ({ pageParam }) =>
+      fetchCardPage({ pageParam: pageParam as number }),
     initialPageParam: 1,
     getNextPageParam: (lastPage) =>
       lastPage.hasNextPage ? lastPage.pageNumber + 1 : undefined,
@@ -1169,7 +1248,8 @@ export default function LandingPage() {
   });
 
   const totalCount = pagedData?.pages[0]?.totalCount ?? 0;
-  const loadedCount = pagedData?.pages.reduce((sum, p) => sum + p.cards.length, 0) ?? 0;
+  const loadedCount =
+    pagedData?.pages.reduce((sum, p) => sum + p.cards.length, 0) ?? 0;
 
   useEffect(() => {
     const el = sentinelRef.current;
@@ -1196,7 +1276,9 @@ export default function LandingPage() {
       return {
         id: String(mapped.id),
         ticketNumber: mapped.cardNumber,
-        status: (mapped.isActive ? "available" : "sold") as "available" | "sold",
+        status: (mapped.isActive ? "available" : "sold") as
+          | "available"
+          | "sold",
         price: "3",
         drawCategory,
       };
@@ -1226,12 +1308,12 @@ export default function LandingPage() {
     });
 
     if (sortOption === "number-asc") {
-      result = [...result].sort((a, b) =>
-        parseInt(a.ticketNumber) - parseInt(b.ticketNumber),
+      result = [...result].sort(
+        (a, b) => parseInt(a.ticketNumber) - parseInt(b.ticketNumber),
       );
     } else if (sortOption === "number-desc") {
-      result = [...result].sort((a, b) =>
-        parseInt(b.ticketNumber) - parseInt(a.ticketNumber),
+      result = [...result].sort(
+        (a, b) => parseInt(b.ticketNumber) - parseInt(a.ticketNumber),
       );
     }
 
@@ -1274,7 +1356,10 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-black font-sans selection:bg-emerald-500/30" dir="rtl">
+    <div
+      className="min-h-screen bg-slate-50 dark:bg-black font-sans selection:bg-emerald-500/30"
+      dir="rtl"
+    >
       <Navbar />
       <HeroSection />
       <FeatureCards />
@@ -1308,7 +1393,9 @@ export default function LandingPage() {
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-24">
             <div className="w-12 h-12 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin" />
-            <p className="mt-4 text-muted-foreground text-sm">جاري تحميل البطاقات...</p>
+            <p className="mt-4 text-muted-foreground text-sm">
+              جاري تحميل البطاقات...
+            </p>
           </div>
         ) : isError && !isAuthenticated ? (
           <motion.div
@@ -1323,12 +1410,13 @@ export default function LandingPage() {
               تصفح البطاقات المتاحة
             </h3>
             <p className="text-muted-foreground mb-8 max-w-md leading-relaxed">
-              سجّل دخولك لتتمكن من تصفح جميع البطاقات المتاحة واختيار رقم الحظ الذي تريده
+              سجّل دخولك لتتمكن من تصفح جميع البطاقات المتاحة واختيار رقم الحظ
+              الذي تريده
             </p>
             <Button
               size="lg"
               className="bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 text-black font-bold rounded-full px-10 h-13 shadow-lg shadow-amber-500/30 text-base"
-              onClick={() => window.location.href = "/login"}
+              onClick={() => (window.location.href = "/login")}
               data-testid="button-login-to-browse"
             >
               <LogIn className="w-5 h-5 ml-2" />
@@ -1360,11 +1448,16 @@ export default function LandingPage() {
               </div>
             </AnimatePresence>
 
-            <div ref={sentinelRef} className="w-full py-6 flex flex-col items-center gap-3">
+            <div
+              ref={sentinelRef}
+              className="w-full py-6 flex flex-col items-center gap-3"
+            >
               {isFetchingNextPage && (
                 <div className="flex items-center gap-3 text-muted-foreground">
                   <div className="w-5 h-5 border-2 border-emerald-300 border-t-emerald-600 rounded-full animate-spin" />
-                  <span className="text-sm font-medium">جاري تحميل المزيد من البطاقات...</span>
+                  <span className="text-sm font-medium">
+                    جاري تحميل المزيد من البطاقات...
+                  </span>
                 </div>
               )}
               {!hasNextPage && loadedCount > 0 && (
