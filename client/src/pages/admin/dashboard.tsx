@@ -307,10 +307,28 @@ export default function AdminDashboard() {
     queryKey: ["/api/NoteBook/paged?pageNumber=1&pageSize=1"],
   });
 
+  const { data: cardsTotalRaw, isLoading: isCardsTotalLoading } = useQuery({
+    queryKey: ["/api/Card/paged?pageNumber=1&pageSize=1"],
+    retry: 0,
+  });
+  const { data: cardsPaidRaw, isLoading: isCardsPaidLoading } = useQuery({
+    queryKey: ["/api/Card/paged?pageNumber=1&pageSize=1&isPaid=true"],
+    retry: 0,
+  });
+  const { data: cardsAvailableRaw, isLoading: isCardsAvailableLoading } = useQuery({
+    queryKey: ["/api/Card/paged?pageNumber=1&pageSize=1&isAvailable=true"],
+    retry: 0,
+  });
+
   const totalIssues      = extractCount(allIssuesPagedRaw);
   const currentYearCount = extractCount(currentYearRaw);
   const totalUsersCount  = extractCount(allUsersRaw);
   const totalNotebooks   = extractCount(allNotebooksRaw);
+
+  const totalCards     = extractCount(cardsTotalRaw);
+  const totalCardsPaid = extractCount(cardsPaidRaw);
+  const totalCardsAvailable = extractCount(cardsAvailableRaw);
+  const totalCardsRemaining = Math.max(0, totalCards - totalCardsPaid - totalCardsAvailable);
 
   const { t, language, dir } = useLanguage();
   const {
@@ -332,6 +350,9 @@ export default function AdminDashboard() {
     liveCurrentYear: language === "ar" ? "إصدارات هذا العام" : "This Year's Issues",
     liveUsers:       language === "ar" ? "إجمالي المستخدمين" : "Total Users",
     liveNotebooks:   language === "ar" ? "إجمالي الدفاتر" : "Total Notebooks",
+    liveCardsPaid:      language === "ar" ? "البطاقات المدفوعة" : "Cards Paid",
+    liveCardsRemaining: language === "ar" ? "البطاقات المتبقية" : "Cards Remaining",
+    liveCardsAvailable: language === "ar" ? "البطاقات المتاحة" : "Cards Available",
     users: language === "ar" ? "المستخدمون" : "Users",
     activeDraws: language === "ar" ? "السحوبات النشطة" : "Active Draws",
     ticketsSold: language === "ar" ? "التذاكر المباعة" : "Tickets Sold",
@@ -346,21 +367,24 @@ export default function AdminDashboard() {
 
   const getSettingKey = (widgetId: WidgetId): keyof typeof settings | null => {
     switch (widgetId) {
-      case "liveIssues":      return "showLiveIssues";
-      case "liveCurrentYear": return "showLiveCurrentYear";
-      case "liveUsers":       return "showLiveUsers";
-      case "liveNotebooks":   return "showLiveNotebooks";
-      case "users":           return "showUsers";
-      case "activeDraws":     return "showActiveDraws";
-      case "ticketsSold":     return "showTicketsSold";
-      case "revenue":         return "showRevenue";
-      case "ticketsSold_stat": return "showTicketsSoldStat";
-      case "ticketsRemaining": return "showTicketsRemaining";
-      case "ticketsAvailable": return "showTicketsAvailable";
-      case "ticketsCancelled": return "showTicketsCancelled";
-      case "charts":          return "showCharts";
-      case "recentActivity":  return "showRecentActivity";
-      default:                return null;
+      case "liveIssues":        return "showLiveIssues";
+      case "liveCurrentYear":   return "showLiveCurrentYear";
+      case "liveUsers":         return "showLiveUsers";
+      case "liveNotebooks":     return "showLiveNotebooks";
+      case "liveCardsPaid":     return "showLiveCardsPaid";
+      case "liveCardsRemaining": return "showLiveCardsRemaining";
+      case "liveCardsAvailable": return "showLiveCardsAvailable";
+      case "users":             return "showUsers";
+      case "activeDraws":       return "showActiveDraws";
+      case "ticketsSold":       return "showTicketsSold";
+      case "revenue":           return "showRevenue";
+      case "ticketsSold_stat":  return "showTicketsSoldStat";
+      case "ticketsRemaining":  return "showTicketsRemaining";
+      case "ticketsAvailable":  return "showTicketsAvailable";
+      case "ticketsCancelled":  return "showTicketsCancelled";
+      case "charts":            return "showCharts";
+      case "recentActivity":    return "showRecentActivity";
+      default:                  return null;
     }
   };
 
@@ -856,6 +880,57 @@ export default function AdminDashboard() {
                             {isNotebooksLoading ? <Skeleton className="h-8 w-16" /> : <span className="text-3xl font-bold tabular-nums text-amber-600 dark:text-amber-400">{totalNotebooks.toLocaleString("en-US")}</span>}
                           </div>
                           <p className="text-sm font-medium text-muted-foreground mt-3">{language === "ar" ? "إجمالي الدفاتر" : "Total Notebooks"}</p>
+                        </CardContent>
+                      </Card>
+                    </SortableStatCard>
+                  );
+                }
+                if (widgetId === "liveCardsPaid" && settings.showLiveCardsPaid) {
+                  return (
+                    <SortableStatCard key={widgetId} id={widgetId} editMode={editMode} onRemove={() => updateSetting("showLiveCardsPaid", false)} width={widgetWidths[widgetId]} onWidthChange={(w) => updateWidgetWidth(widgetId, w)} maxWidth={gridColumns}>
+                      <Card className="border-emerald-200 dark:border-emerald-800/40 transition-all duration-200 hover:shadow-md h-full">
+                        <CardContent className="pt-5 pb-4">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-emerald-500/10 shrink-0">
+                              <CreditCard className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                            </div>
+                            {isCardsPaidLoading ? <Skeleton className="h-8 w-16" /> : <span className="text-3xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400">{totalCardsPaid.toLocaleString("en-US")}</span>}
+                          </div>
+                          <p className="text-sm font-medium text-muted-foreground mt-3">{language === "ar" ? "البطاقات المدفوعة" : "Cards Paid"}</p>
+                        </CardContent>
+                      </Card>
+                    </SortableStatCard>
+                  );
+                }
+                if (widgetId === "liveCardsRemaining" && settings.showLiveCardsRemaining) {
+                  return (
+                    <SortableStatCard key={widgetId} id={widgetId} editMode={editMode} onRemove={() => updateSetting("showLiveCardsRemaining", false)} width={widgetWidths[widgetId]} onWidthChange={(w) => updateWidgetWidth(widgetId, w)} maxWidth={gridColumns}>
+                      <Card className="border-orange-200 dark:border-orange-800/40 transition-all duration-200 hover:shadow-md h-full">
+                        <CardContent className="pt-5 pb-4">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-orange-500/10 shrink-0">
+                              <Ticket className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                            </div>
+                            {(isCardsTotalLoading || isCardsPaidLoading || isCardsAvailableLoading) ? <Skeleton className="h-8 w-16" /> : <span className="text-3xl font-bold tabular-nums text-orange-600 dark:text-orange-400">{totalCardsRemaining.toLocaleString("en-US")}</span>}
+                          </div>
+                          <p className="text-sm font-medium text-muted-foreground mt-3">{language === "ar" ? "البطاقات المتبقية" : "Cards Remaining"}</p>
+                        </CardContent>
+                      </Card>
+                    </SortableStatCard>
+                  );
+                }
+                if (widgetId === "liveCardsAvailable" && settings.showLiveCardsAvailable) {
+                  return (
+                    <SortableStatCard key={widgetId} id={widgetId} editMode={editMode} onRemove={() => updateSetting("showLiveCardsAvailable", false)} width={widgetWidths[widgetId]} onWidthChange={(w) => updateWidgetWidth(widgetId, w)} maxWidth={gridColumns}>
+                      <Card className="border-sky-200 dark:border-sky-800/40 transition-all duration-200 hover:shadow-md h-full">
+                        <CardContent className="pt-5 pb-4">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-sky-500/10 shrink-0">
+                              <Activity className="h-5 w-5 text-sky-600 dark:text-sky-400" />
+                            </div>
+                            {isCardsAvailableLoading ? <Skeleton className="h-8 w-16" /> : <span className="text-3xl font-bold tabular-nums text-sky-600 dark:text-sky-400">{totalCardsAvailable.toLocaleString("en-US")}</span>}
+                          </div>
+                          <p className="text-sm font-medium text-muted-foreground mt-3">{language === "ar" ? "البطاقات المتاحة" : "Cards Available"}</p>
                         </CardContent>
                       </Card>
                     </SortableStatCard>

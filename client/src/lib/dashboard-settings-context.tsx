@@ -15,6 +15,9 @@ interface DashboardSettings {
   showLiveCurrentYear: boolean;
   showLiveUsers: boolean;
   showLiveNotebooks: boolean;
+  showLiveCardsPaid: boolean;
+  showLiveCardsRemaining: boolean;
+  showLiveCardsAvailable: boolean;
 }
 
 export type WidgetId =
@@ -31,7 +34,10 @@ export type WidgetId =
   | "liveIssues"
   | "liveCurrentYear"
   | "liveUsers"
-  | "liveNotebooks";
+  | "liveNotebooks"
+  | "liveCardsPaid"
+  | "liveCardsRemaining"
+  | "liveCardsAvailable";
 
 export type WidgetWidth = 1 | 2 | 3 | 4;
 
@@ -54,6 +60,9 @@ const defaultSettings: DashboardSettings = {
   showLiveCurrentYear: true,
   showLiveUsers: true,
   showLiveNotebooks: true,
+  showLiveCardsPaid: true,
+  showLiveCardsRemaining: true,
+  showLiveCardsAvailable: true,
   showCharts: true,
   showRecentActivity: true,
   showUsers: false,
@@ -71,6 +80,9 @@ const defaultWidgetOrder: WidgetId[] = [
   "liveCurrentYear",
   "liveUsers",
   "liveNotebooks",
+  "liveCardsPaid",
+  "liveCardsRemaining",
+  "liveCardsAvailable",
   "charts",
   "recentActivity",
   "users",
@@ -88,6 +100,9 @@ const defaultWidgetWidths: WidgetWidths = {
   liveCurrentYear: 2,
   liveUsers: 2,
   liveNotebooks: 2,
+  liveCardsPaid: 2,
+  liveCardsRemaining: 2,
+  liveCardsAvailable: 2,
   users: 1,
   activeDraws: 1,
   ticketsSold: 1,
