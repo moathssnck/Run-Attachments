@@ -102,6 +102,7 @@ import type { DashboardStats } from "@shared/schema";
 import { format } from "date-fns";
 import { arSA, enUS } from "date-fns/locale";
 import { API_CONFIG } from "@/lib/api-config";
+import logoImage from "@assets/logo01_1767784684828.png";
 
 // ─── API response normalizers ─────────────────────────────────────────────────
 
@@ -989,7 +990,7 @@ export default function AdminDashboard() {
                         <CardContent className="pt-5 pb-4">
                           <div className="flex items-start justify-between">
                             <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-emerald-500/10 shrink-0">
-                              <CreditCard className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                              <img src={logoImage} alt="logo" className="h-7 w-7 object-contain" />
                             </div>
                             <div className="flex items-start gap-2">
                               {isCardsPaidLoading ? <Skeleton className="h-8 w-16" /> : <span className="text-3xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400">{totalCardsPaid.toLocaleString("en-US")}</span>}
@@ -1011,7 +1012,7 @@ export default function AdminDashboard() {
                         <CardContent className="pt-5 pb-4">
                           <div className="flex items-start justify-between">
                             <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-orange-500/10 shrink-0">
-                              <Ticket className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                              <img src={logoImage} alt="logo" className="h-7 w-7 object-contain" />
                             </div>
                             <div className="flex items-start gap-2">
                               {isCardsRemainingLoading ? <Skeleton className="h-8 w-16" /> : <span className="text-3xl font-bold tabular-nums text-orange-600 dark:text-orange-400">{totalCardsRemaining.toLocaleString("en-US")}</span>}
@@ -1033,7 +1034,7 @@ export default function AdminDashboard() {
                         <CardContent className="pt-5 pb-4">
                           <div className="flex items-start justify-between">
                             <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-sky-500/10 shrink-0">
-                              <Activity className="h-5 w-5 text-sky-600 dark:text-sky-400" />
+                              <img src={logoImage} alt="logo" className="h-7 w-7 object-contain" />
                             </div>
                             <div className="flex items-start gap-2">
                               {isCardsAvailableLoading ? <Skeleton className="h-8 w-16" /> : <span className="text-3xl font-bold tabular-nums text-sky-600 dark:text-sky-400">{totalCardsAvailable.toLocaleString("en-US")}</span>}
