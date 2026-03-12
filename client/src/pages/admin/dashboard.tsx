@@ -82,6 +82,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { AdminLayout } from "@/components/admin-layout";
 import { PageHeader } from "@/components/page-header";
 import { useLanguage } from "@/lib/language-context";
@@ -124,14 +131,24 @@ function extractCount(payload: unknown): number {
 
 const CARD_STATS_CONFIG_KEY = "card-stats-config";
 
+const CARD_STATUS_OPTIONS = [
+  { id: "11",  nameEn: "Sold Card",      nameAr: "بطاقة مباعة"     },
+  { id: "12",  nameEn: "Available Card", nameAr: "بطاقة متوفرة"    },
+  { id: "13",  nameEn: "Locked Card",    nameAr: "بطاقة معلقة"     },
+  { id: "67",  nameEn: "Used Card",      nameAr: "بطاقة مستهلكة"   },
+  { id: "68",  nameEn: "Expired Card",   nameAr: "بطاقة منتهية"    },
+] as const;
+
 interface CardStatsConfig {
-  paidFilter: string;
-  availableFilter: string;
+  paidStatusId: string;
+  availableStatusId: string;
+  remainingStatusId: string;
 }
 
 const defaultCardStatsConfig: CardStatsConfig = {
-  paidFilter: "isPaid=true",
-  availableFilter: "isAvailable=true",
+  paidStatusId: "11",
+  availableStatusId: "12",
+  remainingStatusId: "13",
 };
 
 function useCardStatsConfig() {
@@ -351,18 +368,21 @@ export default function AdminDashboard() {
 
   const { config: cardConfig, saveConfig: saveCardConfig } = useCardStatsConfig();
   const [cardConfigOpen, setCardConfigOpen] = useState(false);
-  const [draftPaidFilter, setDraftPaidFilter] = useState(cardConfig.paidFilter);
-  const [draftAvailableFilter, setDraftAvailableFilter] = useState(cardConfig.availableFilter);
+  const [draftPaidStatusId, setDraftPaidStatusId] = useState(cardConfig.paidStatusId);
+  const [draftAvailableStatusId, setDraftAvailableStatusId] = useState(cardConfig.availableStatusId);
+  const [draftRemainingStatusId, setDraftRemainingStatusId] = useState(cardConfig.remainingStatusId);
 
   useEffect(() => {
-    setDraftPaidFilter(cardConfig.paidFilter);
-    setDraftAvailableFilter(cardConfig.availableFilter);
+    setDraftPaidStatusId(cardConfig.paidStatusId);
+    setDraftAvailableStatusId(cardConfig.availableStatusId);
+    setDraftRemainingStatusId(cardConfig.remainingStatusId);
   }, [cardConfig]);
 
-  const cardsPaidUrl      = `/api/Card/paged?pageNumber=1&pageSize=1&${cardConfig.paidFilter}`;
-  const cardsAvailableUrl = `/api/Card/paged?pageNumber=1&pageSize=1&${cardConfig.availableFilter}`;
+  const cardsPaidUrl      = `/api/Card/paged?pageNumber=1&pageSize=1&cardStatusId=${cardConfig.paidStatusId}`;
+  const cardsAvailableUrl = `/api/Card/paged?pageNumber=1&pageSize=1&cardStatusId=${cardConfig.availableStatusId}`;
+  const cardsRemainingUrl = `/api/Card/paged?pageNumber=1&pageSize=1&cardStatusId=${cardConfig.remainingStatusId}`;
 
-  const { data: cardsTotalRaw, isLoading: isCardsTotalLoading } = useQuery({
+  const { data: cardsTotalRaw } = useQuery({
     queryKey: ["/api/Card/paged?pageNumber=1&pageSize=1"],
     retry: 0,
   });
@@ -374,19 +394,27 @@ export default function AdminDashboard() {
     queryKey: [cardsAvailableUrl],
     retry: 0,
   });
+  const { data: cardsRemainingRaw, isLoading: isCardsRemainingLoading } = useQuery({
+    queryKey: [cardsRemainingUrl],
+    retry: 0,
+  });
 
   const totalIssues      = extractCount(allIssuesPagedRaw);
   const currentYearCount = extractCount(currentYearRaw);
   const totalUsersCount  = extractCount(allUsersRaw);
   const totalNotebooks   = extractCount(allNotebooksRaw);
 
-  const totalCards     = extractCount(cardsTotalRaw);
-  const totalCardsPaid = extractCount(cardsPaidRaw);
+  const _totalCards         = extractCount(cardsTotalRaw); // kept for potential future use
+  const totalCardsPaid      = extractCount(cardsPaidRaw);
   const totalCardsAvailable = extractCount(cardsAvailableRaw);
-  const totalCardsRemaining = Math.max(0, totalCards - totalCardsPaid - totalCardsAvailable);
+  const totalCardsRemaining = extractCount(cardsRemainingRaw);
 
   const handleSaveCardConfig = () => {
-    saveCardConfig({ paidFilter: draftPaidFilter.trim(), availableFilter: draftAvailableFilter.trim() });
+    saveCardConfig({
+      paidStatusId: draftPaidStatusId,
+      availableStatusId: draftAvailableStatusId,
+      remainingStatusId: draftRemainingStatusId,
+    });
     setCardConfigOpen(false);
   };
 
@@ -977,7 +1005,7 @@ export default function AdminDashboard() {
                               <Ticket className="h-5 w-5 text-orange-600 dark:text-orange-400" />
                             </div>
                             <div className="flex items-start gap-2">
-                              {(isCardsTotalLoading || isCardsPaidLoading || isCardsAvailableLoading) ? <Skeleton className="h-8 w-16" /> : <span className="text-3xl font-bold tabular-nums text-orange-600 dark:text-orange-400">{totalCardsRemaining.toLocaleString("en-US")}</span>}
+                              {isCardsRemainingLoading ? <Skeleton className="h-8 w-16" /> : <span className="text-3xl font-bold tabular-nums text-orange-600 dark:text-orange-400">{totalCardsRemaining.toLocaleString("en-US")}</span>}
                               <button onClick={() => setCardConfigOpen(true)} className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title={language === "ar" ? "إعدادات" : "Configure"}>
                                 <SlidersHorizontal className="h-3.5 w-3.5" />
                               </button>
@@ -1275,65 +1303,83 @@ export default function AdminDashboard() {
           </DialogHeader>
 
           <div className="space-y-5 py-2">
+            {/* Paid */}
             <div className="space-y-2">
               <Label className="text-sm font-semibold flex items-center gap-2">
-                <span className="inline-block w-3 h-3 rounded-full bg-emerald-500" />
-                {language === "ar" ? "فلتر البطاقات المدفوعة" : "Paid Cards Filter"}
+                <span className="inline-block w-3 h-3 rounded-full bg-emerald-500 shrink-0" />
+                {language === "ar" ? "حالة البطاقات المدفوعة" : "Paid Cards Status"}
               </Label>
-              <Input
-                value={draftPaidFilter}
-                onChange={(e) => setDraftPaidFilter(e.target.value)}
-                placeholder="isPaid=true"
-                className="font-mono text-sm"
-                data-testid="input-card-paid-filter"
-                dir="ltr"
-              />
-              <p className="text-xs text-muted-foreground">
-                {language === "ar"
-                  ? "يُضاف إلى نهاية: /api/Card/paged?pageNumber=1&pageSize=1&"
-                  : "Appended to: /api/Card/paged?pageNumber=1&pageSize=1&"}
-              </p>
+              <Select value={draftPaidStatusId} onValueChange={setDraftPaidStatusId}>
+                <SelectTrigger data-testid="select-card-paid-status">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CARD_STATUS_OPTIONS.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      <span className="font-mono text-xs text-muted-foreground me-2">[{s.id}]</span>
+                      {language === "ar" ? s.nameAr : s.nameEn}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
+            {/* Remaining */}
             <div className="space-y-2">
               <Label className="text-sm font-semibold flex items-center gap-2">
-                <span className="inline-block w-3 h-3 rounded-full bg-sky-500" />
-                {language === "ar" ? "فلتر البطاقات المتاحة" : "Available Cards Filter"}
-              </Label>
-              <Input
-                value={draftAvailableFilter}
-                onChange={(e) => setDraftAvailableFilter(e.target.value)}
-                placeholder="isAvailable=true"
-                className="font-mono text-sm"
-                data-testid="input-card-available-filter"
-                dir="ltr"
-              />
-              <p className="text-xs text-muted-foreground">
-                {language === "ar"
-                  ? "يُضاف إلى نهاية: /api/Card/paged?pageNumber=1&pageSize=1&"
-                  : "Appended to: /api/Card/paged?pageNumber=1&pageSize=1&"}
-              </p>
-            </div>
-
-            <div className="rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800/50 p-3">
-              <p className="text-xs font-medium text-orange-700 dark:text-orange-400 flex items-center gap-2">
                 <span className="inline-block w-3 h-3 rounded-full bg-orange-500 shrink-0" />
-                {language === "ar" ? "البطاقات المتبقية" : "Remaining Cards"}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {language === "ar"
-                  ? "= الإجمالي − المدفوعة − المتاحة (محسوب تلقائياً)"
-                  : "= Total − Paid − Available (computed automatically)"}
-              </p>
+                {language === "ar" ? "حالة البطاقات المتبقية" : "Remaining Cards Status"}
+              </Label>
+              <Select value={draftRemainingStatusId} onValueChange={setDraftRemainingStatusId}>
+                <SelectTrigger data-testid="select-card-remaining-status">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CARD_STATUS_OPTIONS.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      <span className="font-mono text-xs text-muted-foreground me-2">[{s.id}]</span>
+                      {language === "ar" ? s.nameAr : s.nameEn}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
+
+            {/* Available */}
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold flex items-center gap-2">
+                <span className="inline-block w-3 h-3 rounded-full bg-sky-500 shrink-0" />
+                {language === "ar" ? "حالة البطاقات المتاحة" : "Available Cards Status"}
+              </Label>
+              <Select value={draftAvailableStatusId} onValueChange={setDraftAvailableStatusId}>
+                <SelectTrigger data-testid="select-card-available-status">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CARD_STATUS_OPTIONS.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      <span className="font-mono text-xs text-muted-foreground me-2">[{s.id}]</span>
+                      {language === "ar" ? s.nameAr : s.nameEn}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <p className="text-xs text-muted-foreground bg-muted/50 rounded-md px-3 py-2">
+              {language === "ar"
+                ? "يتم استخدام الحالة المختارة للاستعلام: /api/Card/paged?cardStatusId={id}"
+                : "Selected status is used as: /api/Card/paged?cardStatusId={id}"}
+            </p>
           </div>
 
           <DialogFooter className="flex gap-2">
             <Button
               variant="outline"
               onClick={() => {
-                setDraftPaidFilter(defaultCardStatsConfig.paidFilter);
-                setDraftAvailableFilter(defaultCardStatsConfig.availableFilter);
+                setDraftPaidStatusId(defaultCardStatsConfig.paidStatusId);
+                setDraftAvailableStatusId(defaultCardStatsConfig.availableStatusId);
+                setDraftRemainingStatusId(defaultCardStatsConfig.remainingStatusId);
               }}
               data-testid="button-reset-card-config"
             >
