@@ -19,7 +19,7 @@ const requestSchema = z.object({
 });
 
 const resetSchema = z.object({
-  resetToken: z.string().min(1, "Reset token is required"),
+  otpCode: z.string().min(4, "OTP code is required"),
   newPassword: z
     .string()
     .min(8, "Password must be at least 8 characters")
@@ -56,7 +56,7 @@ export default function ForgotPasswordPage() {
 
   const resetForm = useForm<ResetData>({
     resolver: zodResolver(resetSchema),
-    defaultValues: { resetToken: "", newPassword: "", confirmPassword: "" },
+    defaultValues: { otpCode: "", newPassword: "", confirmPassword: "" },
   });
 
   const buildHeaders = () => {
@@ -91,10 +91,10 @@ export default function ForgotPasswordPage() {
         setPhoneNumber(data.phoneNumber);
         setStep("reset");
         toast({
-          title: isRTL ? "تم إرسال رابط إعادة التعيين" : "Reset link sent",
+          title: isRTL ? "تم إرسال رمز التحقق OTP" : "OTP code sent",
           description: isRTL
-            ? "يرجى التحقق من بريدك الإلكتروني للحصول على رمز إعادة التعيين."
-            : "Please check your email for the reset token.",
+            ? "يرجى التحقق من بريدك الإلكتروني أو رسائل SMS للحصول على رمز التحقق."
+            : "Please check your email or SMS messages for the OTP code.",
         });
       } else {
         toast({
@@ -126,7 +126,7 @@ export default function ForgotPasswordPage() {
         body: JSON.stringify({
           email,
           phoneNumber,
-          resetToken: data.resetToken,
+          otpCode: data.otpCode,
           newPassword: data.newPassword,
           confirmPassword: data.confirmPassword,
         }),
@@ -219,8 +219,8 @@ export default function ForgotPasswordPage() {
                 : "Enter your email and phone number to reset your password")}
             {step === "reset" &&
               (isRTL
-                ? `أدخل رمز إعادة التعيين المرسل إلى ${email} وكلمة المرور الجديدة`
-                : `Enter the reset token sent to ${email} and your new password`)}
+                ? `أدخل رمز التحقق OTP المُرسَل إليك وكلمة المرور الجديدة`
+                : `Enter the OTP code sent to you and your new password`)}
             {step === "success" &&
               (isRTL ? "تم تغيير كلمة المرور بنجاح" : "Password changed successfully")}
           </CardDescription>
@@ -315,19 +315,20 @@ export default function ForgotPasswordPage() {
 
                 <FormField
                   control={resetForm.control}
-                  name="resetToken"
+                  name="otpCode"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>
-                        {isRTL ? "رمز إعادة التعيين (من البريد الإلكتروني)" : "Reset token (from email)"}
+                        {isRTL ? "رمز التحقق OTP (المُرسَل إليك)" : "OTP code (sent to you)"}
                       </FormLabel>
                       <FormControl>
                         <Input
                           type="text"
-                          placeholder={isRTL ? "الصق رمز إعادة التعيين هنا" : "Paste your reset token here"}
+                          inputMode="numeric"
+                          placeholder={isRTL ? "أدخل رمز التحقق" : "Enter the OTP code"}
                           className={inputClasses}
                           dir="ltr"
-                          data-testid="input-reset-token"
+                          data-testid="input-otp-code"
                           {...field}
                         />
                       </FormControl>

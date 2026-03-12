@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useLocation } from "wouter";
@@ -20,6 +20,10 @@ import {
   Calendar,
   MapPin,
   Users,
+  ShieldCheck,
+  MessageSquare,
+  Send,
+  RefreshCw,
 } from "lucide-react";
 import logoImage from "@assets/logo01_1767784684828.png";
 import { motion, AnimatePresence } from "framer-motion";
@@ -82,6 +86,96 @@ export default function RegisterPage() {
   const { t, language } = useLanguage();
   const isRTL = language === "ar";
 
+  // OTP state
+  const [otpMethod, setOtpMethod] = useState<"email" | "sms">("email");
+  const [otpCode, setOtpCode] = useState("");
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpCooldown, setOtpCooldown] = useState(0);
+  const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const startCooldown = (seconds = 60) => {
+    setOtpCooldown(seconds);
+    if (cooldownRef.current) clearInterval(cooldownRef.current);
+    cooldownRef.current = setInterval(() => {
+      setOtpCooldown((prev) => {
+        if (prev <= 1) { clearInterval(cooldownRef.current!); return 0; }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const sendOtp = async () => {
+    const email = form.getValues("email");
+    const phoneNumber = form.getValues("phoneNumber");
+    const codePhoneNumberId = form.getValues("codePhoneNumberId");
+
+    if (otpMethod === "email" && !email) {
+      toast({ title: isRTL ? "أدخل البريد الإلكتروني أولاً" : "Enter email first", variant: "destructive" });
+      return;
+    }
+    if (otpMethod === "sms" && !phoneNumber) {
+      toast({ title: isRTL ? "أدخل رقم الهاتف أولاً" : "Enter phone number first", variant: "destructive" });
+      return;
+    }
+
+    setIsSendingOtp(true);
+    try {
+      const headers = { "Content-Type": "application/json", "Accept-Language": language };
+      let response: Response;
+
+      if (otpMethod === "email") {
+        response = await fetch("/api/v1/otp/email/send", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ email }),
+        });
+      } else {
+        // Build phone with country code prefix — codePhoneNumberId maps to dial codes
+        const dialMap: Record<number, string> = {
+          1: "+962", 2: "+1", 3: "+44", 4: "+971", 5: "+966",
+          6: "+20", 7: "+961", 8: "+970", 9: "+974", 10: "+973",
+        };
+        const prefix = dialMap[codePhoneNumberId] || "+962";
+        const fullPhone = phoneNumber.startsWith("+") ? phoneNumber : `${prefix}${phoneNumber.replace(/^0/, "")}`;
+        response = await fetch("/api/v1/otp/sms/send", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ phone: fullPhone, locale: language }),
+        });
+      }
+
+      let result: any = {};
+      try { result = await response.json(); } catch {}
+      const ok = response.ok || result.success === true || result.isSucceeded === true;
+
+      if (ok) {
+        setOtpSent(true);
+        startCooldown(60);
+        toast({
+          title: isRTL ? "تم إرسال الرمز" : "Code sent",
+          description: otpMethod === "email"
+            ? (isRTL ? "تحقق من بريدك الإلكتروني" : "Check your email inbox")
+            : (isRTL ? "تحقق من رسائل SMS" : "Check your SMS messages"),
+        });
+      } else {
+        toast({
+          title: isRTL ? "فشل الإرسال" : "Send failed",
+          description: result.message || result.error || (isRTL ? "حدث خطأ، حاول مرة أخرى" : "An error occurred, please try again"),
+          variant: "destructive",
+        });
+      }
+    } catch {
+      toast({
+        title: isRTL ? "فشل الإرسال" : "Send failed",
+        description: isRTL ? "تعذر الاتصال بالخادم" : "Could not reach server",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
   const form = useForm<RegistrationData>({
     resolver: zodResolver(registrationSchema),
     defaultValues: {
@@ -115,11 +209,26 @@ export default function RegisterPage() {
 
   const onSubmit = useCallback(
     async (data: RegistrationData) => {
+      if (!otpCode.trim()) {
+        toast({
+          title: isRTL ? "رمز التحقق مطلوب" : "OTP code required",
+          description: isRTL ? "أرسل رمز التحقق وأدخله قبل التسجيل" : "Send and enter the OTP code before registering",
+          variant: "destructive",
+        });
+        return;
+      }
       setIsLoading(true);
       try {
         let recaptchaToken = "";
         if (executeRecaptcha) {
           recaptchaToken = await executeRecaptcha("register");
+        }
+
+        // SMS OTP path must NOT include email — sending email alongside a phone OTP
+        // causes the backend to apply email verification instead of SMS verification (mismatch)
+        const payload: Record<string, unknown> = { ...data, otpCode: otpCode.trim(), recaptchaToken };
+        if (otpMethod === "sms") {
+          delete payload.email;
         }
 
         const response = await fetch("/api/Auth/register", {
@@ -128,7 +237,7 @@ export default function RegisterPage() {
             "Content-Type": "application/json",
             "Accept-Language": language,
           },
-          body: JSON.stringify({ ...data, recaptchaToken }),
+          body: JSON.stringify(payload),
         });
         const result = await response.json();
 
@@ -182,7 +291,7 @@ export default function RegisterPage() {
         setIsLoading(false);
       }
     },
-    [executeRecaptcha, login, toast, setLocation, t],
+    [executeRecaptcha, login, toast, setLocation, t, otpCode, otpMethod, isRTL, language],
   );
 
   const inputClasses = "h-12 bg-muted/30 border-muted-foreground/20 focus:border-primary focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all duration-300 rounded-xl";
@@ -721,7 +830,106 @@ export default function RegisterPage() {
                   />
                 </motion.div>
 
+                {/* ── OTP Verification ────────────────────────────── */}
                 <motion.div custom={8} variants={formItemVariants} initial="hidden" animate="visible">
+                  <div className="rounded-xl border border-border/50 bg-muted/20 p-4 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-semibold">
+                        {isRTL ? "التحقق من الهوية" : "Identity Verification"}
+                      </span>
+                    </div>
+
+                    {/* Method selector */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => { setOtpMethod("email"); setOtpSent(false); setOtpCode(""); }}
+                        className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg border text-sm font-medium transition-all ${
+                          otpMethod === "email"
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border text-muted-foreground hover:border-border/80"
+                        }`}
+                        data-testid="button-otp-method-email"
+                      >
+                        <Mail className="h-3.5 w-3.5" />
+                        {isRTL ? "بريد إلكتروني" : "Email OTP"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setOtpMethod("sms"); setOtpSent(false); setOtpCode(""); }}
+                        className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg border text-sm font-medium transition-all ${
+                          otpMethod === "sms"
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border text-muted-foreground hover:border-border/80"
+                        }`}
+                        data-testid="button-otp-method-sms"
+                      >
+                        <MessageSquare className="h-3.5 w-3.5" />
+                        {isRTL ? "رسالة SMS" : "SMS OTP"}
+                      </button>
+                    </div>
+
+                    {otpMethod === "sms" && (
+                      <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40 rounded-lg px-3 py-2">
+                        {isRTL
+                          ? "⚠️ عند استخدام SMS، لن يُرسَل البريد الإلكتروني مع طلب التسجيل تجنبًا لعدم التطابق."
+                          : "⚠️ With SMS OTP, your email will be excluded from the registration request to avoid a verification mismatch."}
+                      </p>
+                    )}
+
+                    {/* Send button + OTP input */}
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          placeholder={isRTL ? "أدخل رمز التحقق" : "Enter OTP code"}
+                          value={otpCode}
+                          onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                          className="h-11 w-full rounded-xl border border-muted-foreground/20 bg-muted/30 px-3 text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none transition-all"
+                          dir="ltr"
+                          data-testid="input-otp-code"
+                          disabled={!otpSent}
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-11 px-4 shrink-0 gap-1.5"
+                        onClick={sendOtp}
+                        disabled={isSendingOtp || otpCooldown > 0}
+                        data-testid="button-send-otp"
+                      >
+                        {isSendingOtp ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : otpCooldown > 0 ? (
+                          <>
+                            <RefreshCw className="h-3.5 w-3.5" />
+                            {otpCooldown}s
+                          </>
+                        ) : (
+                          <>
+                            <Send className="h-3.5 w-3.5" />
+                            {isRTL ? "أرسل" : "Send"}
+                          </>
+                        )}
+                      </Button>
+                    </div>
+
+                    {otpSent && (
+                      <p className="text-xs text-emerald-600 flex items-center gap-1.5">
+                        <Check className="h-3.5 w-3.5" />
+                        {otpMethod === "email"
+                          ? (isRTL ? "تم إرسال الرمز إلى بريدك الإلكتروني" : "Code sent to your email")
+                          : (isRTL ? "تم إرسال الرمز عبر SMS" : "Code sent via SMS")}
+                      </p>
+                    )}
+                  </div>
+                </motion.div>
+
+                <motion.div custom={9} variants={formItemVariants} initial="hidden" animate="visible">
                   <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                     <Button
                       type="submit"
