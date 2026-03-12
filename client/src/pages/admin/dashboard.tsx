@@ -151,24 +151,33 @@ const defaultCardStatsConfig: CardStatsConfig = {
   remainingStatusId: "13",
 };
 
+const CARD_STATS_CONFIG_VERSION = 2;
+
 function useCardStatsConfig() {
   const [config, setConfig] = useState<CardStatsConfig>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem(CARD_STATS_CONFIG_KEY);
       if (saved) {
         try {
-          return { ...defaultCardStatsConfig, ...JSON.parse(saved) };
+          const parsed = JSON.parse(saved);
+          // v2 requires paidStatusId field; discard stale v1 data that used paidFilter
+          if (parsed._v === CARD_STATS_CONFIG_VERSION && typeof parsed.paidStatusId === "string") {
+            return { ...defaultCardStatsConfig, ...parsed };
+          }
         } catch {
-          return defaultCardStatsConfig;
+          // fall through to defaults
         }
+        // Old format or corrupt — clear it
+        localStorage.removeItem(CARD_STATS_CONFIG_KEY);
       }
     }
     return defaultCardStatsConfig;
   });
 
   const saveConfig = (next: CardStatsConfig) => {
+    const toSave = { ...next, _v: CARD_STATS_CONFIG_VERSION };
     setConfig(next);
-    localStorage.setItem(CARD_STATS_CONFIG_KEY, JSON.stringify(next));
+    localStorage.setItem(CARD_STATS_CONFIG_KEY, JSON.stringify(toSave));
   };
 
   return { config, saveConfig };
@@ -378,9 +387,9 @@ export default function AdminDashboard() {
     setDraftRemainingStatusId(cardConfig.remainingStatusId);
   }, [cardConfig]);
 
-  const cardsPaidUrl      = `/api/Card/paged?pageNumber=1&pageSize=1&cardStatusId=${cardConfig.paidStatusId}`;
-  const cardsAvailableUrl = `/api/Card/paged?pageNumber=1&pageSize=1&cardStatusId=${cardConfig.availableStatusId}`;
-  const cardsRemainingUrl = `/api/Card/paged?pageNumber=1&pageSize=1&cardStatusId=${cardConfig.remainingStatusId}`;
+  const cardsPaidUrl      = `/api/Card/paged?pageNumber=1&pageSize=1&cardStatus=${cardConfig.paidStatusId}`;
+  const cardsAvailableUrl = `/api/Card/paged?pageNumber=1&pageSize=1&cardStatus=${cardConfig.availableStatusId}`;
+  const cardsRemainingUrl = `/api/Card/paged?pageNumber=1&pageSize=1&cardStatus=${cardConfig.remainingStatusId}`;
 
   const { data: cardsTotalRaw } = useQuery({
     queryKey: ["/api/Card/paged?pageNumber=1&pageSize=1"],
@@ -1368,8 +1377,8 @@ export default function AdminDashboard() {
 
             <p className="text-xs text-muted-foreground bg-muted/50 rounded-md px-3 py-2">
               {language === "ar"
-                ? "يتم استخدام الحالة المختارة للاستعلام: /api/Card/paged?cardStatusId={id}"
-                : "Selected status is used as: /api/Card/paged?cardStatusId={id}"}
+                ? "يتم استخدام الحالة المختارة للاستعلام: /api/Card/paged?cardStatus={id}"
+                : "Selected status is used as: /api/Card/paged?cardStatus={id}"}
             </p>
           </div>
 
