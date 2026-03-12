@@ -183,12 +183,15 @@ export default function MixedNumbersPage() {
   const { data: issues = [], isLoading: isLoadingIssues } = useQuery<Issue[]>({
     queryKey: [API_CONFIG.issues.all],
     queryFn: async () => {
-      const res = await apiRequest("GET", API_CONFIG.issues.all);
-      if (!res.ok) return [];
-      const payload = await res.json();
-      return extractList(payload, "issues").map(normalizeIssue);
+      try {
+        const res = await apiRequest("GET", API_CONFIG.issues.all);
+        const payload = await res.json();
+        return extractList(payload, "issues").map(normalizeIssue);
+      } catch {
+        return [];
+      }
     },
-    retry: 1,
+    retry: 0,
   });
 
   const notebooksUrl =
@@ -203,18 +206,21 @@ export default function MixedNumbersPage() {
   } = useQuery<AvailableNotebook[]>({
     queryKey: [notebooksUrl],
     queryFn: async () => {
-      const res = await apiRequest("GET", notebooksUrl);
-      if (!res.ok) return [];
-      const payload = await res.json();
-      return extractList(
-        payload,
-        "notebooks",
-        "notebookGroups",
-        "availableNotebooks",
-        "groups"
-      ).map(normalizeNotebook);
+      try {
+        const res = await apiRequest("GET", notebooksUrl);
+        const payload = await res.json();
+        return extractList(
+          payload,
+          "notebooks",
+          "notebookGroups",
+          "availableNotebooks",
+          "groups"
+        ).map(normalizeNotebook);
+      } catch {
+        return [];
+      }
     },
-    retry: 1,
+    retry: 0,
   });
 
   const {
@@ -224,12 +230,15 @@ export default function MixedNumbersPage() {
   } = useQuery<Mixture[]>({
     queryKey: [API_CONFIG.mixture.list],
     queryFn: async () => {
-      const res = await apiRequest("GET", API_CONFIG.mixture.list);
-      if (!res.ok) return [];
-      const payload = await res.json();
-      return extractList(payload, "mixtures").map(normalizeMixture);
+      try {
+        const res = await apiRequest("GET", API_CONFIG.mixture.list);
+        const payload = await res.json();
+        return extractList(payload, "mixtures").map(normalizeMixture);
+      } catch {
+        return [];
+      }
     },
-    retry: 1,
+    retry: 0,
   });
 
   // ── Mutations ──────────────────────────────────────────────────────────────
@@ -243,8 +252,14 @@ export default function MixedNumbersPage() {
         active,
       }),
     onSuccess: () => {
+      const count = selectedNotebooks.size;
       queryClient.invalidateQueries({ queryKey: [API_CONFIG.mixture.list] });
       queryClient.invalidateQueries({ queryKey: [API_CONFIG.mixture.availableNotebooks] });
+      if (selectedIssueId > 0) {
+        queryClient.invalidateQueries({
+          queryKey: [API_CONFIG.mixture.availableNotebooksByIssue(selectedIssueId)],
+        });
+      }
       setMixtureName("");
       setSelectedNotebooks(new Set());
       setSelectedIssueId(0);
@@ -252,14 +267,14 @@ export default function MixedNumbersPage() {
       toast({
         title: isRTL ? "تم إنشاء الخلطة بنجاح" : "Mixture Created",
         description: isRTL
-          ? `تم إنشاء خلطة بـ ${selectedNotebooks.size} دفتر`
-          : `Mixture created with ${selectedNotebooks.size} notebooks`,
+          ? `تم إنشاء خلطة بـ ${count} دفتر`
+          : `Mixture created with ${count} notebooks`,
       });
     },
-    onError: () =>
+    onError: (err: Error) =>
       toast({
         title: isRTL ? "خطأ" : "Error",
-        description: isRTL ? "فشل في إنشاء الخلطة" : "Failed to create mixture",
+        description: err?.message || (isRTL ? "فشل في إنشاء الخلطة" : "Failed to create mixture"),
         variant: "destructive",
       }),
   });
@@ -278,10 +293,10 @@ export default function MixedNumbersPage() {
         description: isRTL ? "تم تفعيل الخلطة" : "Mixture has been activated",
       });
     },
-    onError: () =>
+    onError: (err: Error) =>
       toast({
         title: isRTL ? "خطأ" : "Error",
-        description: isRTL ? "فشل في التفعيل" : "Failed to activate mixture",
+        description: err?.message || (isRTL ? "فشل في التفعيل" : "Failed to activate mixture"),
         variant: "destructive",
       }),
   });
