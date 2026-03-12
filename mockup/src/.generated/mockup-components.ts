@@ -4,5 +4,8 @@ export const modules: ModuleMap = {
   "./components/mockups/admin-layout/CommandCenter.tsx": () => import("../components/mockups/admin-layout/CommandCenter.tsx"),
   "./components/mockups/admin-layout/CompactRibbon.tsx": () => import("../components/mockups/admin-layout/CompactRibbon.tsx"),
   "./components/mockups/admin-layout/FocusedWorkspace.tsx": () => import("../components/mockups/admin-layout/FocusedWorkspace.tsx"),
-  "./components/mockups/admin-layout/HubSpoke.tsx": () => import("../components/mockups/admin-layout/HubSpoke.tsx")
+  "./components/mockups/admin-layout/HubSpoke.tsx": () => import("../components/mockups/admin-layout/HubSpoke.tsx"),
+  "./components/mockups/landing-hero/CleanTrust.tsx": () => import("../components/mockups/landing-hero/CleanTrust.tsx"),
+  "./components/mockups/landing-hero/CommunityWarmth.tsx": () => import("../components/mockups/landing-hero/CommunityWarmth.tsx"),
+  "./components/mockups/landing-hero/GrandOccasion.tsx": () => import("../components/mockups/landing-hero/GrandOccasion.tsx")
 };
