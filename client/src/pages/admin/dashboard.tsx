@@ -388,36 +388,45 @@ export default function AdminDashboard() {
     setDraftRemainingStatusId(cardConfig.remainingStatusId);
   }, [cardConfig]);
 
-  const cardsPaidUrl      = `/api/Card/paged?pageNumber=1&pageSize=1&cardStatus=${cardConfig.paidStatusId}`;
-  const cardsAvailableUrl = `/api/Card/paged?pageNumber=1&pageSize=1&cardStatus=${cardConfig.availableStatusId}`;
-  const cardsRemainingUrl = `/api/Card/paged?pageNumber=1&pageSize=1&cardStatus=${cardConfig.remainingStatusId}`;
+  const ALL_CARDS_URL = "/api/Card/paged?pageNumber=1&pageSize=1000";
 
-  const { data: cardsTotalRaw } = useQuery({
-    queryKey: ["/api/Card/paged?pageNumber=1&pageSize=1"],
+  const { data: allCardsRaw, isLoading: isCardsLoading } = useQuery({
+    queryKey: [ALL_CARDS_URL],
     retry: 0,
   });
-  const { data: cardsPaidRaw, isLoading: isCardsPaidLoading } = useQuery({
-    queryKey: [cardsPaidUrl],
-    retry: 0,
-  });
-  const { data: cardsAvailableRaw, isLoading: isCardsAvailableLoading } = useQuery({
-    queryKey: [cardsAvailableUrl],
-    retry: 0,
-  });
-  const { data: cardsRemainingRaw, isLoading: isCardsRemainingLoading } = useQuery({
-    queryKey: [cardsRemainingUrl],
-    retry: 0,
-  });
+
+  function extractCardItems(payload: unknown): Record<string, unknown>[] {
+    if (!payload || typeof payload !== "object") return [];
+    const obj = payload as Record<string, unknown>;
+    if (Array.isArray(obj.items)) return obj.items as Record<string, unknown>[];
+    if (Array.isArray(obj.cards)) return obj.cards as Record<string, unknown>[];
+    if (obj.data && typeof obj.data === "object") {
+      const data = obj.data as Record<string, unknown>;
+      if (Array.isArray(data.items)) return data.items as Record<string, unknown>[];
+      if (Array.isArray(data.cards)) return data.cards as Record<string, unknown>[];
+      if (Array.isArray(data.data)) return data.data as Record<string, unknown>[];
+    }
+    return [];
+  }
+
+  function countCardsByStatusId(payload: unknown, statusId: number): number {
+    return extractCardItems(payload).filter(
+      (card) => Number(card.cardStatusId) === statusId
+    ).length;
+  }
+
+  const isCardsPaidLoading      = isCardsLoading;
+  const isCardsAvailableLoading = isCardsLoading;
+  const isCardsRemainingLoading = isCardsLoading;
 
   const totalIssues      = extractCount(allIssuesPagedRaw);
   const currentYearCount = extractCount(currentYearRaw);
   const totalUsersCount  = extractCount(allUsersRaw);
   const totalNotebooks   = extractCount(allNotebooksRaw);
 
-  const _totalCards         = extractCount(cardsTotalRaw); // kept for potential future use
-  const totalCardsPaid      = extractCount(cardsPaidRaw);
-  const totalCardsAvailable = extractCount(cardsAvailableRaw);
-  const totalCardsRemaining = extractCount(cardsRemainingRaw);
+  const totalCardsPaid      = countCardsByStatusId(allCardsRaw, Number(cardConfig.paidStatusId));
+  const totalCardsAvailable = countCardsByStatusId(allCardsRaw, Number(cardConfig.availableStatusId));
+  const totalCardsRemaining = countCardsByStatusId(allCardsRaw, Number(cardConfig.remainingStatusId));
 
   const handleSaveCardConfig = () => {
     saveCardConfig({
@@ -1378,8 +1387,8 @@ export default function AdminDashboard() {
 
             <p className="text-xs text-muted-foreground bg-muted/50 rounded-md px-3 py-2">
               {language === "ar"
-                ? "يتم استخدام الحالة المختارة للاستعلام: /api/Card/paged?cardStatus={id}"
-                : "Selected status is used as: /api/Card/paged?cardStatus={id}"}
+                ? "يتم تصفية البطاقات محلياً حسب cardStatusId المختار"
+                : "Cards are filtered locally by the selected cardStatusId"}
             </p>
           </div>
 
