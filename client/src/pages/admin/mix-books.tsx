@@ -83,12 +83,12 @@ function extractList(payload: unknown, ...keys: string[]): any[] {
   if (Array.isArray(payload)) return payload;
   if (payload && typeof payload === "object") {
     const obj = payload as Record<string, unknown>;
-    for (const key of [...keys, "data", "items", "result"]) {
+    for (const key of [...keys, "data", "items", "result", "records"]) {
       if (Array.isArray(obj[key])) return obj[key] as any[];
     }
     if (obj.data && typeof obj.data === "object") {
       const d = obj.data as Record<string, unknown>;
-      for (const key of ["data", "items"]) {
+      for (const key of [...keys, "data", "items", "records", "result"]) {
         if (Array.isArray(d[key])) return d[key] as any[];
       }
     }

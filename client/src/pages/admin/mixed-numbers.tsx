@@ -107,12 +107,12 @@ function extractList(payload: unknown, ...keys: string[]): any[] {
   if (Array.isArray(payload)) return payload;
   if (payload && typeof payload === "object") {
     const obj = payload as Record<string, unknown>;
-    for (const key of [...keys, "data", "items", "result"]) {
+    for (const key of [...keys, "data", "items", "result", "records"]) {
       if (Array.isArray(obj[key])) return obj[key] as any[];
     }
     if (obj.data && typeof obj.data === "object") {
       const d = obj.data as Record<string, unknown>;
-      for (const key of ["data", "items"]) {
+      for (const key of [...keys, "data", "items", "records", "result"]) {
         if (Array.isArray(d[key])) return d[key] as any[];
       }
     }
@@ -149,11 +149,13 @@ function normalizeMixture(raw: any, i: number): Mixture {
 }
 
 function normalizeIssue(raw: any, i: number): Issue {
+  const nameEn = asStr(raw.nameEn ?? raw.name ?? raw.issueName ?? raw.title ?? raw.issueNameEn);
+  const nameAr = asStr(raw.nameAr ?? raw.name ?? raw.issueName ?? raw.title ?? raw.issueNameAr);
   return {
-    id: asNum(raw.id ?? raw.issueId, i + 1),
-    name: asStr(raw.name ?? raw.nameEn ?? raw.nameAr),
-    nameEn: asStr(raw.nameEn ?? raw.name),
-    nameAr: asStr(raw.nameAr ?? raw.name),
+    id: asNum(raw.id ?? raw.issueId ?? raw.issue_id, i + 1),
+    name: nameEn || nameAr,
+    nameEn: nameEn || nameAr,
+    nameAr: nameAr || nameEn,
   };
 }
 
@@ -186,12 +188,17 @@ export default function MixedNumbersPage() {
       try {
         const res = await apiRequest("GET", API_CONFIG.issues.all);
         const payload = await res.json();
-        return extractList(payload, "issues").map(normalizeIssue);
+        const list = extractList(payload, "issues", "issue");
+        if (list.length > 0) return list.map(normalizeIssue);
+        // Fallback: try paged endpoint
+        const res2 = await apiRequest("GET", API_CONFIG.issues.paged);
+        const payload2 = await res2.json();
+        return extractList(payload2, "issues", "issue").map(normalizeIssue);
       } catch {
         return [];
       }
     },
-    retry: 0,
+    retry: 1,
   });
 
   const notebooksUrl =
