@@ -388,7 +388,7 @@ export default function AdminDashboard() {
     setDraftRemainingStatusId(cardConfig.remainingStatusId);
   }, [cardConfig]);
 
-  const ALL_CARDS_URL = "/api/Card/paged?pageNumber=1&pageSize=1000";
+  const ALL_CARDS_URL = "/api/Card/paged?pageNumber=1&pageSize=9999";
 
   const { data: allCardsRaw, isLoading: isCardsLoading } = useQuery({
     queryKey: [ALL_CARDS_URL],
