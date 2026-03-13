@@ -149,13 +149,22 @@ function normalizeMixture(raw: any, i: number): Mixture {
 }
 
 function normalizeIssue(raw: any, i: number): Issue {
-  const nameEn = asStr(raw.nameEn ?? raw.name ?? raw.issueName ?? raw.title ?? raw.issueNameEn);
-  const nameAr = asStr(raw.nameAr ?? raw.name ?? raw.issueName ?? raw.title ?? raw.issueNameAr);
+  const id = asNum(raw.id ?? raw.issueId ?? raw.issue_id, i + 1);
+  const issueNo = asNum(raw.issueNo ?? raw.issueNumber ?? id);
+  const typeName = asStr(raw.issueTypeName ?? raw.issueType ?? "");
+  const dateRaw = asStr(raw.issueDate ?? raw.creationDate ?? "");
+  const dateStr = dateRaw ? new Date(dateRaw).toLocaleDateString("en-GB") : "";
+
+  // Build a human-readable label: "#1 · Special Issue · 19/03/2026"
+  const parts = [`#${issueNo}`, typeName, dateStr].filter(Boolean);
+  const nameEn = asStr(raw.nameEn ?? raw.name ?? raw.issueName ?? raw.title) || parts.join(" · ");
+  const nameAr = asStr(raw.nameAr ?? raw.nameAr ?? raw.issueName) || parts.join(" · ");
+
   return {
-    id: asNum(raw.id ?? raw.issueId ?? raw.issue_id, i + 1),
-    name: nameEn || nameAr,
-    nameEn: nameEn || nameAr,
-    nameAr: nameAr || nameEn,
+    id,
+    name: nameEn,
+    nameEn,
+    nameAr,
   };
 }
 
