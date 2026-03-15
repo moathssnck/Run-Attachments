@@ -51,6 +51,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useLanguage } from "@/lib/language-context";
 import { registrationSchema, type RegistrationData } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
+import { API_CONFIG } from "@/lib/api-config";
 import { AuthLayout } from "@/components/auth-layout";
 
 const GoogleIcon = () => (
@@ -125,7 +126,7 @@ export default function RegisterPage() {
       let response: Response;
 
       if (otpMethod === "email") {
-        response = await fetch("/api/v1/otp/email/send", {
+        response = await fetch(API_CONFIG.payments.otpEmailSend, {
           method: "POST",
           headers,
           body: JSON.stringify({ email }),
@@ -138,7 +139,7 @@ export default function RegisterPage() {
         };
         const prefix = dialMap[codePhoneNumberId] || "+962";
         const fullPhone = phoneNumber.startsWith("+") ? phoneNumber : `${prefix}${phoneNumber.replace(/^0/, "")}`;
-        response = await fetch("/api/v1/otp/sms/send", {
+        response = await fetch(API_CONFIG.payments.otpSmsSend, {
           method: "POST",
           headers,
           body: JSON.stringify({ phone: fullPhone, locale: language }),
@@ -231,7 +232,7 @@ export default function RegisterPage() {
           delete payload.email;
         }
 
-        const response = await fetch("/api/Auth/register", {
+        const response = await fetch(API_CONFIG.auth.register, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -980,7 +981,7 @@ export default function RegisterPage() {
                   variant="outline"
                   type="button"
                   className="w-full h-12 font-medium border-muted-foreground/20 hover:bg-muted/50 transition-all duration-300 rounded-xl gap-3"
-                  onClick={() => { window.location.href = "/api/Auth/google-signin"; }}
+                  onClick={() => { window.location.href = API_CONFIG.auth.googleSignin; }}
                   disabled={isLoading}
                 >
                   <GoogleIcon />

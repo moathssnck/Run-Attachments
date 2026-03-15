@@ -1,5 +1,8 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
+// Auth refresh endpoint - defined inline to avoid circular dependency with api-config
+const AUTH_REFRESH_URL = "/api/Auth/refresh";
+
 export async function tryRefreshToken(): Promise<boolean> {
   const storedRefresh = localStorage.getItem("lottery_refresh_token");
   const currentToken = localStorage.getItem("lottery_token");
@@ -14,7 +17,7 @@ export async function tryRefreshToken(): Promise<boolean> {
       "Accept-Language": localStorage.getItem("language") || "ar",
     };
     if (currentToken) headers["Authorization"] = `Bearer ${currentToken}`;
-    const res = await fetch("/api/Auth/refresh", {
+    const res = await fetch(AUTH_REFRESH_URL, {
       method: "POST",
       headers,
       body: JSON.stringify({ refreshToken: storedRefresh }),

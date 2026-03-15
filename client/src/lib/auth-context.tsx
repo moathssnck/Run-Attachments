@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import type { User, UserRole } from "@shared/schema";
 import { apiRequest, getStoredToken } from "@/lib/queryClient";
+import { API_CONFIG } from "@/lib/api-config";
 
 interface AuthContextType {
   user: User | null;
@@ -60,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     if (refreshToken) {
       try {
-        await apiRequest("POST", "/api/Auth/revoke", { refreshToken });
+        await apiRequest("POST", API_CONFIG.auth.revoke, { refreshToken });
       } catch (e) {
       }
     }

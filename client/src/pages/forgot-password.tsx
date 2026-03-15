@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/lib/language-context";
 import { AuthLayout } from "@/components/auth-layout";
 import { apiRequest } from "@/lib/queryClient";
+import { API_CONFIG } from "@/lib/api-config";
 
 const requestSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -72,7 +73,7 @@ export default function ForgotPasswordPage() {
   const handleRequestSubmit = async (data: RequestData) => {
     setIsLoading(true);
     try {
-      const response = await fetch("/api/Auth/forgot-password", {
+      const response = await fetch(API_CONFIG.auth.forgotPassword, {
         method: "POST",
         headers: buildHeaders(),
         body: JSON.stringify({ email: data.email, phoneNumber: data.phoneNumber }),
@@ -120,13 +121,13 @@ export default function ForgotPasswordPage() {
   const handleResetSubmit = async (data: ResetData) => {
     setIsLoading(true);
     try {
-      const response = await fetch("/api/Auth/reset-password", {
+      const response = await fetch(API_CONFIG.auth.resetPassword, {
         method: "POST",
         headers: buildHeaders(),
         body: JSON.stringify({
           email,
           phoneNumber,
-          otpCode: data.otpCode,
+          resetToken: data.otpCode, // API expects resetToken field
           newPassword: data.newPassword,
           confirmPassword: data.confirmPassword,
         }),

@@ -28,6 +28,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth-context";
 import { useLanguage } from "@/lib/language-context";
+import { API_CONFIG } from "@/lib/api-config";
 import { loginSchema, type LoginData } from "@shared/schema";
 import { AuthLayout } from "@/components/auth-layout";
 import logoImage from "@assets/logo01_1767784684828.png";
@@ -302,11 +303,15 @@ export default function LoginPage() {
     async (data: LoginData) => {
       setIsLoading(true);
       try {
-        const response = await fetch("/api/Auth/login", {
+        const response = await fetch(API_CONFIG.auth.login, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "Accept-Language": language,
+          },
           body: JSON.stringify({
             email: data.email,
+            phoneNumber: data.email, // API accepts both email and phone
             password: data.password,
             rememberMe: true,
             Language: language,
@@ -424,7 +429,8 @@ export default function LoginPage() {
   );
 
   const handleGoogleLogin = () => {
-    window.location.href = "/api/Auth/google-signin";
+    // Google sign-in: POST with idToken (handled by backend OAuth flow)
+    window.location.href = API_CONFIG.auth.googleSignin;
   };
 
   return (

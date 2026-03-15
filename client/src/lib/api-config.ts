@@ -63,8 +63,15 @@ export const API_CONFIG = {
       `/api/user/${userId}/activities/card/${cardId}`,
   },
   auth: {
-    searchByPhone: "/api/Auth/search-by-phone",
+    register: "/api/Auth/register",
+    login: "/api/Auth/login",
+    refresh: "/api/Auth/refresh",
     changePassword: "/api/Auth/change-password",
+    forgotPassword: "/api/Auth/forgot-password",
+    resetPassword: "/api/Auth/reset-password",
+    revoke: "/api/Auth/revoke",
+    googleSignin: "/api/Auth/google-signin",
+    searchByPhone: "/api/Auth/search-by-phone",
   },
   profile: {
     byId: (id: ApiEntityId) => `/api/Profile/${id}`,
