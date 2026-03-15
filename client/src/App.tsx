@@ -127,9 +127,7 @@ function Router() {
       </Route>
 
       <Route path="/buy-ticket">
-        <ProtectedRoute allowedRoles={["end_user"]}>
-          <BuyTicketPage />
-        </ProtectedRoute>
+        <BuyTicketPage />
       </Route>
 
       <Route path="/my-tickets">
