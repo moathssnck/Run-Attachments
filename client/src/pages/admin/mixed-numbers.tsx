@@ -53,6 +53,7 @@ import {
   Zap,
   Hash,
   Eye,
+  ArrowRightLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -122,22 +123,38 @@ function extractList(payload: unknown, ...keys: string[]): any[] {
 
 function normalizeNotebook(raw: any, i: number): AvailableNotebook {
   return {
-    id: asNum(raw.id ?? raw.notebookId ?? raw.groupId ?? raw.notebookGroupId, i + 1),
+    id: asNum(raw.id ?? raw.notebookId ?? raw.groupId ?? raw.notebookGroupId ?? raw.noteBookId, i + 1),
     name: asStr(
       raw.name ?? raw.nameAr ?? raw.nameEn ?? raw.notebookName ??
-      raw.groupName ?? raw.notebookNumber
-    ) || `#${asNum(raw.id ?? raw.notebookId ?? i + 1)}`,
-    notebookNumber: asNum(raw.notebookNumber ?? raw.number),
+      raw.groupName ?? raw.notebookNumber ?? raw.noteBookNo ?? raw.noteBookName
+    ) || `#${asNum(raw.id ?? raw.notebookId ?? raw.noteBookId ?? i + 1)}`,
+    notebookNumber: asNum(raw.notebookNumber ?? raw.number ?? raw.noteBookNo),
     issueId: asNum(raw.issueId),
   };
 }
 
 function normalizeMixture(raw: any, i: number): Mixture {
-  const groups: number[] = Array.isArray(raw.notebookGroups)
-    ? raw.notebookGroups.map((g: any) => asNum(g))
-    : Array.isArray(raw.groups)
-    ? raw.groups.map((g: any) => asNum(g))
-    : [];
+  // notebookGroups can come as:
+  // 1. Array of numbers: [8, 9, 6]
+  // 2. Array of objects: [{ id: 8, ... }, ...]
+  // 3. Object map: { "1": [], "2": [101, 115] }
+  let groups: number[] = [];
+  const rawGroups = raw.notebookGroups ?? raw.groups ?? raw.notebooks;
+
+  if (Array.isArray(rawGroups)) {
+    groups = rawGroups.map((g: any) => {
+      if (typeof g === "number") return g;
+      if (typeof g === "string") return asNum(g);
+      if (g && typeof g === "object") {
+        return asNum(g.id ?? g.notebookGroupId ?? g.groupId ?? g.notebookId ?? g.noteBookNo ?? g.notebookNumber);
+      }
+      return 0;
+    }).filter((n: number) => n > 0);
+  } else if (rawGroups && typeof rawGroups === "object" && !Array.isArray(rawGroups)) {
+    // Object map format: { "1": [], "2": [101, 115] }
+    groups = Object.keys(rawGroups).map((k) => asNum(k)).filter((n) => n > 0);
+  }
+
   return {
     id: asNum(raw.id ?? raw.mixtureId, i + 1),
     name: asStr(raw.name ?? raw.mixtureName),
@@ -149,16 +166,16 @@ function normalizeMixture(raw: any, i: number): Mixture {
 }
 
 function normalizeIssue(raw: any, i: number): Issue {
-  const id = asNum(raw.id ?? raw.issueId ?? raw.issue_id, i + 1);
-  const issueNo = asNum(raw.issueNo ?? raw.issueNumber ?? id);
-  const typeName = asStr(raw.issueTypeName ?? raw.issueType ?? "");
-  const dateRaw = asStr(raw.issueDate ?? raw.creationDate ?? "");
-  const dateStr = dateRaw ? new Date(dateRaw).toLocaleDateString("en-GB") : "";
+  const id = asNum(raw.issueId ?? raw.id ?? raw.issue_id, i + 1);
+  const issueNo = asStr(raw.issueNo ?? raw.issueNumber ?? String(id));
+  const typeName = asStr(raw.issueTypeName ?? raw.issueTypeNameAr ?? raw.issueType ?? raw.typeName ?? "");
+  const dateRaw = asStr(raw.issueDate ?? raw.creationDate ?? raw.startDate ?? "");
+  const dateStr = dateRaw ? (() => { try { return new Date(dateRaw).toLocaleDateString("en-GB"); } catch { return ""; } })() : "";
 
   // Build a human-readable label: "#1 · Special Issue · 19/03/2026"
   const parts = [`#${issueNo}`, typeName, dateStr].filter(Boolean);
   const nameEn = asStr(raw.nameEn ?? raw.name ?? raw.issueName ?? raw.title) || parts.join(" · ");
-  const nameAr = asStr(raw.nameAr ?? raw.nameAr ?? raw.issueName) || parts.join(" · ");
+  const nameAr = asStr(raw.nameAr ?? raw.issueName) || parts.join(" · ");
 
   return {
     id,
@@ -189,6 +206,11 @@ export default function MixedNumbersPage() {
   // Number box dialog state
   const [numberBoxMixture, setNumberBoxMixture] = useState<Mixture | null>(null);
 
+  // Change status dialog state
+  const [changeStatusMixture, setChangeStatusMixture] = useState<Mixture | null>(null);
+  const [changeStatusNotebooks, setChangeStatusNotebooks] = useState<string>("");
+  const [newStatusId, setNewStatusId] = useState<number>(67);
+
   // ── Queries ────────────────────────────────────────────────────────────────
 
   const { data: issues = [], isLoading: isLoadingIssues } = useQuery<Issue[]>({
@@ -203,7 +225,8 @@ export default function MixedNumbersPage() {
         const res2 = await apiRequest("GET", API_CONFIG.issues.paged);
         const payload2 = await res2.json();
         return extractList(payload2, "issues", "issue").map(normalizeIssue);
-      } catch {
+      } catch (err) {
+        console.error("[MixedNumbers] Failed to load issues:", err);
         return [];
       }
     },
@@ -225,14 +248,27 @@ export default function MixedNumbersPage() {
       try {
         const res = await apiRequest("GET", notebooksUrl);
         const payload = await res.json();
-        return extractList(
+        const list = extractList(
           payload,
           "notebooks",
           "notebookGroups",
           "availableNotebooks",
-          "groups"
-        ).map(normalizeNotebook);
-      } catch {
+          "groups",
+          "noteBooks"
+        );
+        if (list.length > 0) return list.map(normalizeNotebook);
+        // If the response is a flat array of numbers
+        if (Array.isArray(payload) && payload.length > 0 && typeof payload[0] === "number") {
+          return payload.map((num: number, idx: number) => ({
+            id: num,
+            name: `#${num}`,
+            notebookNumber: num,
+            issueId: selectedIssueId,
+          }));
+        }
+        return [];
+      } catch (err) {
+        console.error("[MixedNumbers] Failed to load available notebooks:", err);
         return [];
       }
     },
@@ -249,8 +285,13 @@ export default function MixedNumbersPage() {
       try {
         const res = await apiRequest("GET", API_CONFIG.mixture.list);
         const payload = await res.json();
-        return extractList(payload, "mixtures").map(normalizeMixture);
-      } catch {
+        const list = extractList(payload, "mixtures", "mixture");
+        if (list.length > 0) return list.map(normalizeMixture);
+        // If the response is directly an array
+        if (Array.isArray(payload)) return payload.map(normalizeMixture);
+        return [];
+      } catch (err) {
+        console.error("[MixedNumbers] Failed to load mixtures:", err);
         return [];
       }
     },
@@ -278,7 +319,6 @@ export default function MixedNumbersPage() {
       }
       setMixtureName("");
       setSelectedNotebooks(new Set());
-      setSelectedIssueId(0);
       setActive(true);
       toast({
         title: isRTL ? "تم إنشاء الخلطة بنجاح" : "Mixture Created",
@@ -313,6 +353,30 @@ export default function MixedNumbersPage() {
       toast({
         title: isRTL ? "خطأ" : "Error",
         description: err?.message || (isRTL ? "فشل في التفعيل" : "Failed to activate mixture"),
+        variant: "destructive",
+      }),
+  });
+
+  const changeStatusMutation = useMutation({
+    mutationFn: ({ mixture, notebookNumbers, statusId }: { mixture: Mixture; notebookNumbers: number[]; statusId: number }) =>
+      apiRequest("POST", API_CONFIG.mixture.changeStatus(mixture.id), {
+        mixtureId: mixture.id,
+        notebookNumbers,
+        newStatusId: statusId,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [API_CONFIG.mixture.list] });
+      setChangeStatusMixture(null);
+      setChangeStatusNotebooks("");
+      toast({
+        title: isRTL ? "تم تغيير الحالة بنجاح" : "Status Changed",
+        description: isRTL ? "تم تحديث حالة الدفاتر" : "Notebook status has been updated",
+      });
+    },
+    onError: (err: Error) =>
+      toast({
+        title: isRTL ? "خطأ" : "Error",
+        description: err?.message || (isRTL ? "فشل في تغيير الحالة" : "Failed to change status"),
         variant: "destructive",
       }),
   });
@@ -356,6 +420,13 @@ export default function MixedNumbersPage() {
   };
 
   const isFormValid = selectedNotebooks.size > 0 && selectedIssueId > 0;
+
+  const parseNotebookNumbers = (input: string): number[] => {
+    return input
+      .split(/[,،\s]+/)
+      .map((s) => Number(s.trim()))
+      .filter((n) => Number.isFinite(n) && n > 0);
+  };
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -552,7 +623,9 @@ export default function MixedNumbersPage() {
                     ) : filteredNotebooks.length === 0 ? (
                       <div className="text-center py-6 text-muted-foreground text-xs">
                         <BookCopy className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                        {isRTL ? "لا توجد دفاتر متاحة" : "No available notebooks"}
+                        {selectedIssueId > 0
+                          ? (isRTL ? "لا توجد دفاتر متاحة لهذا الإصدار" : "No available notebooks for this issue")
+                          : (isRTL ? "اختر إصداراً لعرض الدفاتر المتاحة" : "Select an issue to view available notebooks")}
                       </div>
                     ) : (
                       <div className="border rounded-lg max-h-56 overflow-y-auto divide-y">
@@ -716,7 +789,7 @@ export default function MixedNumbersPage() {
                                       <XCircle className="h-3.5 w-3.5 text-muted-foreground" />
                                     </div>
                                   )}
-                                  <span className="font-medium text-sm">{mix.name}</span>
+                                  <span className="font-medium text-sm">{mix.name || `${isRTL ? "خلطة" : "Mixture"} #${mix.id}`}</span>
                                 </div>
                               </TableCell>
                               <TableCell>
@@ -799,6 +872,26 @@ export default function MixedNumbersPage() {
                                       </TooltipContent>
                                     </Tooltip>
                                   )}
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                                        onClick={() => {
+                                          setChangeStatusMixture(mix);
+                                          setChangeStatusNotebooks("");
+                                          setNewStatusId(67);
+                                        }}
+                                        data-testid={`button-changestatus-${mix.id}`}
+                                      >
+                                        <ArrowRightLeft className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      {isRTL ? "تغيير الحالة" : "Change status"}
+                                    </TooltipContent>
+                                  </Tooltip>
                                 </div>
                               </TableCell>
                             </TableRow>
@@ -825,7 +918,7 @@ export default function MixedNumbersPage() {
                 {isRTL ? "تفعيل الخلطة" : "Activate Mixture"}
               </DialogTitle>
               <DialogDescription>
-                <strong>{activateDialogMixture?.name}</strong>
+                <strong>{activateDialogMixture?.name || `#${activateDialogMixture?.id}`}</strong>
                 {" — "}
                 {isRTL
                   ? "حدد الحد الأقصى للدفاتر لكل مجموعة"
@@ -878,6 +971,99 @@ export default function MixedNumbersPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* ── Change Status Dialog ─────────────────────────────────────────── */}
+        <Dialog
+          open={changeStatusMixture !== null}
+          onOpenChange={(open) => !open && setChangeStatusMixture(null)}
+        >
+          <DialogContent className="max-w-md" dir={dir}>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <ArrowRightLeft className="h-4 w-4 text-amber-600" />
+                {isRTL ? "تغيير حالة الدفاتر" : "Change Notebook Status"}
+              </DialogTitle>
+              <DialogDescription>
+                <strong>{changeStatusMixture?.name || `#${changeStatusMixture?.id}`}</strong>
+                {" — "}
+                {isRTL
+                  ? "أدخل أرقام الدفاتر والحالة الجديدة"
+                  : "Enter notebook numbers and the new status"}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div className="space-y-1.5">
+                <Label className="text-sm">
+                  {isRTL ? "أرقام الدفاتر" : "Notebook Numbers"}
+                </Label>
+                <Input
+                  value={changeStatusNotebooks}
+                  onChange={(e) => setChangeStatusNotebooks(e.target.value)}
+                  placeholder={isRTL ? "مثال: 310, 317" : "e.g. 310, 317"}
+                  className="h-9 text-sm"
+                  data-testid="input-change-status-notebooks"
+                />
+                <p className="text-xs text-muted-foreground">
+                  {isRTL
+                    ? "أدخل أرقام الدفاتر مفصولة بفاصلة"
+                    : "Enter notebook numbers separated by commas"}
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-sm">
+                  {isRTL ? "معرّف الحالة الجديدة" : "New Status ID"}
+                </Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={newStatusId}
+                  onChange={(e) => setNewStatusId(Number(e.target.value) || 1)}
+                  className="h-9"
+                  data-testid="input-new-status-id"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setChangeStatusMixture(null)}
+                data-testid="button-cancel-change-status"
+              >
+                {isRTL ? "إلغاء" : "Cancel"}
+              </Button>
+              <Button
+                onClick={() => {
+                  if (!changeStatusMixture) return;
+                  const numbers = parseNotebookNumbers(changeStatusNotebooks);
+                  if (numbers.length === 0) {
+                    toast({
+                      title: isRTL ? "خطأ" : "Error",
+                      description: isRTL ? "أدخل أرقام دفاتر صحيحة" : "Enter valid notebook numbers",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  changeStatusMutation.mutate({
+                    mixture: changeStatusMixture,
+                    notebookNumbers: numbers,
+                    statusId: newStatusId,
+                  });
+                }}
+                disabled={changeStatusMutation.isPending || !changeStatusNotebooks.trim()}
+                className="bg-amber-600 hover:bg-amber-700 text-white gap-2"
+                data-testid="button-confirm-change-status"
+              >
+                {changeStatusMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <ArrowRightLeft className="h-4 w-4" />
+                )}
+                {isRTL ? "تغيير الحالة" : "Change Status"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         {/* ── Number Box Dialog ─────────────────────────────────────────────── */}
         <Dialog
           open={numberBoxMixture !== null}

@@ -97,11 +97,27 @@ function extractList(payload: unknown, ...keys: string[]): any[] {
 }
 
 function normalizeMixture(raw: any, i: number): Mixture {
-  const groups: number[] = Array.isArray(raw.notebookGroups)
-    ? raw.notebookGroups.map((g: any) => asNum(g))
-    : Array.isArray(raw.groups)
-    ? raw.groups.map((g: any) => asNum(g))
-    : [];
+  // notebookGroups can come as:
+  // 1. Array of numbers: [8, 9, 6]
+  // 2. Array of objects: [{ id: 8, ... }, ...]
+  // 3. Object map: { "1": [], "2": [101, 115] }
+  let groups: number[] = [];
+  const rawGroups = raw.notebookGroups ?? raw.groups ?? raw.notebooks;
+
+  if (Array.isArray(rawGroups)) {
+    groups = rawGroups.map((g: any) => {
+      if (typeof g === "number") return g;
+      if (typeof g === "string") return asNum(g);
+      if (g && typeof g === "object") {
+        return asNum(g.id ?? g.notebookGroupId ?? g.groupId ?? g.notebookId ?? g.noteBookNo ?? g.notebookNumber);
+      }
+      return 0;
+    }).filter((n: number) => n > 0);
+  } else if (rawGroups && typeof rawGroups === "object" && !Array.isArray(rawGroups)) {
+    // Object map format: { "1": [], "2": [101, 115] }
+    groups = Object.keys(rawGroups).map((k) => asNum(k)).filter((n) => n > 0);
+  }
+
   return {
     id: asNum(raw.id ?? raw.mixtureId, i + 1),
     name: asStr(raw.name ?? raw.mixtureName),
@@ -150,8 +166,13 @@ export default function MixBooksPage() {
       try {
         const res = await apiRequest("GET", API_CONFIG.mixture.list);
         const payload = await res.json();
-        return extractList(payload, "mixtures").map(normalizeMixture);
-      } catch {
+        const list = extractList(payload, "mixtures", "mixture");
+        if (list.length > 0) return list.map(normalizeMixture);
+        // If the response is directly an array
+        if (Array.isArray(payload)) return payload.map(normalizeMixture);
+        return [];
+      } catch (err) {
+        console.error("[MixBooks] Failed to load mixtures:", err);
         return [];
       }
     },
@@ -183,17 +204,24 @@ export default function MixBooksPage() {
           ? payload[0]
           : (payload?.data ?? payload);
         if (!raw) return null;
-        const numbers: number[] = Array.isArray(raw.numbers)
-          ? raw.numbers.map((n: any) => asNum(n))
-          : Array.isArray(raw.cards)
-          ? raw.cards.map((c: any) => asNum(c.cardNo ?? c.number ?? c))
-          : [];
+        // numbers can come as flat array, or nested in cards/notebooks
+        let numbers: number[] = [];
+        if (Array.isArray(raw.numbers)) {
+          numbers = raw.numbers.map((n: any) => typeof n === "number" ? n : asNum(n)).filter((n: number) => n > 0);
+        } else if (Array.isArray(raw.cards)) {
+          numbers = raw.cards.map((c: any) => asNum(c.cardNo ?? c.number ?? c.cardNumber ?? c)).filter((n: number) => n > 0);
+        } else if (Array.isArray(raw.notebookNumbers)) {
+          numbers = raw.notebookNumbers.map((n: any) => asNum(n)).filter((n: number) => n > 0);
+        } else if (Array.isArray(raw.notebooks)) {
+          numbers = raw.notebooks.map((n: any) => asNum(n.noteBookNo ?? n.notebookNumber ?? n.id ?? n)).filter((n: number) => n > 0);
+        }
         return {
-          id: asNum(raw.id ?? raw.notebookId),
-          notebookNumber: asNum(raw.notebookNumber ?? raw.noteBookNo ?? selectedGroupId),
+          id: asNum(raw.id ?? raw.notebookId ?? raw.mixtureId),
+          notebookNumber: asNum(raw.notebookNumber ?? raw.noteBookNo ?? raw.notebookNo ?? selectedGroupId),
           numbers,
         };
-      } catch {
+      } catch (err) {
+        console.error("[MixBooks] Failed to load notebook detail:", err);
         return null;
       }
     },
