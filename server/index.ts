@@ -14,9 +14,10 @@ declare module "http" {
   }
 }
 
-const fallbackExternalApiUrl = "https://ithink-71db.onrender.com/";
+// Main external API endpoint – single source of truth
+const MAIN_API_URL = "https://ithink-71db.onrender.com";
 const externalApiUrl =
-  process.env.EXTERNAL_API_URL?.trim() || fallbackExternalApiUrl;
+  process.env.EXTERNAL_API_URL?.trim() || `${MAIN_API_URL}/`;
 
 function shouldProxyToExternalApi(pathname: string): boolean {
   // Keep upload signing route local; proxy all other API calls.

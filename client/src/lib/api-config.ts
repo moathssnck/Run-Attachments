@@ -1,5 +1,12 @@
 type ApiEntityId = string | number;
 
+/**
+ * Main external API base URL.
+ * All /api/* requests are proxied through the Express server to this endpoint.
+ * Use this constant when you need to call the external API directly (e.g. from server-side code).
+ */
+export const BASE_API_URL = "https://ithink-71db.onrender.com";
+
 export const API_CONFIG = {
   cards: {
     paged1000: "/api/Card/paged?pageNumber=1&pageSize=1000",

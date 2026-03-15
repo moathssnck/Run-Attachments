@@ -1,5 +1,6 @@
 import type { Express } from "express";
 
+// Main external API endpoint
 const ITHINK_BASE = "https://ithink-71db.onrender.com";
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
