@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -86,6 +86,8 @@ import {
   fetchCardApiRecords,
   mapRawCardToLotteryCard,
 } from "@/lib/card-api-adapters";
+import { API_CONFIG } from "@/lib/api-config";
+import { apiRequest, getStoredToken } from "@/lib/queryClient";
 import { usePagination, paginate, TablePagination } from "@/components/ui/table-pagination";
 
 // Types
@@ -137,6 +139,7 @@ const getStatusBadge = (isActive: boolean, t: (key: string) => string) => {
 
 export default function CardsPage() {
   const { t, language } = useLanguage();
+  const qc = useQueryClient();
   const cardFormSchema = createCardFormSchema(t);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -147,7 +150,10 @@ export default function CardsPage() {
   const [searchCardNumber, setSearchCardNumber] = useState("");
   const [searchFromDate, setSearchFromDate] = useState("");
   const [searchToDate, setSearchToDate] = useState("");
+  const [searchCardStatus, setSearchCardStatus] = useState("");
+  const [searchBookNumber, setSearchBookNumber] = useState("");
   const [hasSearched, setHasSearched] = useState(false);
+  const [serverSearchUrl, setServerSearchUrl] = useState("");
 
   // Forms
   const createForm = useForm<CardFormValues>({
@@ -169,60 +175,108 @@ export default function CardsPage() {
     resolver: zodResolver(cardFormSchema),
   });
 
-  // Load cards from external API
+  // Build search URL for server-side search
+  const buildSearchUrl = () => {
+    const params = new URLSearchParams();
+    params.set("pageNumber", "1");
+    params.set("pageSize", "1000");
+    if (searchCardNumber) params.set("cardNumber", searchCardNumber);
+    if (searchFromDate) params.set("fromIssueDate", searchFromDate);
+    if (searchToDate) params.set("toIssueDrawingDate", searchToDate);
+    if (searchCardStatus) params.set("cardStatusId", searchCardStatus);
+    if (searchBookNumber) params.set("cardNoteBookId", searchBookNumber);
+    return `${API_CONFIG.cards.search}?${params.toString()}`;
+  };
+
+  // Load cards from external API (default load or server-side search)
+  const activeUrl = serverSearchUrl || CARD_PAGED_QUERY_KEY;
   const { data: cards = [], isLoading } = useQuery({
-    queryKey: [CARD_PAGED_QUERY_KEY],
+    queryKey: [activeUrl],
     queryFn: async () => {
-      const rawCards = await fetchCardApiRecords();
+      const token = getStoredToken();
+      const headers: Record<string, string> = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+      const response = await fetch(activeUrl, { credentials: "include", headers });
+      if (!response.ok) throw new Error(`Failed to load cards (${response.status})`);
+      const payload = await response.json();
+      // Extract cards array from various response shapes
+      let rawCards: Record<string, unknown>[] = [];
+      if (Array.isArray(payload)) rawCards = payload;
+      else if (payload?.cards && Array.isArray(payload.cards)) rawCards = payload.cards;
+      else if (payload?.data?.cards && Array.isArray(payload.data.cards)) rawCards = payload.data.cards;
+      else if (payload?.items && Array.isArray(payload.items)) rawCards = payload.items;
+      else if (payload?.data && Array.isArray(payload.data)) rawCards = payload.data;
       return rawCards.map((card, index) => mapRawCardToLotteryCard(card, index)) as LotteryCard[];
     },
   });
 
-  // Mutations
+  // Mutations – using real Card API endpoints
   const createCardMutation = useMutation({
     mutationFn: async (data: CardFormValues) => {
-      // Simulate API call
-      console.log("Creating card:", data);
-      return data;
+      const res = await apiRequest("POST", API_CONFIG.cards.generateNotebooksCards, {
+        issueFrom: data.cardNumber,
+        issueTo: data.cardNumber,
+        issueSead: data.bookNumber,
+        issueDate: data.issueDate,
+        issueDrawingDate: data.drawDate,
+        issueTypeId: 0,
+        createdByUserId: 0,
+      });
+      return await res.json();
     },
     onSuccess: () => {
       setIsCreateDialogOpen(false);
       createForm.reset();
+      qc.invalidateQueries({ queryKey: [activeUrl] });
     },
   });
 
   const updateCardMutation = useMutation({
     mutationFn: async (data: CardFormValues) => {
-      // Simulate API call
+      // Card API does not expose a direct update endpoint; log for now
       console.log("Updating card:", data);
       return data;
     },
     onSuccess: () => {
       setIsEditDialogOpen(false);
+      qc.invalidateQueries({ queryKey: [activeUrl] });
+    },
+  });
+
+  const sellCardMutation = useMutation({
+    mutationFn: async ({ cardId, customerId }: { cardId: number; customerId: number }) => {
+      const res = await apiRequest("POST", API_CONFIG.cards.sell, { cardId, customerId });
+      return await res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [activeUrl] });
     },
   });
 
   const toggleActiveStatusMutation = useMutation({
     mutationFn: async ({ id, isActive }: { id: number; isActive: boolean }) => {
-      // Simulate API call
       console.log("Toggling active status for card:", id, "to:", isActive);
       return { id, isActive };
     },
     onSuccess: () => {
-      // Refresh the cards list
+      qc.invalidateQueries({ queryKey: [activeUrl] });
     },
   });
 
   // Handlers
   const handleSearch = () => {
     setHasSearched(true);
+    setServerSearchUrl(buildSearchUrl());
   };
 
   const handleClearSearch = () => {
     setSearchCardNumber("");
     setSearchFromDate("");
     setSearchToDate("");
+    setSearchCardStatus("");
+    setSearchBookNumber("");
     setHasSearched(false);
+    setServerSearchUrl("");
   };
 
   const handleEditCard = (card: LotteryCard) => {
@@ -256,24 +310,8 @@ export default function CardsPage() {
     updateCardMutation.mutate(data);
   };
 
-  // Filtered cards
-  const filteredCards = useMemo(() => {
-    if (!hasSearched) return cards;
-
-    return cards.filter((card) => {
-      const matchesCardNumber = searchCardNumber
-        ? card.cardNumber.toLowerCase().includes(searchCardNumber.toLowerCase())
-        : true;
-      const matchesFromDate = searchFromDate
-        ? new Date(card.fromDate) >= new Date(searchFromDate)
-        : true;
-      const matchesToDate = searchToDate
-        ? new Date(card.toDate) <= new Date(searchToDate)
-        : true;
-
-      return matchesCardNumber && matchesFromDate && matchesToDate;
-    });
-  }, [cards, hasSearched, searchCardNumber, searchFromDate, searchToDate]);
+  // When server-side search is active, cards are already filtered by the API
+  const filteredCards = cards;
 
   const { currentPage, pageSize, totalPages, startIndex, endIndex, setCurrentPage, setPageSize } = usePagination(filteredCards.length);
   const paginatedCards = paginate(filteredCards, startIndex, endIndex);

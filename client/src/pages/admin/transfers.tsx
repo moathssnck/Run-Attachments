@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Search, Edit, Trash2, MoreHorizontal, Eye, ArrowLeftRight } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -51,22 +51,53 @@ import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/lib/language-context";
 import { AdminLayout } from "@/components/admin-layout";
 import { PageHeader } from "@/components/page-header";
-import {
-  CARD_PAGED_QUERY_KEY,
-  fetchCardApiRecords,
-  mapRawCardToLotteryCard,
-} from "@/lib/card-api-adapters";
+import { API_CONFIG } from "@/lib/api-config";
+import { apiRequest, getStoredToken } from "@/lib/queryClient";
 import { usePagination, paginate, TablePagination } from "@/components/ui/table-pagination";
 
 interface Transfer {
   id: string;
+  cardTransferId: string;
   movementNumber: string;
   issueNumber: string;
   transferDate: string;
   cardNumber: string;
+  cardId: string;
   previousOwner: string;
+  previousOwnerId: string;
   newOwner: string;
+  newOwnerId: string;
+  transferReason: string;
   status: "completed" | "pending" | "failed";
+}
+
+function asString(value: unknown, fallback = ""): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  return fallback;
+}
+
+function normalizeTransferStatus(value: unknown): "completed" | "pending" | "failed" {
+  const s = asString(value).toLowerCase();
+  if (s.includes("complet") || s.includes("approv") || s.includes("success")) return "completed";
+  if (s.includes("fail") || s.includes("reject") || s.includes("cancel")) return "failed";
+  return "pending";
+}
+
+function extractTransferList(payload: unknown): Record<string, unknown>[] {
+  if (Array.isArray(payload)) return payload;
+  if (!payload || typeof payload !== "object") return [];
+  const root = payload as Record<string, unknown>;
+  for (const key of ["transfers", "items", "data", "cardTransfers", "results"]) {
+    if (Array.isArray(root[key])) return root[key] as Record<string, unknown>[];
+  }
+  if (root.data && typeof root.data === "object") {
+    const d = root.data as Record<string, unknown>;
+    for (const key of ["transfers", "items", "data", "cardTransfers", "results"]) {
+      if (Array.isArray(d[key])) return d[key] as Record<string, unknown>[];
+    }
+  }
+  return [];
 }
 
 export default function TransfersPage() {
@@ -86,27 +117,78 @@ export default function TransfersPage() {
     null
   );
 
-  const { data: transfers = [] } = useQuery({
-    queryKey: [CARD_PAGED_QUERY_KEY, "transfers"],
+  const [serverSearchUrl, setServerSearchUrl] = useState("");
+  const qc = useQueryClient();
+
+  const buildSearchUrl = () => {
+    const params = new URLSearchParams();
+    params.set("pageNumber", "1");
+    params.set("pageSize", "50");
+    if (searchMovement) params.set("cardTransferId", searchMovement);
+    if (searchCard) params.set("cardId", searchCard);
+    if (searchPrevOwner) params.set("fromUserId", searchPrevOwner);
+    if (searchNewOwner) params.set("toUserId", searchNewOwner);
+    if (filterStatus !== "all") {
+      const statusMap: Record<string, string> = { completed: "6", pending: "5", failed: "7" };
+      if (statusMap[filterStatus]) params.set("statusId", statusMap[filterStatus]);
+    }
+    return `${API_CONFIG.cardTransfer.paged}?${params.toString()}`;
+  };
+
+  const activeTransferUrl = serverSearchUrl || `${API_CONFIG.cardTransfer.paged}?pageNumber=1&pageSize=50`;
+
+  const { data: transfers = [], isLoading: transfersLoading } = useQuery({
+    queryKey: [activeTransferUrl, "transfers"],
     queryFn: async (): Promise<Transfer[]> => {
-      const rawCards = await fetchCardApiRecords();
-      return rawCards.slice(0, 200).map((rawCard, index) => {
-        const card = mapRawCardToLotteryCard(rawCard, index);
-        const userName =
-          typeof rawCard.userName === "string" && rawCard.userName.trim() !== ""
-            ? rawCard.userName
-            : "—";
+      const token = getStoredToken();
+      const headers: Record<string, string> = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+      const response = await fetch(activeTransferUrl, { credentials: "include", headers });
+      if (!response.ok) throw new Error(`Failed to load transfers (${response.status})`);
+      const payload = await response.json();
+      const rows = extractTransferList(payload);
+      return rows.map((raw, index) => {
+        const fromUser = raw.fromUser && typeof raw.fromUser === "object" ? raw.fromUser as Record<string, unknown> : null;
+        const toUser = raw.toUser && typeof raw.toUser === "object" ? raw.toUser as Record<string, unknown> : null;
         return {
-          id: String(card.id),
-          movementNumber: `MOV-${String(card.id).padStart(5, "0")}`,
-          issueNumber: card.issueNumber,
-          transferDate: card.issueDate,
-          cardNumber: card.cardNumber,
-          previousOwner: userName,
-          newOwner: userName,
-          status: card.isActive ? "completed" : "pending",
+          id: asString(raw.cardTransferId ?? raw.id, String(index + 1)),
+          cardTransferId: asString(raw.cardTransferId ?? raw.id, String(index + 1)),
+          movementNumber: asString(raw.cardTransferId ?? raw.id, String(index + 1)),
+          issueNumber: asString(raw.issueNumber ?? raw.issueId, ""),
+          transferDate: asString(raw.transferDate ?? raw.createdAt ?? raw.date, new Date().toISOString()),
+          cardNumber: asString(raw.cardNo ?? raw.cardNumber ?? raw.cardId, ""),
+          cardId: asString(raw.cardId, ""),
+          previousOwner: fromUser
+            ? asString(fromUser.firstName ?? fromUser.userName, "") + " " + asString(fromUser.lastName, "")
+            : asString(raw.fromUserName ?? raw.fromUserId, "\u2014"),
+          previousOwnerId: asString(raw.fromUserId, ""),
+          newOwner: toUser
+            ? asString(toUser.firstName ?? toUser.userName, "") + " " + asString(toUser.lastName, "")
+            : asString(raw.toUserName ?? raw.toUserId, "\u2014"),
+          newOwnerId: asString(raw.toUserId ?? raw.newOwnerId, ""),
+          transferReason: asString(raw.transferReason ?? raw.reason, ""),
+          status: normalizeTransferStatus(raw.status ?? raw.statusName ?? raw.statusId),
         };
       });
+    },
+  });
+
+  // Transfer card mutation using real API
+  const transferCardMutation = useMutation({
+    mutationFn: async (data: { cardId: number; newOwnerId: number; transferReason: string }) => {
+      const res = await apiRequest("POST", API_CONFIG.cards.transfer, {
+        CardId: data.cardId,
+        newOwnerId: data.newOwnerId,
+        transferReason: data.transferReason,
+      });
+      return await res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [activeTransferUrl] });
+      toast({ title: language === "ar" ? "تم نقل البطاقة بنجاح" : "Card transferred successfully" });
+    },
+    onError: (err: Error) => {
+      toast({ title: language === "ar" ? "فشل نقل البطاقة" : "Transfer failed", description: err.message, variant: "destructive" });
     },
   });
 

@@ -37,6 +37,7 @@ import {
 import { AdminLayout } from "@/components/admin-layout";
 import { useLanguage } from "@/lib/language-context";
 import { API_CONFIG } from "@/lib/api-config";
+import { getStoredToken } from "@/lib/queryClient";
 import type { Payment, User as UserType, Ticket } from "@shared/schema";
 import { format } from "date-fns";
 import { PageHeader } from "@/components/page-header";
@@ -47,8 +48,8 @@ interface PaymentWithDetails extends Payment {
   ticket?: Ticket;
 }
 
-const PAYMENT_3DS_RETRIEVE_QUERY_KEY =
-  API_CONFIG.payments.retrieve3dsTest;
+// Use the admin payments endpoint for listing all transactions
+const ADMIN_PAYMENTS_URL = API_CONFIG.payments.adminPaged(1, 50);
 type RawPaymentPayload = Record<string, unknown>;
 
 function asString(value: unknown, fallback = ""): string {
@@ -177,10 +178,14 @@ export default function PaymentsPage() {
   };
 
   const { data: payments, isLoading } = useQuery<PaymentWithDetails[]>({
-    queryKey: [PAYMENT_3DS_RETRIEVE_QUERY_KEY, "transactions"],
+    queryKey: [ADMIN_PAYMENTS_URL, "transactions"],
     queryFn: async (): Promise<PaymentWithDetails[]> => {
-      const response = await fetch(PAYMENT_3DS_RETRIEVE_QUERY_KEY, {
+      const token = getStoredToken();
+      const headers: Record<string, string> = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+      const response = await fetch(ADMIN_PAYMENTS_URL, {
         credentials: "include",
+        headers,
       });
 
       if (!response.ok) {

@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import { toWesternNumerals } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
+import { API_CONFIG } from "@/lib/api-config";
 import { format } from "date-fns";
 import { arSA, enUS } from "date-fns/locale";
 import {
@@ -240,8 +241,18 @@ export default function ProfilePage() {
     onSuccess: async (response) => {
       if (!user?.id) return;
       try {
-        await apiRequest("PATCH", `/api/admin/users/${user.id}`, {
-          profilePhoto: response.objectPath,
+        // Upload profile image via Profile API FormData
+        const imgFormData = new FormData();
+        const imgBlob = await fetch(response.objectPath).then(r => r.blob());
+        imgFormData.append("profileImageFile", imgBlob, "profile.png");
+        const tkn = localStorage.getItem("lottery_token");
+        const hdrs: Record<string, string> = {};
+        if (tkn) hdrs["Authorization"] = `Bearer ${tkn}`;
+        await fetch(API_CONFIG.profile.update(user.id), {
+          method: "PUT",
+          headers: hdrs,
+          body: imgFormData,
+          credentials: "include",
         });
         setProfilePhoto(response.objectPath);
         toast({
@@ -300,32 +311,36 @@ export default function ProfilePage() {
     if (!user?.id) return;
     setIsSaving(true);
     try {
-      const response = await apiRequest(
-        "PATCH",
-        `/api/admin/users/${user.id}`,
-        {
-          firstName: personalInfo.firstName,
-          lastName: personalInfo.lastName,
-          email: personalInfo.email,
-          phoneCode: personalInfo.phoneCode,
-          mobile: personalInfo.mobile,
-          dateOfBirth: personalInfo.dateOfBirth
-            ? new Date(personalInfo.dateOfBirth)
-            : null,
-          passportOrIdNumber: personalInfo.passportOrIdNumber || null,
-          gender: personalInfo.gender || null,
-          address: personalInfo.address || null,
-          city: personalInfo.city || null,
-          country: personalInfo.country || null,
-          postalCode: personalInfo.postalCode || null,
-          region: personalInfo.region || null,
-          street: personalInfo.street || null,
-          secondaryPhone: personalInfo.secondaryPhone || null,
-          workEmail: personalInfo.workEmail || null,
-          emergencyContact: personalInfo.emergencyContact || null,
-          emergencyPhone: personalInfo.emergencyPhone || null,
-        },
-      );
+      // Use Profile API (PUT with FormData) as per Postman Collection
+      const formData = new FormData();
+      formData.append("firstName", personalInfo.firstName);
+      formData.append("lastName", personalInfo.lastName);
+      formData.append("email", personalInfo.email);
+      if (personalInfo.mobile) formData.append("phoneNumber", personalInfo.mobile);
+      if (personalInfo.dateOfBirth) formData.append("birthday", new Date(personalInfo.dateOfBirth).toISOString());
+      if (personalInfo.passportOrIdNumber) formData.append("documentOrPassportNumber", personalInfo.passportOrIdNumber);
+      if (personalInfo.gender) formData.append("gender", personalInfo.gender);
+      if (personalInfo.address) formData.append("address", personalInfo.address);
+      if (personalInfo.city) formData.append("city", personalInfo.city);
+      if (personalInfo.country) formData.append("country", personalInfo.country);
+      if (personalInfo.region) formData.append("area", personalInfo.region);
+      if (personalInfo.phoneCode) {
+        const codeMap: Record<string, string> = { "+962": "1", "+966": "2", "+971": "3", "+20": "4", "+965": "5", "+974": "6" };
+        formData.append("codePhoneNumberId", codeMap[personalInfo.phoneCode] || "1");
+      }
+      formData.append("isDeleted", "false");
+
+      const token = localStorage.getItem("lottery_token");
+      const headers: Record<string, string> = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      const response = await fetch(API_CONFIG.profile.update(user.id), {
+        method: "PUT",
+        headers,
+        body: formData,
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error(`Failed to update profile (${response.status})`);
       const result = await response.json();
       if (result.success) {
         toast({
@@ -368,7 +383,7 @@ export default function ProfilePage() {
     }
     setIsSaving(true);
     try {
-      const res = await apiRequest("POST", "/api/Auth/change-password", {
+      const res = await apiRequest("POST", API_CONFIG.auth.changePassword, {
         userId: parseInt(user?.id || "0"),
         currentPassword: passwordForm.currentPassword,
         newPassword: passwordForm.newPassword,

@@ -3,10 +3,73 @@ type ApiEntityId = string | number;
 export const API_CONFIG = {
   cards: {
     paged1000: "/api/Card/paged?pageNumber=1&pageSize=1000",
+    byId: (id: ApiEntityId) => `/api/Card/${id}`,
+    byQr: (qrCode: string) => `/api/Card/qr/${qrCode}`,
+    all: "/api/Card/all",
+    paged: (pageNumber: number, pageSize: number) =>
+      `/api/Card/paged?pageNumber=${pageNumber}&pageSize=${pageSize}`,
+    search: "/api/Card/search",
+    sell: "/api/Card/sell",
+    decodeQr: "/api/Card/decode-qr",
+    generateNotebooksCards: "/api/Card/generate-notebooks-cards",
+    quickPay: "/api/Card/quick-pay",
+    transfer: "/api/Card/transfer",
+    myCards: "/api/Card/my-cards",
   },
   payments: {
     retrieve3dsTest:
       "/api/payments/3ds/retrieve?orderId=TEST-ORDER-3&transactionId=1",
+    // Admin endpoints
+    adminList: "/api/admin/payments",
+    adminPaged: (page: number, pageSize: number) =>
+      `/api/admin/payments?page=${page}&pageSize=${pageSize}`,
+    adminById: (id: ApiEntityId) => `/api/admin/payments/${id}`,
+    adminByOrderId: (orderId: string) => `/api/admin/payments/order/${orderId}`,
+    // 3DS endpoints
+    initiate3ds: "/api/mpgs/3ds/initiate",
+    authenticate3ds: "/api/payments/3ds/authenticate",
+    redirect3ds: "/api/payments/3ds/redirect",
+    retrieve3ds: "/api/payments/3ds/retrieve",
+    pay: "/api/payments/pay",
+    // Checkout
+    checkoutStart: "/api/checkout/start",
+    checkoutStartWallet: "/api/checkout/start-wallet",
+    // OTP
+    otpSmsSend: "/api/v1/otp/sms/send",
+    otpSmsVerify: "/api/v1/otp/sms/verify",
+    otpEmailSend: "/api/v1/otp/email/send",
+    otpEmailVerify: "/api/v1/otp/email/verify",
+    otpWhatsappSend: "/api/v1/otp/whatsapp/send",
+    otpWhatsappVerify: "/api/v1/otp/whatsapp/verify",
+    // CliQ
+    cliqQr: "/api/v1/cliq/qr",
+    cliqStatus: (qrRefNo: string) => `/api/v1/cliq/qr/${qrRefNo}/status`,
+    cliqInquiry: (qrRefNo: string) => `/api/v1/cliq/qr/${qrRefNo}/inquiry`,
+  },
+  cardTransfer: {
+    byId: (id: ApiEntityId) => `/api/CardTransfer/${id}`,
+    paged: "/api/CardTransfer/paged",
+    pagedWithParams: (params: string) => `/api/CardTransfer/paged?${params}`,
+    sentBy: (userId: ApiEntityId, pageNumber = 1, pageSize = 10) =>
+      `/api/CardTransfer/sent-by/${userId}?pageNumber=${pageNumber}&pageSize=${pageSize}`,
+    receivedBy: (userId: ApiEntityId, pageNumber = 1, pageSize = 10) =>
+      `/api/CardTransfer/received-by/${userId}?pageNumber=${pageNumber}&pageSize=${pageSize}`,
+    byCard: (cardId: ApiEntityId, pageNumber = 1, pageSize = 10) =>
+      `/api/CardTransfer/by-card/${cardId}?pageNumber=${pageNumber}&pageSize=${pageSize}`,
+  },
+  userActivities: {
+    byUser: (userId: ApiEntityId) => `/api/user/${userId}/activities`,
+    cardDetail: (userId: ApiEntityId, cardId: ApiEntityId) =>
+      `/api/user/${userId}/activities/card/${cardId}`,
+  },
+  auth: {
+    searchByPhone: "/api/Auth/search-by-phone",
+    changePassword: "/api/Auth/change-password",
+  },
+  profile: {
+    byId: (id: ApiEntityId) => `/api/Profile/${id}`,
+    update: (id: ApiEntityId) => `/api/Profile/${id}`,
+    image: (id: ApiEntityId) => `/uploads/profiles/profile-${id}.png`,
   },
   cardSettings: {
     get: "/api/CardSetting",
