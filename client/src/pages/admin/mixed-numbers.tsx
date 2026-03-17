@@ -582,34 +582,36 @@ export default function MixedNumbersPage() {
                     </Label>
                   </div>
 
-                  {/* Notebook selector */}
+                  {/* Notebook selector — 10×10 Grid Box */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <Label className="text-xs font-medium text-muted-foreground">
                         {isRTL ? "اختر الدفاتر" : "Select Notebooks"}
                         <span className="text-destructive ms-1">*</span>
                       </Label>
-                      {availableNotebooks.length > 0 && (
-                        <button
-                          onClick={toggleAll}
-                          className="text-xs text-primary underline-offset-2 hover:underline"
-                          data-testid="button-toggle-all-notebooks"
-                        >
-                          {selectedNotebooks.size === filteredNotebooks.length
-                            ? isRTL ? "إلغاء الكل" : "Deselect all"
-                            : isRTL ? "تحديد الكل" : "Select all"}
-                        </button>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {availableNotebooks.length > 0 && (
+                          <button
+                            onClick={toggleAll}
+                            className="text-xs text-primary underline-offset-2 hover:underline"
+                            data-testid="button-toggle-all-notebooks"
+                          >
+                            {selectedNotebooks.size === filteredNotebooks.length
+                              ? isRTL ? "إلغاء الكل" : "Deselect all"
+                              : isRTL ? "تحديد الكل" : "Select all"}
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     {/* Notebook search */}
-                    {availableNotebooks.length > 5 && (
+                    {availableNotebooks.length > 10 && (
                       <div className="relative">
                         <Search className="absolute top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground start-2.5" />
                         <Input
                           value={notebookSearch}
                           onChange={(e) => setNotebookSearch(e.target.value)}
-                          placeholder={isRTL ? "بحث..." : "Search..."}
+                          placeholder={isRTL ? "بحث عن رقم دفتر..." : "Search notebook number..."}
                           className="h-8 text-xs ps-8"
                           data-testid="input-notebook-search"
                         />
@@ -628,48 +630,55 @@ export default function MixedNumbersPage() {
                           : (isRTL ? "اختر إصداراً لعرض الدفاتر المتاحة" : "Select an issue to view available notebooks")}
                       </div>
                     ) : (
-                      <div className="border rounded-lg max-h-56 overflow-y-auto divide-y">
-                        {filteredNotebooks.map((nb) => (
-                          <label
-                            key={nb.id}
-                            className={cn(
-                              "flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors",
-                              selectedNotebooks.has(nb.id)
-                                ? "bg-primary/5"
-                                : "hover:bg-muted/40"
-                            )}
-                            data-testid={`label-notebook-${nb.id}`}
-                          >
-                            <Checkbox
-                              checked={selectedNotebooks.has(nb.id)}
-                              onCheckedChange={() => toggleNotebook(nb.id)}
-                              data-testid={`checkbox-notebook-${nb.id}`}
-                            />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium truncate">{nb.name}</p>
-                              {nb.notebookNumber ? (
-                                <p className="text-xs text-muted-foreground font-mono">
-                                  #{nb.notebookNumber}
-                                </p>
-                              ) : null}
-                            </div>
-                            <Badge
-                              variant="outline"
-                              className="shrink-0 text-xs font-mono"
-                            >
-                              {nb.id}
-                            </Badge>
-                          </label>
-                        ))}
-                      </div>
-                    )}
+                      <div className="border rounded-xl p-3 bg-muted/20">
+                        {/* 10×10 Grid */}
+                        <div
+                          className="grid gap-1.5"
+                          style={{
+                            gridTemplateColumns: `repeat(${Math.min(10, filteredNotebooks.length)}, 1fr)`,
+                          }}
+                          data-testid="notebook-grid-10x10"
+                        >
+                          {filteredNotebooks.map((nb) => {
+                            const isSelected = selectedNotebooks.has(nb.id);
+                            return (
+                              <button
+                                key={nb.id}
+                                onClick={() => toggleNotebook(nb.id)}
+                                title={nb.name}
+                                className={cn(
+                                  "aspect-square rounded-lg flex items-center justify-center text-xs font-bold tabular-nums",
+                                  "border-2 transition-all duration-150 cursor-pointer select-none",
+                                  "hover:scale-110 hover:shadow-md active:scale-95",
+                                  isSelected
+                                    ? "bg-primary text-primary-foreground border-primary shadow-sm shadow-primary/30"
+                                    : "bg-background border-border hover:border-primary/50 hover:bg-primary/5 text-foreground"
+                                )}
+                                data-testid={`grid-cell-${nb.id}`}
+                              >
+                                {nb.notebookNumber || nb.id}
+                              </button>
+                            );
+                          })}
+                        </div>
 
-                    {selectedNotebooks.size > 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        {isRTL
-                          ? `${selectedNotebooks.size} دفتر محدد`
-                          : `${selectedNotebooks.size} notebook(s) selected`}
-                      </p>
+                        {/* Selection summary */}
+                        <div className="mt-3 flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground">
+                            {isRTL
+                              ? `${filteredNotebooks.length} دفتر متاح`
+                              : `${filteredNotebooks.length} available`}
+                          </span>
+                          {selectedNotebooks.size > 0 && (
+                            <Badge className="bg-primary/10 text-primary border-primary/20 gap-1">
+                              <CheckCircle2 className="h-3 w-3" />
+                              {isRTL
+                                ? `${selectedNotebooks.size} محدد`
+                                : `${selectedNotebooks.size} selected`}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
                     )}
                   </div>
 
@@ -1107,30 +1116,43 @@ export default function MixedNumbersPage() {
                   {isRTL ? "لا توجد أرقام في هذه الخلطة" : "No numbers in this mixture"}
                 </div>
               ) : (
-                <div className="flex flex-wrap gap-2 justify-center p-2 max-h-72 overflow-y-auto">
-                  {numberBoxMixture?.notebookGroups
-                    .slice()
-                    .sort((a, b) => a - b)
-                    .map((num) => (
-                      <div
-                        key={num}
-                        data-testid={`numberbox-chip-${num}`}
-                        className={cn(
-                          "flex items-center justify-center rounded-full font-bold tabular-nums select-none",
-                          "border-2 shadow-sm transition-colors",
-                          num <= 9
-                            ? "h-11 w-11 text-base"
-                            : num <= 99
-                            ? "h-11 w-11 text-sm"
-                            : "h-12 w-12 text-xs",
-                          numberBoxMixture.active
-                            ? "bg-emerald-500/10 border-emerald-400 text-emerald-700 dark:text-emerald-300 dark:border-emerald-500"
-                            : "bg-primary/10 border-primary/40 text-primary"
-                        )}
-                      >
-                        {num}
-                      </div>
-                    ))}
+                <div className="space-y-3">
+                  {/* 10×10 Grid View */}
+                  <div className="border rounded-xl p-3 bg-muted/10 max-h-[400px] overflow-y-auto">
+                    <div
+                      className="grid gap-1.5"
+                      style={{
+                        gridTemplateColumns: `repeat(${Math.min(10, numberBoxMixture?.notebookGroups.length ?? 1)}, 1fr)`,
+                      }}
+                    >
+                      {numberBoxMixture?.notebookGroups
+                        .slice()
+                        .sort((a, b) => a - b)
+                        .map((num) => (
+                          <div
+                            key={num}
+                            data-testid={`numberbox-chip-${num}`}
+                            className={cn(
+                              "aspect-square rounded-lg flex items-center justify-center font-bold tabular-nums select-none",
+                              "border-2 shadow-sm transition-colors",
+                              num <= 99 ? "text-sm" : "text-xs",
+                              numberBoxMixture.active
+                                ? "bg-emerald-500/10 border-emerald-400 text-emerald-700 dark:text-emerald-300 dark:border-emerald-500"
+                                : "bg-primary/10 border-primary/40 text-primary"
+                            )}
+                          >
+                            {num}
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                  {/* Summary */}
+                  <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                    <Hash className="h-3.5 w-3.5" />
+                    {isRTL
+                      ? `إجمالي: ${numberBoxMixture?.notebookGroups.length ?? 0} دفتر`
+                      : `Total: ${numberBoxMixture?.notebookGroups.length ?? 0} notebooks`}
+                  </div>
                 </div>
               )}
             </div>

@@ -466,66 +466,51 @@ export default function MixBooksPage() {
                     {isRTL ? "لا توجد دفاتر" : "No books"}
                   </div>
                 ) : (
-                  <div className="grid grid-cols-10 gap-2.5">
-                    {booksForGroup.map((book) => (
-                      <button
-                        key={book.id}
-                        type="button"
-                        onClick={() => toggleBookSelection(book.id)}
-                        data-testid={`button-book-${book.id}`}
-                        className={cn(
-                          "relative group cursor-pointer transition-all duration-150",
-                          "hover:-translate-y-1 hover:scale-105 active:scale-95",
-                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
-                        )}
-                      >
-                        {book.selected && (
-                          <div className="absolute -top-1.5 -right-1.5 z-10 h-5 w-5 flex items-center justify-center rounded-full bg-primary shadow-lg shadow-primary/40">
-                            <Check className="h-3 w-3 text-primary-foreground" />
-                          </div>
-                        )}
-                        <div
+                  <div className="border rounded-xl p-4 bg-muted/10">
+                    <div
+                      className="grid gap-2"
+                      style={{
+                        gridTemplateColumns: `repeat(${Math.min(10, booksForGroup.length)}, 1fr)`,
+                      }}
+                      data-testid="books-grid-10x10"
+                    >
+                      {booksForGroup.map((book) => (
+                        <button
+                          key={book.id}
+                          type="button"
+                          onClick={() => toggleBookSelection(book.id)}
+                          data-testid={`button-book-${book.id}`}
                           className={cn(
-                            "relative overflow-hidden rounded-lg border transition-all duration-150 shadow-sm group-hover:shadow-md",
+                            "aspect-square rounded-lg flex items-center justify-center",
+                            "font-bold tabular-nums select-none",
+                            "border-2 transition-all duration-150 cursor-pointer",
+                            "hover:scale-110 hover:shadow-md active:scale-95",
                             book.selected
-                              ? "border-primary shadow-primary/20 group-hover:shadow-primary/30"
-                              : "border-border/70 group-hover:border-primary/40 group-hover:shadow-primary/10",
+                              ? "bg-primary text-primary-foreground border-primary shadow-sm shadow-primary/30"
+                              : "bg-background border-border hover:border-primary/50 hover:bg-primary/5 text-foreground",
+                            book.notebookNumber <= 99 ? "text-sm" : "text-xs",
                           )}
                         >
-                          <div
-                            className={cn(
-                              "absolute inset-y-0 start-0 w-1.5 transition-colors duration-150",
-                              book.selected ? "bg-primary" : "bg-border/60 group-hover:bg-primary/40",
-                            )}
-                          />
-                          <div
-                            className={cn(
-                              "ps-3 pe-1.5 py-2.5 flex flex-col items-center justify-center min-h-[3.5rem] gap-0.5 transition-colors duration-150",
-                              book.selected ? "bg-primary/10" : "bg-card group-hover:bg-primary/5",
-                            )}
-                          >
-                            <span
-                              className={cn(
-                                "text-sm font-extrabold tabular-nums leading-none transition-colors duration-150",
-                                book.selected ? "text-primary" : "text-foreground/80 group-hover:text-primary",
-                              )}
-                            >
-                              {displayNum(book.notebookNumber)}
-                            </span>
-                            <span
-                              className={cn(
-                                "text-[9px] font-medium leading-none transition-colors duration-150",
-                                book.selected
-                                  ? "text-primary/60"
-                                  : "text-muted-foreground/50 group-hover:text-primary/50",
-                              )}
-                            >
-                              {isRTL ? "دفتر" : "Book"}
-                            </span>
-                          </div>
-                        </div>
-                      </button>
-                    ))}
+                          {displayNum(book.notebookNumber)}
+                        </button>
+                      ))}
+                    </div>
+                    {/* Selection summary */}
+                    <div className="mt-3 flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">
+                        {isRTL
+                          ? `${toArabicNumeral(booksForGroup.length)} دفتر`
+                          : `${booksForGroup.length} books`}
+                      </span>
+                      {selectedBooksCount > 0 && (
+                        <Badge className="bg-primary/10 text-primary border-primary/20 gap-1">
+                          <CheckCircle2 className="h-3 w-3" />
+                          {isRTL
+                            ? `${toArabicNumeral(selectedBooksCount)} محدد`
+                            : `${selectedBooksCount} selected`}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 )}
               </CardContent>
@@ -654,41 +639,47 @@ export default function MixBooksPage() {
                   {isRTL ? "لا توجد مجموعات في هذه الخلطة" : "No groups in this mixture"}
                 </div>
               ) : (
-                <div className="grid grid-cols-8 sm:grid-cols-10 md:grid-cols-12 lg:grid-cols-10 gap-2.5">
-                  {selectedMixture.notebookGroups
-                    .slice()
-                    .sort((a, b) => a - b)
-                    .map((groupId) => (
-                      <button
-                        key={groupId}
-                        type="button"
-                        onClick={() => openGroup(groupId)}
-                        data-testid={`button-group-${groupId}`}
-                        className={cn(
-                          "group cursor-pointer transition-all duration-150",
-                          "hover:-translate-y-1 hover:scale-105 active:scale-95",
-                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
-                        )}
-                      >
-                        <div
-                          className={cn(
-                            "relative overflow-hidden rounded-xl border-2 border-border/60 shadow-sm",
-                            "group-hover:border-primary/60 group-hover:shadow-md group-hover:shadow-primary/10",
-                            "transition-all duration-150",
-                          )}
-                        >
-                          <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-primary/0 via-primary/60 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
-                          <div className="bg-card group-hover:bg-primary/5 transition-colors duration-150 p-2 flex flex-col items-center justify-center min-h-[3.5rem] gap-0.5">
-                            <span className="text-sm font-extrabold tabular-nums text-foreground/80 group-hover:text-primary transition-colors duration-150 leading-none">
-                              {displayNum(groupId)}
-                            </span>
-                            <span className="text-[9px] font-medium text-muted-foreground/50 group-hover:text-primary/50 transition-colors duration-150 leading-none">
-                              {isRTL ? "مجموعة" : "Group"}
-                            </span>
-                          </div>
-                        </div>
-                      </button>
-                    ))}
+                <div className="space-y-4">
+                  {/* 10×10 Grid Box */}
+                  <div className="border rounded-xl p-4 bg-muted/10">
+                    <div
+                      className="grid gap-2"
+                      style={{
+                        gridTemplateColumns: `repeat(${Math.min(10, selectedMixture.notebookGroups.length)}, 1fr)`,
+                      }}
+                      data-testid="mix-books-grid-10x10"
+                    >
+                      {selectedMixture.notebookGroups
+                        .slice()
+                        .sort((a, b) => a - b)
+                        .map((groupId) => (
+                          <button
+                            key={groupId}
+                            type="button"
+                            onClick={() => openGroup(groupId)}
+                            data-testid={`button-group-${groupId}`}
+                            className={cn(
+                              "aspect-square rounded-lg flex items-center justify-center",
+                              "font-bold tabular-nums select-none",
+                              "border-2 transition-all duration-150 cursor-pointer",
+                              "hover:scale-110 hover:shadow-lg active:scale-95",
+                              "bg-primary/10 border-primary/40 text-primary",
+                              "hover:bg-primary hover:text-primary-foreground hover:border-primary hover:shadow-primary/30",
+                              groupId <= 99 ? "text-sm" : "text-xs",
+                            )}
+                          >
+                            {displayNum(groupId)}
+                          </button>
+                        ))}
+                    </div>
+                  </div>
+                  {/* Grid summary */}
+                  <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                    <Grid3X3 className="h-3.5 w-3.5" />
+                    {isRTL
+                      ? `${toArabicNumeral(selectedMixture.notebookGroups.length)} مجموعة • اضغط على أي رقم لعرض الدفاتر`
+                      : `${selectedMixture.notebookGroups.length} groups • Click any number to view its books`}
+                  </div>
                 </div>
               )}
             </CardContent>
